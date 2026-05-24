@@ -1084,7 +1084,7 @@ function SettingsContent({ section }: { section: SettingsSection }) {
               onChange={(url, storageId) =>{  updateImageField(key, url, storageId); }}
               folder="settings"
               previewSize={key.includes('favicon') ? 'sm' : 'md'}
-              smartLogoCrop={key === 'site_logo'}
+              smartLogoCrop={false}
             />
             {isFaviconField && (
               <div className="flex flex-wrap gap-2">
@@ -1796,7 +1796,7 @@ function SettingsContent({ section }: { section: SettingsSection }) {
                           onChange={(url, storageId) =>{  updateImageField('site_logo', url, storageId); }}
                           folder="settings"
                           previewSize="md"
-                          smartLogoCrop
+                          smartLogoCrop={false}
                         />
                         <div className="flex items-center justify-between gap-3">
                           <Label>Tên thương hiệu</Label>
