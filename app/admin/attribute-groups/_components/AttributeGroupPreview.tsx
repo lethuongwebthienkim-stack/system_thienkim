@@ -141,50 +141,106 @@ export function AttributeGroupPreview({
           <div className="pt-1">
             {/* Kiểu RANGE SLIDER (Nếu filterType === 'range') */}
             {filterType === 'range' ? (
-              <div className="space-y-4 py-2">
+              <div className="space-y-6 py-3">
+                <style dangerouslySetInnerHTML={{__html: `
+                  .double-range-slider input[type="range"] {
+                    position: absolute;
+                    width: 100%;
+                    height: 8px;
+                    top: 0;
+                    left: 0;
+                    background: none;
+                    pointer-events: none;
+                    -webkit-appearance: none;
+                    appearance: none;
+                  }
+                  .double-range-slider input[type="range"]::-webkit-slider-thumb {
+                    height: 18px;
+                    width: 18px;
+                    border-radius: 50%;
+                    background: ${iconColor};
+                    cursor: pointer;
+                    pointer-events: auto;
+                    -webkit-appearance: none;
+                    border: 2px solid #ffffff;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                    transition: transform 0.1s ease;
+                  }
+                  .double-range-slider input[type="range"]::-webkit-slider-thumb:active {
+                    transform: scale(1.2);
+                  }
+                  .double-range-slider input[type="range"]::-moz-range-thumb {
+                    height: 18px;
+                    width: 18px;
+                    border-radius: 50%;
+                    background: ${iconColor};
+                    cursor: pointer;
+                    pointer-events: auto;
+                    border: 2px solid #ffffff;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                    transition: transform 0.1s ease;
+                  }
+                  .double-range-slider input[type="range"]::-moz-range-thumb:active {
+                    transform: scale(1.2);
+                  }
+                `}} />
+
                 <div className="flex justify-between items-center text-xs font-semibold text-slate-600 dark:text-slate-400">
                   <span>Dải chọn:</span>
-                  <span className="text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-2 py-0.5 rounded font-mono">
+                  <span className="px-2 py-0.5 rounded font-mono text-white" style={{ backgroundColor: iconColor }}>
                     {minVal}ml - {maxVal}ml
                   </span>
                 </div>
 
-                <div className="space-y-3 relative">
-                  {/* Slider controls */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-400 w-8">Từ:</span>
-                      <input
-                        type="range"
-                        min="10"
-                        max="1000"
-                        step="10"
-                        value={minVal}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          if (val < maxVal) setMinVal(val);
-                        }}
-                        className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-600 dark:bg-slate-800"
-                      />
-                      <span className="text-[10px] text-slate-500 font-mono w-12 text-right">{minVal}ml</span>
-                    </div>
+                <div className="space-y-4 pt-2">
+                  {/* Container Slider */}
+                  <div className="relative w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-lg double-range-slider">
+                    {/* Active Track */}
+                    <div 
+                      className="absolute h-full rounded-lg"
+                      style={{
+                        left: `${((minVal - 10) / (1000 - 10)) * 100}%`,
+                        right: `${100 - ((maxVal - 10) / (1000 - 10)) * 100}%`,
+                        backgroundColor: iconColor,
+                        opacity: 0.8
+                      }}
+                    />
+                    
+                    {/* Min Range Input */}
+                    <input
+                      type="range"
+                      min="10"
+                      max="1000"
+                      step="10"
+                      value={minVal}
+                      onChange={(e) => {
+                        const val = Math.min(Number(e.target.value), maxVal - 50);
+                        setMinVal(val);
+                      }}
+                      className="absolute w-full"
+                      style={{ zIndex: minVal > 900 ? 5 : 3 }}
+                    />
+                    
+                    {/* Max Range Input */}
+                    <input
+                      type="range"
+                      min="10"
+                      max="1000"
+                      step="10"
+                      value={maxVal}
+                      onChange={(e) => {
+                        const val = Math.max(Number(e.target.value), minVal + 50);
+                        setMaxVal(val);
+                      }}
+                      className="absolute w-full"
+                      style={{ zIndex: 4 }}
+                    />
+                  </div>
 
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-400 w-8">Đến:</span>
-                      <input
-                        type="range"
-                        min="10"
-                        max="1000"
-                        step="10"
-                        value={maxVal}
-                        onChange={(e) => {
-                          const val = Number(e.target.value);
-                          if (val > minVal) setMaxVal(val);
-                        }}
-                        className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-600 dark:bg-slate-800"
-                      />
-                      <span className="text-[10px] text-slate-500 font-mono w-12 text-right">{maxVal}ml</span>
-                    </div>
+                  {/* Min / Max Labels */}
+                  <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                    <span>10ml</span>
+                    <span>1000ml</span>
                   </div>
                 </div>
               </div>

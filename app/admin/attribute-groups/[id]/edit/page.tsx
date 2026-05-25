@@ -167,18 +167,20 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
                   </select>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Kiểu hiển thị</Label>
-                  <select 
-                    value={inputType}
-                    onChange={(e) => setInputType(e.target.value)}
-                    className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
-                  >
-                    <option value="select">Dropdown (Select)</option>
-                    <option value="buttons">Các nút bấm (Buttons)</option>
-                    <option value="radio">Nút tròn (Radio)</option>
-                  </select>
-                </div>
+                {filterType !== 'range' && (
+                  <div className="space-y-2">
+                    <Label>Kiểu hiển thị</Label>
+                    <select 
+                      value={inputType}
+                      onChange={(e) => setInputType(e.target.value)}
+                      className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+                    >
+                      <option value="select">Dropdown (Select)</option>
+                      <option value="buttons">Các nút bấm (Buttons)</option>
+                      <option value="radio">Nút tròn (Radio)</option>
+                    </select>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>Icon đại diện</Label>
