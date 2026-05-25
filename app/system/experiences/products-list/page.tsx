@@ -2,7 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useQuery } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
+import { toast } from 'sonner';
 import { api } from '@/convex/_generated/api';
 import { Eye, Heart, LayoutTemplate, Loader2, Package, Save, ShoppingCart, Tag } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@/app/admin/components/ui';
@@ -114,6 +115,22 @@ function ModuleFeatureStatus({ label, enabled, href, moduleName }: { label: stri
 }
 
 export default function ProductsListExperiencePage() {
+  const initStats = useMutation(api.products.initStats);
+  const [isSyncingStats, setIsSyncingStats] = useState(false);
+
+  const handleSyncStats = async () => {
+    setIsSyncingStats(true);
+    try {
+      await initStats();
+      toast.success('Đã đồng bộ lại bộ đếm thống kê sản phẩm thành công!');
+    } catch (err) {
+      console.error(err);
+      toast.error('Lỗi khi đồng bộ bộ đếm thống kê sản phẩm.');
+    } finally {
+      setIsSyncingStats(false);
+    }
+  };
+
   const experienceSetting = useQuery(api.settings.getByKey, { key: EXPERIENCE_KEY });
   const productsModule = useQuery(api.admin.modules.getModuleByKey, { key: 'products' });
   const wishlistModule = useQuery(api.admin.modules.getModuleByKey, { key: 'wishlist' });
@@ -381,6 +398,34 @@ export default function ProductsListExperiencePage() {
               accentColor={brandColor}
               disabled={!canUsePromotions}
             />
+          </ControlCard>
+
+          <ControlCard title="Bảo trì hệ thống">
+            <div className="space-y-3">
+              <p className="text-xs text-slate-500 leading-relaxed">
+                Nếu số lượng sản phẩm ngoài public hiển thị sai lệch so với trang Admin, hãy nhấn nút dưới đây để đồng bộ lại bộ đếm thống kê.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSyncStats}
+                disabled={isSyncingStats}
+                className="w-full gap-2 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/50"
+              >
+                {isSyncingStats ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Đang đồng bộ...</span>
+                  </>
+                ) : (
+                  <>
+                    <Package size={14} />
+                    <span>Đồng bộ lại bộ đếm sản phẩm</span>
+                  </>
+                )}
+              </Button>
+            </div>
           </ControlCard>
         </CardContent>
       </Card>
