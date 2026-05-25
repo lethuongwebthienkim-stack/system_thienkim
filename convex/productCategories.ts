@@ -34,6 +34,9 @@ async function syncCategoryProductTypes(
   categoryId: Id<"productCategories">,
   productTypeIds: Id<"productTypes">[]
 ) {
+  if (productTypeIds.length > 1) {
+    throw new Error("Mỗi danh mục chỉ được gán tối đa 1 kiểu sản phẩm");
+  }
   const existing = await ctx.db
     .query("productCategoryTypes")
     .withIndex("by_category", (q) => q.eq("categoryId", categoryId))

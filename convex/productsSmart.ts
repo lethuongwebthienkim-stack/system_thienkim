@@ -457,6 +457,37 @@ async function upsertVariants(
     }
   }
 }
+async function assertCategoryProductTypesHomogeneity(
+  ctx: MutationCtx,
+  categoryId: Id<"productCategories">,
+  additionalCategoryIds?: Id<"productCategories">[]
+) {
+  const enableProductTypesSetting = await ctx.db
+    .query("moduleSettings")
+    .withIndex("by_module_setting", (q) => q.eq("moduleKey", "products").eq("settingKey", "enableProductTypes"))
+    .unique();
+
+  if (enableProductTypesSetting?.value === true) {
+    const allCategoryIds = [categoryId, ...(additionalCategoryIds ?? [])].filter(Boolean);
+    const mappings = await Promise.all(
+      allCategoryIds.map((catId) =>
+        ctx.db
+          .query("productCategoryTypes")
+          .withIndex("by_category", (q) => q.eq("categoryId", catId))
+          .collect()
+      )
+    );
+    const uniqueTypeIds = new Set<string>();
+    for (const mapList of mappings) {
+      for (const m of mapList) {
+        uniqueTypeIds.add(m.typeId);
+      }
+    }
+    if (uniqueTypeIds.size > 1) {
+      throw new ConvexError("Tất cả các danh mục được gán cho sản phẩm phải thuộc cùng một kiểu sản phẩm.");
+    }
+  }
+}
 
 export const generateSmartSku = query({
   args: { name: v.string(), categoryId: v.optional(v.id("productCategories")) },
@@ -483,6 +514,7 @@ export const checkSkuExists = query({
 export const createProductWithVariants = mutation({
   args: smartProductArgs,
   handler: async (ctx, args) => {
+    await assertCategoryProductTypesHomogeneity(ctx, args.categoryId, args.additionalCategoryIds);
     const hasGallery = (args.images && args.images.filter(Boolean).length > 0) || 
                        (args.imageStorageIds && args.imageStorageIds.filter(Boolean).length > 0);
     const hasMainImage = (args.image && args.image.trim() !== "") || args.imageStorageId;
@@ -572,6 +604,7 @@ export const createProductWithVariants = mutation({
 export const updateProductWithVariants = mutation({
   args: { id: v.id("products"), ...smartProductArgs },
   handler: async (ctx, args) => {
+    await assertCategoryProductTypesHomogeneity(ctx, args.categoryId, args.additionalCategoryIds);
     const product = await ctx.db.get(args.id);
     if (!product) {
       throw new Error("Product not found");

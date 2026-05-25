@@ -152,6 +152,24 @@ function ProductCreateContent() {
     return productTypesData ?? [];
   }, [categoryId, categoryProductTypesData, productTypesData]);
 
+  const selectedCategoryIds = useMemo(() => {
+    return [categoryId, ...additionalCategoryIds].filter(Boolean) as Id<"productCategories">[];
+  }, [categoryId, additionalCategoryIds]);
+
+  const assignedTypesForSelectedCategories = useQuery(
+    api.productTypes.listAssignedTypesForCategories,
+    enableProductTypes && selectedCategoryIds.length > 0 ? { categoryIds: selectedCategoryIds } : 'skip'
+  );
+
+  const hasTaxonomyConflict = useMemo(() => {
+    if (!enableProductTypes || !assignedTypesForSelectedCategories) return false;
+    const uniqueTypeIds = new Set<string>();
+    assignedTypesForSelectedCategories.forEach(row => {
+      row.types.forEach(type => uniqueTypeIds.add(type._id));
+    });
+    return uniqueTypeIds.size > 1;
+  }, [enableProductTypes, assignedTypesForSelectedCategories]);
+
   const digitalEnabled = productTypeMode !== 'physical';
 
   const defaultDigitalDeliveryType = useMemo(() => {
@@ -381,6 +399,10 @@ function ProductCreateContent() {
           return;
         }
       }
+    }
+    if (hasTaxonomyConflict) {
+      toast.error("Không thể lưu: Các danh mục được chọn phải thuộc cùng một kiểu sản phẩm.");
+      return;
     }
 
     setIsSubmitting(true);
@@ -785,6 +807,12 @@ function ProductCreateContent() {
                     }}
                   />
                   <p className="text-xs text-slate-500">Thẻ đầu tiên là danh mục chính/canonical, các thẻ sau là danh mục phụ.</p>
+                  {hasTaxonomyConflict && (
+                    <p className="text-xs font-semibold text-red-500 mt-1.5">
+                      Lưu ý: Các danh mục được chọn đang thuộc các kiểu sản phẩm khác nhau. 
+                      Vui lòng chọn các danh mục thuộc cùng một kiểu sản phẩm để đảm bảo bộ lọc thuộc tính đồng nhất.
+                    </p>
+                  )}
                   </>
                 ) : (
                   <ProductCategoryCombobox

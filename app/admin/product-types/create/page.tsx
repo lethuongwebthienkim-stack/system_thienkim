@@ -307,6 +307,7 @@ export default function ProductTypeCreatePage() {
               <div className="space-y-2">
                 <Label className="text-base font-semibold">Danh mục sản phẩm gán vào kiểu này</Label>
                 <p className="text-xs text-slate-500">Các danh mục được gán sẽ hoạt động theo liên kết Phân loại & Thuộc tính sản phẩm.</p>
+                <p className="text-[11px] text-orange-600 dark:text-orange-400 mt-1 italic font-medium">Lưu ý: Mỗi danh mục chỉ thuộc tối đa một kiểu sản phẩm. Nếu bạn gán một danh mục đã thuộc kiểu sản phẩm khác vào kiểu này, liên kết cũ của danh mục đó sẽ được tự động thay thế bằng kiểu này.</p>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-md p-3 max-h-60 overflow-y-auto space-y-2 bg-slate-50 dark:bg-slate-900/30">
                   {productCategories === undefined ? (
                     <p className="text-sm text-slate-500 italic">Đang tải...</p>

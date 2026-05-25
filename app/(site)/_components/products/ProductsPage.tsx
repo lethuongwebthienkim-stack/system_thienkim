@@ -796,6 +796,9 @@ function ProductsContent(props: ProductsPageProps) {
   }, [searchParams, pathname, router]);
 
   useEffect(() => {
+    if (isTaxonomyContext) {
+      return;
+    }
     const catSlug = categorySlugFromPath ?? searchParams.get('category');
     if (!catSlug || categoryOptions.length === 0) {return;}
     const hasMatch = categoryOptions.some((category) => category.slug === catSlug);
@@ -808,7 +811,7 @@ function ProductsContent(props: ProductsPageProps) {
     params.delete('category');
     const nextUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname;
     router.replace(nextUrl, { scroll: false });
-  }, [categoryOptions, categorySlugFromPath, pathname, router, routeMode, searchParams]);
+  }, [categoryOptions, categorySlugFromPath, pathname, router, routeMode, searchParams, isTaxonomyContext]);
 
 
   const filterKey = `${activeCategory ?? ''}|${debouncedSearchQuery}|${sortBy}|${postsPerPage}|${JSON.stringify(attributeTermIds)}`;

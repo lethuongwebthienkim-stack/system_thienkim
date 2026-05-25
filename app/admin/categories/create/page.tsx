@@ -207,7 +207,7 @@ export default function CategoryCreatePage() {
                   <div>
                     <Label className="text-base font-semibold block">Phân loại & Thuộc tính</Label>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Gán kiểu sản phẩm cho danh mục này. Khi tạo sản phẩm thuộc danh mục, hệ thống sẽ ưu tiên các kiểu này để nhập thuộc tính như giống nho, xuất xứ.
+                      Chọn duy nhất 1 kiểu sản phẩm cho danh mục này. Mỗi danh mục chỉ có thể liên kết với tối đa 1 kiểu để hiển thị các thuộc tính bộ lọc phù hợp.
                     </p>
                   </div>
                   <Link href="/admin/product-types" className="text-xs text-orange-600 hover:underline whitespace-nowrap">
@@ -220,24 +220,31 @@ export default function CategoryCreatePage() {
                   ) : productTypesData.length === 0 ? (
                     <p className="text-sm text-slate-500 italic">Chưa có kiểu sản phẩm nào.</p>
                   ) : (
-                    productTypesData.map(type => (
-                      <label key={type._id} className="flex items-center gap-2 cursor-pointer py-0.5 hover:text-orange-600">
+                    <>
+                      <label className="flex items-center gap-2 cursor-pointer py-0.5 hover:text-orange-600">
                         <input
-                          type="checkbox"
-                          checked={productTypeIds.includes(type._id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setProductTypeIds(prev => prev.includes(type._id) ? prev : [...prev, type._id]);
-                            } else {
-                              setProductTypeIds(prev => prev.filter(typeId => typeId !== type._id));
-                            }
-                          }}
-                          className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                          type="radio"
+                          name="productTypeId"
+                          checked={productTypeIds.length === 0}
+                          onChange={() => setProductTypeIds([])}
+                          className="h-4 w-4 border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
                         />
-                        <span className="text-sm font-medium">{type.name}</span>
-                        <span className="text-xs text-slate-400 font-mono">({type.slug})</span>
+                        <span className="text-sm font-medium text-slate-500 italic">Không gán kiểu sản phẩm (Bỏ chọn)</span>
                       </label>
-                    ))
+                      {productTypesData.map(type => (
+                        <label key={type._id} className="flex items-center gap-2 cursor-pointer py-0.5 hover:text-orange-600">
+                          <input
+                            type="radio"
+                            name="productTypeId"
+                            checked={productTypeIds.includes(type._id)}
+                            onChange={() => setProductTypeIds([type._id])}
+                            className="h-4 w-4 border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                          />
+                          <span className="text-sm font-medium">{type.name}</span>
+                          <span className="text-xs text-slate-400 font-mono">({type.slug})</span>
+                        </label>
+                      ))}
+                    </>
                   )}
                 </div>
               </div>

@@ -43,6 +43,15 @@ async function syncProductCategoryTypes(
   const existingCatIds = new Set(existing.map(item => item.categoryId));
   for (const catId of categoryIds) {
     if (!existingCatIds.has(catId)) {
+      // Clean up any existing product type assignments for this category first
+      const oldMappings = await ctx.db
+        .query("productCategoryTypes")
+        .withIndex("by_category", (q) => q.eq("categoryId", catId))
+        .collect();
+      for (const mapping of oldMappings) {
+        await ctx.db.delete(mapping._id);
+      }
+
       await ctx.db.insert("productCategoryTypes", {
         categoryId: catId,
         typeId,
