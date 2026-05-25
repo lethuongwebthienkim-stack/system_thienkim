@@ -11,6 +11,7 @@
  */
 
 import * as SliderPrimitive from '@radix-ui/react-slider';
+import { X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface RangeSliderProps {
@@ -82,6 +83,11 @@ export function RangeSlider({
     [onValueCommit]
   );
 
+  const handleReset = useCallback(() => {
+    setLocalValues([minLimit, maxLimit]);
+    onValueCommit?.(minLimit, maxLimit);
+  }, [minLimit, maxLimit, onValueCommit]);
+
   const [min, max] = localValues;
 
   return (
@@ -89,12 +95,24 @@ export function RangeSlider({
       {/* Badge hiển thị dải đang chọn */}
       <div className="flex items-center justify-between text-sm font-medium">
         <span style={{ color: '#64748b' }}>Dải chọn:</span>
-        <span
-          className="px-2.5 py-0.5 rounded-md font-mono text-sm tabular-nums"
-          style={{ backgroundColor: primaryColor, color: '#fff' }}
-        >
-          {min}{unit} – {max}{unit}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span
+            className="px-2.5 py-0.5 rounded-md font-mono text-sm tabular-nums"
+            style={{ backgroundColor: primaryColor, color: '#fff' }}
+          >
+            {min}{unit} – {max}{unit}
+          </span>
+          {(min !== minLimit || max !== maxLimit) && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-slate-600 flex items-center justify-center"
+              title="Đặt lại khoảng lọc"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Radix Slider */}
@@ -123,7 +141,7 @@ export function RangeSlider({
 
         {/* Thumb MIN */}
         <SliderPrimitive.Thumb
-          className="block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+          className="block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 relative after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:rounded-full"
           style={{
             width: 18,
             height: 18,
@@ -148,7 +166,7 @@ export function RangeSlider({
 
         {/* Thumb MAX */}
         <SliderPrimitive.Thumb
-          className="block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+          className="block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 relative after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:rounded-full"
           style={{
             width: 18,
             height: 18,
