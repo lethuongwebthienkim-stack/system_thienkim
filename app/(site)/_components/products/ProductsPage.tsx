@@ -1052,7 +1052,7 @@ function ProductsContent(props: ProductsPageProps) {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold" style={{ color: tokens.headingColor }}>
-              {activeCategoryDoc?.name ?? 'Sản phẩm'}
+              {activeCategoryDoc?.name ?? (enableProductTypes ? productType?.name : null) ?? 'Sản phẩm'}
             </h1>
             {showCategorySubtitle && activeCategoryDoc?.description && (
               <p className="mt-2 text-base max-w-2xl mx-auto opacity-80" style={{ color: tokens.bodyText }}>
@@ -1732,7 +1732,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold" style={{ color: tokens.headingColor }}>
-            {activeCategoryDoc?.name ?? 'Sản phẩm'}
+            {activeCategoryDoc?.name ?? (enableProductTypes ? productType?.name : null) ?? 'Sản phẩm'}
           </h1>
           {showCategorySubtitle && activeCategoryDoc?.description && (
             <p className="mt-2 text-base max-w-2xl mx-auto opacity-80" style={{ color: tokens.bodyText }}>
@@ -1992,7 +1992,7 @@ function ListLayout({ isLoadingProducts, postsPerPage, products, categories, cat
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold" style={{ color: tokens.headingColor }}>
-            {activeCategoryDoc?.name ?? 'Sản phẩm'}
+            {activeCategoryDoc?.name ?? (enableProductTypes ? productType?.name : null) ?? 'Sản phẩm'}
           </h1>
           {showCategorySubtitle && activeCategoryDoc?.description && (
             <p className="mt-2 text-base max-w-2xl mx-auto opacity-80" style={{ color: tokens.bodyText }}>
