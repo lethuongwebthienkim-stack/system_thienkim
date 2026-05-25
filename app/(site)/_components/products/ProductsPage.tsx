@@ -1659,32 +1659,10 @@ function AttributeFilterGroupWidget({
   const inputType = group.inputType || 'radio';
   const filterType = group.filterType || 'single';
 
-  // State control for custom Dropdown Select dropdown open state, reading from sessionStorage to persist across Next.js navigation re-renders
-  const [isDropdownOpen, setIsDropdownOpen] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem(`open_group_${group.slug}`) === 'true';
-    }
-    return false;
-  });
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const toggleDropdown = (open: boolean) => {
     setIsDropdownOpen(open);
-    if (typeof window !== 'undefined') {
-      if (open) {
-        // Close other attribute group dropdowns first
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
-          if (key && key.startsWith('open_group_')) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(k => sessionStorage.removeItem(k));
-        sessionStorage.setItem(`open_group_${group.slug}`, 'true');
-      } else {
-        sessionStorage.removeItem(`open_group_${group.slug}`);
-      }
-    }
   };
 
   // Range Slider logic
