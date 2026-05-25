@@ -287,7 +287,7 @@ const buildSchema = (
     .map((field) => `    ${FIELD_SPECS[kind][field]}`);
 
   if (kind === 'product' && suggestCombos) {
-    lines.push(`    "combos": "mảng các object combo dạng standard (mỗi combo gồm: type: 'standard', name: 'tên combo', price?: number, standardConfig: { minQty: number, rewardType: 'gift'|'discount_percent'|'discount_amount', rewardValue?: number, giftQty?: number, giftProductQuery?: string })"`);
+    lines.push(`    "combos": "mảng các object combo dạng standard (mỗi combo gồm: type: 'standard', name: 'tên combo', price?: number, standardConfig: { minQty: number, rewardType: 'gift_self'|'gift_other'|'discount_percent'|'discount_amount', rewardValue?: number, giftQty?: number, giftProductQuery?: string })"`);
   }
 
   if (kind === 'product' && includeAttributes) {
@@ -332,7 +332,7 @@ const buildSample = (
         name: "Combo Mua Kệ Tặng Nước Rửa Chén",
         standardConfig: {
           minQty: 1,
-          rewardType: "gift",
+          rewardType: "gift_other",
           giftQty: 1,
           giftProductQuery: "Nước rửa chén sinh học"
         }
@@ -540,7 +540,16 @@ const parseAiEntity = (raw: string, kind: AiEntityImportKind): ParseResult => {
           price: parseNumber(c.price),
           standardConfig: {
             minQty: parseNumber(standardConfig.minQty) ?? 1,
-            rewardType: trimText(standardConfig.rewardType, 40) || 'gift',
+            rewardType: (() => {
+              const rType = trimText(standardConfig.rewardType, 40) || 'gift_self';
+              if (rType === 'gift') {
+                return standardConfig.giftProductQuery ? 'gift_other' : 'gift_self';
+              }
+              if (rType !== 'discount_percent' && rType !== 'discount_amount' && rType !== 'gift_self' && rType !== 'gift_other') {
+                return 'gift_self';
+              }
+              return rType;
+            })(),
             rewardValue: parseNumber(standardConfig.rewardValue),
             giftQty: parseNumber(standardConfig.giftQty) ?? 1,
             giftProductQuery: trimText(standardConfig.giftProductQuery, 140) || undefined,
