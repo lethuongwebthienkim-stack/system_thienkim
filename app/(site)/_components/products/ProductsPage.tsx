@@ -519,6 +519,13 @@ function ProductsContent(props: ProductsPageProps) {
     const activeTermSet = new Set(activeTermIds);
     return filterableGroups
       .map((group) => {
+        const filterType = group.filterType || 'single';
+        // Range group: giữ nguyên TẤT CẢ terms gốc (slider cần toàn bộ dải để hiển thị đúng).
+        // Nếu lọc theo activeTermSet, sau khi user chọn range → chỉ còn 1 term → slider ẩn.
+        if (filterType === 'range') {
+          return group;
+        }
+        // Non-range: lọc theo activeTermSet để ẩn option không có sản phẩm
         const filteredTerms = (group.terms || []).filter((term: any) =>
           activeTermSet.has(term._id)
         );
@@ -528,15 +535,13 @@ function ProductsContent(props: ProductsPageProps) {
         const filterType = group.filterType || 'single';
 
         if (filterType === 'range') {
-          const numericValues = group.terms
+          // Dùng terms gốc từ filterableGroups để tính dải, không bị ảnh hưởng bởi filter hiện tại
+          const originalGroup = filterableGroups.find(g => g._id === group._id);
+          const numericValues = (originalGroup?.terms || [])
             .map((t: any) => parseNumericValue(t.name))
             .filter((v: number | null): v is number => v !== null);
-          
           if (numericValues.length <= 1) return false;
-          
-          const minLimit = Math.min(...numericValues);
-          const maxLimit = Math.max(...numericValues);
-          return minLimit !== maxLimit;
+          return Math.min(...numericValues) !== Math.max(...numericValues);
         }
 
         return group.terms.length > 1;
