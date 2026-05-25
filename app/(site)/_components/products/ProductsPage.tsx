@@ -333,9 +333,9 @@ function ProductsContent(props: ProductsPageProps) {
     const filters: Record<string, string[]> = {};
     if (!filterableGroups) return filters;
     
-    // Tải từ props.attributeFilter nếu có
+    // Tải từ props.attributeFilter nếu có (props.attributeFilter.termSlug)
     if (props.attributeFilter) {
-      filters[props.attributeFilter.groupId] = [props.attributeFilter.termId];
+      filters[props.attributeFilter.groupId] = [props.attributeFilter.termSlug];
     }
 
     filterableGroups.forEach(group => {
@@ -349,13 +349,21 @@ function ProductsContent(props: ProductsPageProps) {
 
   const attributeTermIds = useMemo(() => {
     const arr: Id<"attributeTerms">[][] = [];
-    Object.values(selectedAttributes).forEach(termIds => {
-      if (termIds.length > 0) {
-        arr.push(termIds as Id<"attributeTerms">[]);
+    Object.entries(selectedAttributes).forEach(([groupId, termSlugs]) => {
+      if (termSlugs.length > 0) {
+        const group = filterableGroups?.find(g => g._id === groupId);
+        if (group) {
+          const matchedIds = group.terms
+            .filter((t: any) => termSlugs.includes(t.slug))
+            .map((t: any) => t._id as Id<"attributeTerms">);
+          if (matchedIds.length > 0) {
+            arr.push(matchedIds);
+          }
+        }
       }
     });
     return arr;
-  }, [selectedAttributes]);
+  }, [selectedAttributes, filterableGroups]);
 
   const isFilterActive = attributeTermIds.length > 0 || selectedPriceRange !== null;
 
@@ -499,20 +507,20 @@ function ProductsContent(props: ProductsPageProps) {
       const groupAttrs = new Map<string, string[]>();
       if (filterableGroups) {
         filterableGroups.forEach(group => {
-          const termIds = targetAttributes[group._id] || [];
-          termIds.forEach((termId: string) => {
-            const term = group.terms.find((t: any) => t._id === termId);
+          const termSlugs = targetAttributes[group._id] || [];
+          termSlugs.forEach((termSlug: string) => {
+            const term = group.terms.find((t: any) => t.slug === termSlug);
             if (term) {
               if (!groupAttrs.has(group.slug)) {
                 groupAttrs.set(group.slug, []);
               }
-              groupAttrs.get(group.slug)!.push(term._id);
+              groupAttrs.get(group.slug)!.push(term.slug);
             }
           });
         });
       }
-      groupAttrs.forEach((termIds, groupSlug) => {
-        params.set(`attr_${groupSlug}`, termIds.join(','));
+      groupAttrs.forEach((termSlugs, groupSlug) => {
+        params.set(`attr_${groupSlug}`, termSlugs.join(','));
       });
 
       const queryStr = params.toString();
@@ -562,9 +570,9 @@ function ProductsContent(props: ProductsPageProps) {
     const activeAttrs: { groupId: string; groupSlug: string; termId: string; termSlug: string }[] = [];
     if (filterableGroups) {
       filterableGroups.forEach(group => {
-        const termIds = targetAttributes[group._id] || [];
-        termIds.forEach((termId: string) => {
-          const term = group.terms.find((t: any) => t._id === termId);
+        const termSlugs = targetAttributes[group._id] || [];
+        termSlugs.forEach((termSlug: string) => {
+          const term = group.terms.find((t: any) => t.slug === termSlug);
           if (term) {
             activeAttrs.push({
               groupId: group._id,
@@ -600,10 +608,10 @@ function ProductsContent(props: ProductsPageProps) {
         if (!groupAttrs.has(attr.groupSlug)) {
           groupAttrs.set(attr.groupSlug, []);
         }
-        groupAttrs.get(attr.groupSlug)!.push(attr.termId);
+        groupAttrs.get(attr.groupSlug)!.push(attr.termSlug);
       });
-      groupAttrs.forEach((termIds, groupSlug) => {
-        params.set(`attr_${groupSlug}`, termIds.join(','));
+      groupAttrs.forEach((termSlugs, groupSlug) => {
+        params.set(`attr_${groupSlug}`, termSlugs.join(','));
       });
     } else if (activePriceRange) {
       // Ưu tiên 2: Nấc giá làm SEO URL chính (nếu không chọn danh mục)
@@ -615,10 +623,10 @@ function ProductsContent(props: ProductsPageProps) {
         if (!groupAttrs.has(attr.groupSlug)) {
           groupAttrs.set(attr.groupSlug, []);
         }
-        groupAttrs.get(attr.groupSlug)!.push(attr.termId);
+        groupAttrs.get(attr.groupSlug)!.push(attr.termSlug);
       });
-      groupAttrs.forEach((termIds, groupSlug) => {
-        params.set(`attr_${groupSlug}`, termIds.join(','));
+      groupAttrs.forEach((termSlugs, groupSlug) => {
+        params.set(`attr_${groupSlug}`, termSlugs.join(','));
       });
     } else if (activeAttrs.length === 1) {
       // Ưu tiên 3: Đúng 1 thuộc tính duy nhất làm SEO URL chính
@@ -631,16 +639,16 @@ function ProductsContent(props: ProductsPageProps) {
       const groupAttrs = new Map<string, string[]>();
       activeAttrs.forEach(attr => {
         // Bỏ qua primary term trên query params
-        if (attr.groupSlug === primary.groupSlug && attr.termId === primary.termId) {
+        if (attr.groupSlug === primary.groupSlug && attr.termSlug === primary.termSlug) {
           return;
         }
         if (!groupAttrs.has(attr.groupSlug)) {
           groupAttrs.set(attr.groupSlug, []);
         }
-        groupAttrs.get(attr.groupSlug)!.push(attr.termId);
+        groupAttrs.get(attr.groupSlug)!.push(attr.termSlug);
       });
-      groupAttrs.forEach((termIds, groupSlug) => {
-        params.set(`attr_${groupSlug}`, termIds.join(','));
+      groupAttrs.forEach((termSlugs, groupSlug) => {
+        params.set(`attr_${groupSlug}`, termSlugs.join(','));
       });
     }
 
@@ -653,33 +661,33 @@ function ProductsContent(props: ProductsPageProps) {
     navigateWithFilters({ nextCategoryId: categoryId });
   }, [navigateWithFilters]);
 
-  const handleAttributeChange = useCallback((groupSlug: string, termId: any, checked: boolean) => {
+  const handleAttributeChange = useCallback((groupSlug: string, termSlug: any, checked: boolean) => {
     const group = filterableGroups?.find(g => g.slug === groupSlug);
     if (!group) return;
 
     const groupId = group._id;
-    let nextTermIds: string[] = [];
+    let nextTermSlugs: string[] = [];
 
-    if (Array.isArray(termId)) {
-      nextTermIds = termId;
-    } else if (termId === '') {
+    if (Array.isArray(termSlug)) {
+      nextTermSlugs = termSlug;
+    } else if (termSlug === '') {
       // Clear all terms for this group
-      nextTermIds = [];
+      nextTermSlugs = [];
     } else if (group.filterType === 'single') {
-      nextTermIds = checked ? [termId] : [];
+      nextTermSlugs = checked ? [termSlug] : [];
     } else {
-      const currentTermIds = selectedAttributes[groupId] || [];
-      nextTermIds = [...currentTermIds];
+      const currentTermSlugs = selectedAttributes[groupId] || [];
+      nextTermSlugs = [...currentTermSlugs];
       if (checked) {
-        if (!nextTermIds.includes(termId)) nextTermIds.push(termId);
+        if (!nextTermSlugs.includes(termSlug)) nextTermSlugs.push(termSlug);
       } else {
-        nextTermIds = nextTermIds.filter(id => id !== termId);
+        nextTermSlugs = nextTermSlugs.filter(slug => slug !== termSlug);
       }
     }
 
     const nextAttributes = {
       ...selectedAttributes,
-      [groupId]: nextTermIds
+      [groupId]: nextTermSlugs
     };
 
     navigateWithFilters({ nextAttributes });
@@ -1653,14 +1661,14 @@ function AttributeFilterGroupWidget({
   const [sliderMin, setSliderMin] = useState(minLimit);
   const [sliderMax, setSliderMax] = useState(maxLimit);
 
-  // Sync state slider when URL / selectedAttributes change
+  // Sync state slider when URL / selectedAttributes change (currentSelectedTermIds actually holds slugs now)
   const currentSelectedTermIds = selectedAttributes?.[group._id] || [];
 
   useEffect(() => {
     if (filterType === 'range' && numericTerms.length > 0) {
       if (currentSelectedTermIds.length > 0) {
         const selectedValues = numericTerms
-          .filter((item: any) => currentSelectedTermIds.includes(item.term._id))
+          .filter((item: any) => currentSelectedTermIds.includes(item.term.slug))
           .map((item: any) => item.value);
         if (selectedValues.length > 0) {
           setSliderMin(Math.min(...selectedValues));
@@ -1688,11 +1696,11 @@ function AttributeFilterGroupWidget({
       // Clear filter
       onAttributeChange?.(group.slug, [], false);
     } else {
-      const matchedTermIds = numericTerms
+      const matchedTermSlugs = numericTerms
         .filter((item: any) => item.value >= sliderMin && item.value <= sliderMax)
-        .map((item: any) => item.term._id);
+        .map((item: any) => item.term.slug);
       
-      onAttributeChange?.(group.slug, matchedTermIds, true);
+      onAttributeChange?.(group.slug, matchedTermSlugs, true);
     }
   };
 
@@ -1820,25 +1828,25 @@ function AttributeFilterGroupWidget({
 
   // RENDER CUSTOM DROPDOWN SELECT
   if (inputType === 'select') {
-    const handleSelectTerm = (id: string) => {
-      if (!id) {
+    const handleSelectTerm = (slug: string) => {
+      if (!slug) {
         onAttributeChange?.(group.slug, '', false);
         return;
       }
       if (filterType === 'single') {
-        onAttributeChange?.(group.slug, id, true);
+        onAttributeChange?.(group.slug, slug, true);
       } else {
-        const isChecked = selectedAttributes?.[group._id]?.includes(id) ?? false;
-        onAttributeChange?.(group.slug, id, !isChecked);
+        const isChecked = selectedAttributes?.[group._id]?.includes(slug) ?? false;
+        onAttributeChange?.(group.slug, slug, !isChecked);
       }
     };
 
     const getDropdownLabel = () => {
-      const selectedIds = selectedAttributes?.[group._id] || [];
-      if (selectedIds.length === 0) {
+      const selectedSlugs = selectedAttributes?.[group._id] || [];
+      if (selectedSlugs.length === 0) {
         return filterType === 'single' ? `Chọn ${group.name}` : `Thêm ${group.name}...`;
       }
-      const found = (group.terms || []).filter((t: any) => selectedIds.includes(t._id));
+      const found = (group.terms || []).filter((t: any) => selectedSlugs.includes(t.slug));
       if (found.length === 0) {
         return filterType === 'single' ? `Chọn ${group.name}` : `Thêm ${group.name}...`;
       }
@@ -1874,13 +1882,13 @@ function AttributeFilterGroupWidget({
                 </button>
               )}
               {group.terms.map((term: any) => {
-                const isSelected = selectedAttributes?.[group._id]?.includes(term._id) ?? false;
+                const isSelected = selectedAttributes?.[group._id]?.includes(term.slug) ?? false;
                 return (
                   <button
                     key={term._id}
                     type="button"
                     onClick={() => {
-                      handleSelectTerm(term._id);
+                      handleSelectTerm(term.slug);
                       if (filterType !== 'multiple') toggleDropdown(false);
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-md text-left transition-colors ${
@@ -1902,13 +1910,13 @@ function AttributeFilterGroupWidget({
         {/* Selected tags list for multiple filter select */}
         {filterType === 'multiple' && currentSelectedTermIds.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {currentSelectedTermIds.map((termId: string) => {
-              const term = group.terms.find((t: any) => t._id === termId);
+            {currentSelectedTermIds.map((termSlug: string) => {
+              const term = group.terms.find((t: any) => t.slug === termSlug);
               if (!term) return null;
               return (
                 <span
-                  key={termId}
-                  onClick={() => onAttributeChange?.(group.slug, termId, false)}
+                  key={termSlug}
+                  onClick={() => onAttributeChange?.(group.slug, termSlug, false)}
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs cursor-pointer border hover:opacity-85 transition-opacity"
                   style={{
                     backgroundColor: tokens.filterChipBg,
@@ -1932,9 +1940,9 @@ function AttributeFilterGroupWidget({
     return (
       <div className="flex flex-wrap gap-2">
         {group.terms.map((term: any) => {
-          const isChecked = selectedAttributes?.[group._id]?.includes(term._id) ?? false;
+          const isChecked = selectedAttributes?.[group._id]?.includes(term.slug) ?? false;
           const handleButtonClick = () => {
-            onAttributeChange?.(group.slug, term._id, !isChecked);
+            onAttributeChange?.(group.slug, term.slug, !isChecked);
           };
           return (
             <button
@@ -1959,10 +1967,10 @@ function AttributeFilterGroupWidget({
   return (
     <div className="space-y-2.5">
       {group.terms.map((term: any) => {
-        const isChecked = selectedAttributes?.[group._id]?.includes(term._id) ?? false;
+        const isChecked = selectedAttributes?.[group._id]?.includes(term.slug) ?? false;
         const isRadio = filterType === 'single' || inputType === 'radio';
         const handleLabelClick = () => {
-          onAttributeChange?.(group.slug, term._id, !isChecked);
+          onAttributeChange?.(group.slug, term.slug, !isChecked);
         };
 
         return (
