@@ -26,6 +26,13 @@ import { toRichTextContent } from '@/lib/products/product-supplemental-content';
 type ProductSortOption = 'newest' | 'oldest' | 'popular' | 'price_asc' | 'price_desc' | 'name';
 type ProductsListLayout = 'grid' | 'list' | 'catalog';
 type ProductsSaleMode = 'cart' | 'contact' | 'affiliate';
+type ProductListCornerRadius = 'none' | 'sm' | 'lg';
+
+const getProductListRadiusClass = (cornerRadius: ProductListCornerRadius = 'lg') => {
+  if (cornerRadius === 'none') return 'rounded-none';
+  if (cornerRadius === 'sm') return 'rounded-md';
+  return 'rounded-xl';
+};
 
 function useProductImageAspectRatioSetting() {
   const setting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'defaultImageAspectRatio' });
@@ -208,6 +215,7 @@ function ProductsContent(props: ProductsPageProps) {
   const { frameConfig, watermarkConfig } = useProductImageOverlayConfigs(imageAspectRatio);
   const listConfig = useProductsListConfig();
   const layout: ProductsListLayout = listConfig.layoutStyle === 'sidebar' ? 'catalog' : listConfig.layoutStyle;
+  const radiusClass = getProductListRadiusClass(listConfig.cornerRadius);
   const enableQuickAddVariant = listConfig.enableQuickAddVariant ?? true;
   const showWishlistButton = listConfig.showWishlistButton ?? true;
   const checkoutConfig = useCheckoutConfig();
@@ -1137,6 +1145,7 @@ function ProductsContent(props: ProductsPageProps) {
           attributeFilter={props.attributeFilter}
           hasActiveFilters={hasActiveProductFilters}
           onClearFilters={handleClearAllFilters}
+          radiusClass={radiusClass}
         />
         {quickAddModal}
       </>
@@ -1194,6 +1203,7 @@ function ProductsContent(props: ProductsPageProps) {
           attributeFilter={props.attributeFilter}
           hasActiveFilters={hasActiveProductFilters}
           onClearFilters={handleClearAllFilters}
+          radiusClass={radiusClass}
         />
         {quickAddModal}
       </>
@@ -1238,13 +1248,14 @@ function ProductsContent(props: ProductsPageProps) {
           attributeFilter={props.attributeFilter}
           hasActiveFilters={hasActiveProductFilters}
           onClearFilters={handleClearAllFilters}
+          radiusClass={radiusClass}
         />
 
         <div
-          className="hidden lg:block rounded-xl border p-4 mb-8"
+          className={`hidden lg:block ${radiusClass} border p-3 mb-5`}
           style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}
         >
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col lg:flex-row gap-3">
             <div className="relative flex-1 max-w-md">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: tokens.inputIcon }} />
               <input
@@ -1401,6 +1412,7 @@ function ProductsContent(props: ProductsPageProps) {
             frameConfig={frameConfig}
             watermarkConfig={watermarkConfig}
             getDetailHref={getProductDetailHref}
+            radiusClass={radiusClass}
           />
         )}
 
@@ -1476,7 +1488,7 @@ function ProductCardActions({ product, tokens, showStock, showAddToCartButton, s
   );
 }
 
-function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string }) {
+function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
       {products.map((product) => (
@@ -1486,7 +1498,7 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
         <Link
           key={product._id}
           href={getDetailHref(product)}
-          className="group rounded-xl overflow-hidden border transition-colors flex flex-col h-full"
+          className={`group ${radiusClass} overflow-hidden border transition-colors flex flex-col h-full`}
           style={{ backgroundColor: tokens.cardBackground, borderColor: tokens.cardBorder }}
         >
           <ProductImageWithOverlay
@@ -1557,7 +1569,7 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
   );
 }
 
-function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge: _showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string }) {
+function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge: _showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string }) {
   return (
     <div className="space-y-4">
       {products.map((product) => (
@@ -1567,7 +1579,7 @@ function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, 
         <Link
           key={product._id}
           href={getDetailHref(product)}
-          className="group flex gap-4 rounded-xl overflow-hidden border transition-colors p-4"
+          className={`group flex gap-4 ${radiusClass} overflow-hidden border transition-colors p-4`}
           style={{ backgroundColor: tokens.cardBackground, borderColor: tokens.cardBorder }}
         >
           <ProductImageWithOverlay
@@ -2132,6 +2144,7 @@ interface LayoutProps {
   attributeFilter?: { groupId: string; termId?: string; termSlug?: string };
   hasActiveFilters?: boolean;
   onClearFilters?: () => void;
+  radiusClass: string;
 }
 
 interface MobileProductsFiltersProps {
@@ -2155,6 +2168,7 @@ interface MobileProductsFiltersProps {
   attributeFilter?: { groupId: string; termId?: string; termSlug?: string };
   hasActiveFilters?: boolean;
   onClearFilters?: () => void;
+  radiusClass: string;
 }
 
 function MobileProductsFilters({
@@ -2178,13 +2192,14 @@ function MobileProductsFilters({
   attributeFilter,
   hasActiveFilters: externalHasActiveFilters,
   onClearFilters,
+  radiusClass,
 }: MobileProductsFiltersProps) {
   const [open, setOpen] = useState(false);
   const hasSelectedAttributes = Object.values(selectedAttributes ?? {}).some((items) => items.length > 0);
   const hasActiveFilters = externalHasActiveFilters ?? (Boolean(selectedCategory || searchQuery || selectedPriceRange || hasSelectedAttributes) || sortBy !== 'newest');
 
   return (
-    <div className="lg:hidden rounded-xl border p-3 mb-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+    <div className={`lg:hidden ${radiusClass} border p-3 mb-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
       <button
         onClick={() => { setOpen(prev => !prev); }}
         className="flex w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-sm font-medium"
@@ -2389,7 +2404,7 @@ function MobileProductsFilters({
   );
 }
 
-function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap: _categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, attributeFilter, hasActiveFilters, onClearFilters }: LayoutProps) {
+function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap: _categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, attributeFilter, hasActiveFilters, onClearFilters, radiusClass }: LayoutProps) {
   return (
     <div className="py-8 md:py-12 px-4">
       <div className="max-w-7xl mx-auto">
@@ -2423,12 +2438,15 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
           productTypes={productTypes}
           onProductTypeChange={onProductTypeChange}
           attributeFilter={attributeFilter}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={onClearFilters}
+          radiusClass={radiusClass}
         />
 
         <div className="flex gap-6">
           {/* Sidebar */}
-          <div className="hidden lg:block w-64 shrink-0 space-y-4 text-sm">
-            <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+          <div className="hidden lg:block w-64 shrink-0 space-y-3 text-sm">
+            <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Tìm kiếm</h3>
                 <div className="relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: tokens.inputIcon }} />
@@ -2449,7 +2467,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
             </div>
 
             {enableProductTypes && productTypes && productTypes.length > 0 && (
-              <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+              <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Nhóm sản phẩm</h3>
                 <div className="space-y-1">
                   <button
@@ -2480,7 +2498,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
               </div>
             )}
 
-            <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+            <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Danh mục</h3>
                 <div className="space-y-1">
                   <button
@@ -2510,7 +2528,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
             </div>
 
             {enableProductTypes && productType?.priceRanges && productType.priceRanges.length > 0 && (
-              <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+              <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Khoảng giá</h3>
                 <div className="space-y-1">
                   <button
@@ -2542,7 +2560,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
 
             {/* Desktop Attribute Filters */}
             {filterableGroups?.map(group => (
-              <div key={group._id} className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+              <div key={group._id} className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>{group.name}</h3>
                 <div>
                   <AttributeFilterGroupWidget group={group} selectedAttributes={selectedAttributes} onAttributeChange={onAttributeChange} tokens={tokens} />
@@ -2596,7 +2614,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                   <Link
                     key={product._id}
                     href={getDetailHref(product)}
-                    className="group rounded-xl overflow-hidden border transition-colors flex flex-col h-full"
+                    className={`group ${radiusClass} overflow-hidden border transition-colors flex flex-col h-full`}
                     style={{ backgroundColor: tokens.cardBackground, borderColor: tokens.cardBorder }}
                   >
                   <ProductImageWithOverlay
@@ -2672,7 +2690,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
 
 // ========== LIST LAYOUT (Full width list view) ==========
 
-function ListLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, hasActiveFilters, onClearFilters }: LayoutProps) {
+function ListLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, hasActiveFilters, onClearFilters, radiusClass }: LayoutProps) {
   return (
     <div className="py-8 md:py-12 px-4">
       <div className="max-w-5xl mx-auto">
@@ -2705,13 +2723,16 @@ function ListLayout({ isLoadingProducts, postsPerPage, products, categories, cat
           enableProductTypes={enableProductTypes}
           productTypes={productTypes}
           onProductTypeChange={onProductTypeChange}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={onClearFilters}
+          radiusClass={radiusClass}
         />
 
         <div
-          className="hidden md:block rounded-xl border p-4 mb-6"
+          className={`hidden md:block ${radiusClass} border p-3 mb-5`}
           style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}
         >
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-3">
             <div className="relative flex-1">
               <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: tokens.inputIcon }} />
               <input
@@ -2836,6 +2857,7 @@ function ListLayout({ isLoadingProducts, postsPerPage, products, categories, cat
             frameConfig={frameConfig}
             watermarkConfig={watermarkConfig}
             getDetailHref={getDetailHref}
+            radiusClass={radiusClass}
           />
         )}
 

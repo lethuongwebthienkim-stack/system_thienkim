@@ -30,6 +30,7 @@ import { enforceMultipleToggles } from '@/lib/experiences/module-toggle-guards';
 
 type ListLayoutStyle = 'grid' | 'sidebar' | 'list';
 type PaginationType = 'pagination' | 'infiniteScroll';
+type ProductListCornerRadius = 'none' | 'sm' | 'lg';
 
 type ProductsListExperienceConfig = {
   layoutStyle: ListLayoutStyle;
@@ -44,6 +45,7 @@ type ProductsListExperienceConfig = {
   showPromotionBadge: boolean;
   enableQuickAddVariant: boolean;
   hideEmptyCategories: boolean;
+  cornerRadius: ProductListCornerRadius;
 };
 
 type LayoutConfig = {
@@ -81,6 +83,7 @@ const DEFAULT_CONFIG: ProductsListExperienceConfig = {
   showPromotionBadge: true,
   enableQuickAddVariant: true,
   hideEmptyCategories: true,
+  cornerRadius: 'lg',
 };
 
 const HINTS = [
@@ -134,6 +137,7 @@ export default function ProductsListExperiencePage() {
       showPromotionBadge?: boolean;
       enableQuickAddVariant?: boolean;
       hideEmptyCategories?: boolean;
+      cornerRadius?: ProductListCornerRadius;
     } | undefined;
     
     const normalizePaginationType = (value?: string | boolean): PaginationType => {
@@ -166,6 +170,7 @@ export default function ProductsListExperiencePage() {
       showPromotionBadge: raw?.showPromotionBadge ?? true,
       enableQuickAddVariant: raw?.enableQuickAddVariant ?? true,
       hideEmptyCategories: raw?.hideEmptyCategories ?? true,
+      cornerRadius: raw?.cornerRadius ?? 'lg',
     };
   }, [experienceSetting?.value]);
 
@@ -304,6 +309,17 @@ export default function ProductsListExperiencePage() {
               checked={config.hideEmptyCategories}
               onChange={(v) => setConfig(prev => ({ ...prev, hideEmptyCategories: v }))}
               accentColor={brandColor}
+            />
+            <SelectRow
+              label="Bo góc"
+              value={config.cornerRadius}
+              options={[
+                { value: 'none', label: 'Không bo góc' },
+                { value: 'sm', label: 'Bo góc ít' },
+                { value: 'lg', label: 'Bo góc nhiều' },
+              ]}
+              onChange={(v) => setConfig(prev => ({ ...prev, cornerRadius: v as ProductListCornerRadius }))}
+              disabled={!canUseProducts}
             />
           </ControlCard>
 
@@ -488,6 +504,7 @@ export default function ProductsListExperiencePage() {
                 showAddToCartButton={config.showAddToCartButton && (cartModule?.enabled ?? false) && (ordersModule?.enabled ?? false)}
                 showBuyNowButton={config.showBuyNowButton && (ordersModule?.enabled ?? false)}
                 showPromotionBadge={config.showPromotionBadge && (promotionsModule?.enabled ?? false)}
+                cornerRadius={config.cornerRadius}
               />
             </BrowserFrame>
           </div>
