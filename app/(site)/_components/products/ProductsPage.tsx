@@ -1549,8 +1549,33 @@ function AttributeFilterGroupWidget({
   const inputType = group.inputType || 'radio';
   const filterType = group.filterType || 'single';
 
-  // State control for custom Dropdown Select dropdown open state
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  // State control for custom Dropdown Select dropdown open state, reading from sessionStorage to persist across Next.js navigation re-renders
+  const [isDropdownOpen, setIsDropdownOpen] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem(`open_group_${group.slug}`) === 'true';
+    }
+    return false;
+  });
+
+  const toggleDropdown = (open: boolean) => {
+    setIsDropdownOpen(open);
+    if (typeof window !== 'undefined') {
+      if (open) {
+        // Close other attribute group dropdowns first
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          if (key && key.startsWith('open_group_')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(k => sessionStorage.removeItem(k));
+        sessionStorage.setItem(`open_group_${group.slug}`, 'true');
+      } else {
+        sessionStorage.removeItem(`open_group_${group.slug}`);
+      }
+    }
+  };
 
   // Range Slider logic
   const numericTerms = useMemo(() => {
@@ -1769,7 +1794,7 @@ function AttributeFilterGroupWidget({
       <div className="relative">
         <button
           type="button"
-          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          onClick={() => toggleDropdown(!isDropdownOpen)}
           className="w-full flex items-center justify-between h-10 px-3 py-2 text-sm rounded-lg border bg-white dark:bg-slate-800 transition-all font-medium"
           style={{ borderColor: tokens.inputBorder, color: tokens.inputText }}
         >
@@ -1779,14 +1804,14 @@ function AttributeFilterGroupWidget({
 
         {isDropdownOpen && (
           <>
-            <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
+            <div className="fixed inset-0 z-10" onClick={() => toggleDropdown(false)} />
             <div className="absolute left-0 right-0 mt-1 z-20 max-h-60 overflow-y-auto rounded-lg border bg-white dark:bg-slate-800 shadow-lg p-1 space-y-0.5" style={{ borderColor: tokens.inputBorder }}>
               {filterType === 'single' && (
                 <button
                   type="button"
                   onClick={() => {
                     handleSelectTerm('');
-                    setIsDropdownOpen(false);
+                    toggleDropdown(false);
                   }}
                   className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
@@ -1801,7 +1826,7 @@ function AttributeFilterGroupWidget({
                     type="button"
                     onClick={() => {
                       handleSelectTerm(term._id);
-                      if (filterType !== 'multiple') setIsDropdownOpen(false);
+                      if (filterType !== 'multiple') toggleDropdown(false);
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-md text-left transition-colors ${
                       isSelected 
