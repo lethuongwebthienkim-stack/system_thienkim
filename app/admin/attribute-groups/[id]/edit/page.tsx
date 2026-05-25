@@ -354,9 +354,8 @@ function SortableTermRow({ term, onRemove, groupSlug, assignedTypeSlug }: Sortab
           size="sm" 
           className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
           onClick={() => {
-            const url = assignedTypeSlug 
-              ? `/${assignedTypeSlug}/${groupSlug}/${term.slug}` 
-              : `/products?attr_${groupSlug}=${term._id}`;
+            const baseSlug = assignedTypeSlug || 'products';
+            const url = `/${baseSlug}/${groupSlug}/${term.slug}`;
             window.open(url, '_blank');
           }}
         >
