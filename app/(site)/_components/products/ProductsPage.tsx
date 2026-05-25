@@ -22,6 +22,7 @@ import { getPublicPriceLabel } from '@/lib/products/public-price';
 import { getProductImageAspectRatioCssValue, resolveProductImageAspectRatio } from '@/lib/products/image-aspect-ratio';
 import { RichContent } from '@/components/common/RichContent';
 import { toRichTextContent } from '@/lib/products/product-supplemental-content';
+import { RangeSlider } from '@/components/shared/RangeSlider';
 
 type ProductSortOption = 'newest' | 'oldest' | 'popular' | 'price_asc' | 'price_desc' | 'name';
 type ProductsListLayout = 'grid' | 'list' | 'catalog';
@@ -1871,43 +1872,18 @@ function AttributeFilterGroupWidget({
 
   const [sliderMin, setSliderMin] = useState(minLimit);
   const [sliderMax, setSliderMax] = useState(maxLimit);
-  const [activeInput, setActiveInput] = useState<'min' | 'max'>('min');
-  const sliderRef = useRef<HTMLDivElement>(null);
   const lastAppliedSlugsRef = useRef<string[] | null>(null);
 
-  // Xác định thumb nào gần clientX hơn để gán activeInput đúng trước khi kéo
-  const resolveActiveThumb = useCallback((clientX: number) => {
-    if (!sliderRef.current) return;
-    const rect = sliderRef.current.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const clickVal = minLimit + pct * (maxLimit - minLimit);
-    setActiveInput(Math.abs(clickVal - sliderMin) <= Math.abs(clickVal - sliderMax) ? 'min' : 'max');
-  }, [minLimit, maxLimit, sliderMin, sliderMax]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    resolveActiveThumb(e.clientX);
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches[0]) {
-      resolveActiveThumb(e.touches[0].clientX);
-    }
-  };
-
-  // Sync state slider when URL / selectedAttributes change (currentSelectedTermIds actually holds slugs now)
+  // Sync slider state khi URL thay đổi từ bên ngoài
   const currentSelectedTermIds = selectedAttributes?.[group._id] || [];
 
   useEffect(() => {
     if (filterType === 'range' && numericTerms.length > 0) {
-      // Kiểm tra xem sự thay đổi URL có trùng khớp với lần apply gần nhất của chính slider này không
-      const isSelfChange = lastAppliedSlugsRef.current && 
+      const isSelfChange = lastAppliedSlugsRef.current &&
         lastAppliedSlugsRef.current.length === currentSelectedTermIds.length &&
         lastAppliedSlugsRef.current.every(slug => currentSelectedTermIds.includes(slug));
 
-      if (isSelfChange) {
-        // Nếu là do chính slider thay đổi URL thì giữ nguyên vị trí, tránh bị văng giật cục
-        return;
-      }
+      if (isSelfChange) return;
 
       if (currentSelectedTermIds.length > 0) {
         const selectedValues = numericTerms
@@ -1924,32 +1900,20 @@ function AttributeFilterGroupWidget({
     }
   }, [currentSelectedTermIds, minLimit, maxLimit, numericTerms, filterType]);
 
-  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Math.min(parseFloat(e.target.value), sliderMax);
-    setSliderMin(val);
-    setActiveInput('min');
-  };
-
-  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = Math.max(parseFloat(e.target.value), sliderMin);
-    setSliderMax(val);
-    setActiveInput('max');
-  };
-
-  const applyRangeFilter = () => {
-    if (sliderMin === minLimit && sliderMax === maxLimit) {
-      // Clear filter
+  const applyRangeFilter = useCallback((newMin: number, newMax: number) => {
+    setSliderMin(newMin);
+    setSliderMax(newMax);
+    if (newMin === minLimit && newMax === maxLimit) {
       lastAppliedSlugsRef.current = [];
       onAttributeChange?.(group.slug, [], false);
     } else {
       const matchedTermSlugs = numericTerms
-        .filter((item: any) => item.value >= sliderMin && item.value <= sliderMax)
+        .filter((item: any) => item.value >= newMin && item.value <= newMax)
         .map((item: any) => item.term.slug);
-      
       lastAppliedSlugsRef.current = matchedTermSlugs;
       onAttributeChange?.(group.slug, matchedTermSlugs, true);
     }
-  };
+  }, [minLimit, maxLimit, numericTerms, onAttributeChange, group.slug]);
 
   const unit = useMemo(() => {
     if (group.terms && group.terms.length > 0) {
@@ -1960,119 +1924,25 @@ function AttributeFilterGroupWidget({
     return '';
   }, [group.terms]);
 
-  // RENDER DUAL RANGE SLIDER
+  // RENDER DUAL RANGE SLIDER (dùng Radix UI Slider)
   if (filterType === 'range') {
     if (numericTerms.length === 0) {
       return <div className="text-xs italic opacity-60">Không có dữ liệu số để lọc theo khoảng.</div>;
     }
 
-    const primaryColor = tokens.filterChipActiveBg; // Use primary active color
-
     return (
-      <div className="space-y-5 py-2">
-        <style dangerouslySetInnerHTML={{__html: `
-          .double-range-slider input[type="range"] {
-            position: absolute;
-            width: 100%;
-            height: 6px;
-            top: 0;
-            left: 0;
-            background: none;
-            -webkit-appearance: none;
-            appearance: none;
-          }
-          .double-range-slider input[type="range"]::-webkit-slider-thumb {
-            height: 16px;
-            width: 16px;
-            border-radius: 50%;
-            background: ${primaryColor};
-            cursor: pointer;
-            -webkit-appearance: none;
-            border: 2px solid #ffffff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            transition: transform 0.1s ease;
-          }
-          .double-range-slider input[type="range"]::-webkit-slider-thumb:active {
-            transform: scale(1.25);
-          }
-          .double-range-slider input[type="range"]::-moz-range-thumb {
-            height: 16px;
-            width: 16px;
-            border-radius: 50%;
-            background: ${primaryColor};
-            cursor: pointer;
-            border: 2px solid #ffffff;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            transition: transform 0.1s ease;
-          }
-          .double-range-slider input[type="range"]::-moz-range-thumb:active {
-            transform: scale(1.25);
-          }
-        `}} />
-
-        <div className="flex justify-between items-center text-sm font-semibold">
-          <span style={{ color: tokens.metaText }}>Dải chọn:</span>
-          <span className="px-2 py-0.5 rounded font-mono text-sm" style={{ backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText }}>
-            {sliderMin}{unit} - {sliderMax}{unit}
-          </span>
-        </div>
-
-        <div className="space-y-3 pt-1">
-          {/* Container Slider */}
-          <div 
-            ref={sliderRef}
-            onMouseDown={handleMouseDown}
-            onTouchStart={handleTouchStart}
-            className="relative w-full h-1.5 rounded-lg double-range-slider" 
-            style={{ backgroundColor: tokens.filterChipBg }}
-          >
-            {/* Active Track */}
-            <div 
-              className="absolute h-full rounded-lg"
-              style={{
-                left: minLimit === maxLimit ? '0%' : `${((sliderMin - minLimit) / (maxLimit - minLimit)) * 100}%`,
-                right: minLimit === maxLimit ? '0%' : `${100 - ((sliderMax - minLimit) / (maxLimit - minLimit)) * 100}%`,
-                backgroundColor: tokens.filterChipActiveBg,
-                opacity: 0.85
-              }}
-            />
-            
-            {/* Min Range Input */}
-            <input
-              type="range"
-              min={minLimit}
-              max={maxLimit}
-              step={step}
-              value={sliderMin}
-              onChange={handleMinChange}
-              onMouseUp={applyRangeFilter}
-              onTouchEnd={applyRangeFilter}
-              className="absolute w-full cursor-pointer"
-              style={{ zIndex: activeInput === 'min' ? 10 : 3 }}
-            />
-            
-            {/* Max Range Input */}
-            <input
-              type="range"
-              min={minLimit}
-              max={maxLimit}
-              step={step}
-              value={sliderMax}
-              onChange={handleMaxChange}
-              onMouseUp={applyRangeFilter}
-              onTouchEnd={applyRangeFilter}
-              className="absolute w-full cursor-pointer"
-              style={{ zIndex: activeInput === 'max' ? 10 : 4 }}
-            />
-          </div>
-
-          {/* Min / Max Labels */}
-          <div className="flex justify-between text-xs font-mono" style={{ color: tokens.neutralTextLight }}>
-            <span>{minLimit}{unit}</span>
-            <span>{maxLimit}{unit}</span>
-          </div>
-        </div>
-      </div>
+      <RangeSlider
+        minLimit={minLimit}
+        maxLimit={maxLimit}
+        valueMin={sliderMin}
+        valueMax={sliderMax}
+        step={step}
+        primaryColor={tokens.filterChipActiveBg}
+        trackColor={tokens.filterChipBg}
+        thumbBorderColor="#ffffff"
+        unit={unit}
+        onValueCommit={applyRangeFilter}
+      />
     );
   }
 
