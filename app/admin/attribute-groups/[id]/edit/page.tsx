@@ -271,6 +271,19 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
                     >
                       Hủy bỏ
                     </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      title="Mở nhóm thuộc tính ngoài site"
+                      onClick={() => {
+                        const baseSlug = assignedType?.slug || 'products';
+                        const url = `/${baseSlug}/${slug}`;
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      <ExternalLink size={16} />
+                    </Button>
                   </div>
                   <div className="flex gap-2">
                     <Button

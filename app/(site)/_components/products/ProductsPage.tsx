@@ -180,8 +180,8 @@ interface ProductsPageProps {
   priceRangeFilter?: PriceRange;
   attributeFilter?: {
     groupId: Id<"attributeGroups">;
-    termId: Id<"attributeTerms">;
-    termSlug: string;
+    termId?: Id<"attributeTerms">;
+    termSlug?: string;
   };
 }
 
@@ -335,7 +335,9 @@ function ProductsContent(props: ProductsPageProps) {
     
     // Tải từ props.attributeFilter nếu có (props.attributeFilter.termSlug)
     if (props.attributeFilter) {
-      filters[props.attributeFilter.groupId] = props.attributeFilter.termSlug.split(',');
+      filters[props.attributeFilter.groupId] = props.attributeFilter.termSlug
+        ? props.attributeFilter.termSlug.split(',')
+        : [];
     }
 
     filterableGroups.forEach(group => {

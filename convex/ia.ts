@@ -264,6 +264,21 @@ export const resolveProductLandingContext = query({
             categoryDescription: cat.description ?? "",
           };
         }
+
+        const group = await ctx.db
+          .query("attributeGroups")
+          .withIndex("by_slug", (q) => q.eq("slug", subSlug))
+          .unique();
+        
+        if (group && group.isFilterable) {
+          return {
+            type: "productTypeAttribute" as const,
+            productTypeSlug: "products",
+            groupId: group._id,
+            groupSlug: group.slug,
+            groupName: group.name,
+          };
+        }
       }
 
       const productType = await ctx.db
@@ -307,6 +322,30 @@ export const resolveProductLandingContext = query({
             productTypeSlug: productType.slug,
             priceRange: targetRange,
           };
+        }
+
+        const group = await ctx.db
+          .query("attributeGroups")
+          .withIndex("by_slug", (q) => q.eq("slug", subSlug))
+          .unique();
+        
+        if (group && group.isFilterable) {
+          const mapping = await ctx.db
+            .query("productTypeAttributeGroups")
+            .withIndex("by_type", (q) => q.eq("typeId", productType._id))
+            .collect();
+          
+          const isAssigned = mapping.some((m) => m.groupId === group._id);
+          if (isAssigned) {
+            return {
+              type: "productTypeAttribute" as const,
+              productTypeId: productType._id,
+              productTypeSlug: productType.slug,
+              groupId: group._id,
+              groupSlug: group.slug,
+              groupName: group.name,
+            };
+          }
         }
 
         const detail = await resolveUnifiedDetailInternal(ctx, { categorySlug: typeSlug, recordSlug: subSlug });
@@ -467,9 +506,9 @@ export const resolveProductLandingContext = query({
       groupId: v.id("attributeGroups"),
       groupSlug: v.string(),
       groupName: v.string(),
-      termId: v.id("attributeTerms"),
-      termSlug: v.string(),
-      termName: v.string(),
+      termId: v.optional(v.id("attributeTerms")),
+      termSlug: v.optional(v.string()),
+      termName: v.optional(v.string()),
     }),
     v.null()
   ),

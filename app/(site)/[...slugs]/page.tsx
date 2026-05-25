@@ -90,7 +90,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     } else if (resolvedContext.type === 'productTypePriceRange') {
       title = `${resolvedContext.priceRange.label} - ${resolvedContext.productTypeSlug.toUpperCase()}`;
     } else if (resolvedContext.type === 'productTypeAttribute') {
-      title = `${resolvedContext.termName} - ${resolvedContext.productTypeSlug.toUpperCase()}`;
+      title = resolvedContext.termName
+        ? `${resolvedContext.termName} - ${resolvedContext.productTypeSlug.toUpperCase()}`
+        : `${resolvedContext.groupName} - ${resolvedContext.productTypeSlug.toUpperCase()}`;
     }
 
     return buildSeoMetadata({
