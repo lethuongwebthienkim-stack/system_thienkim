@@ -496,12 +496,28 @@ export default function AttributeGroupCreatePage() {
                       <Label>Giá trị thuộc tính chờ tạo</Label>
                       <p className="text-xs text-slate-500">Dùng Import AI để thêm nhanh các option như giống nho, quốc gia, dung tích...</p>
                     </div>
-                    <AiAttributeTermsImportDialog
-                      groupName={name}
-                      filterType={filterType}
-                      inputType={inputType}
-                      onApply={handleApplyAiTerms}
-                    />
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {pendingTerms.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="text-red-500 hover:text-red-600"
+                          onClick={() => {
+                            if (confirm(`Xóa ${pendingTerms.length} giá trị đang chờ tạo?`)) {
+                              setPendingTerms([]);
+                            }
+                          }}
+                        >
+                          Xóa tất cả
+                        </Button>
+                      )}
+                      <AiAttributeTermsImportDialog
+                        groupName={name}
+                        filterType={filterType}
+                        inputType={inputType}
+                        onApply={handleApplyAiTerms}
+                      />
+                    </div>
                   </div>
                   {pendingTerms.length === 0 ? (
                     <div className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500 dark:border-slate-800">

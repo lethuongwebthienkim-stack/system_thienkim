@@ -57,6 +57,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
   const [isFilterable, setIsFilterable] = useState(true);
   const [iconName, setIconName] = useState('Wine');
   const [iconColor, setIconColor] = useState('#ea580c');
+  const [pendingImportedTerms, setPendingImportedTerms] = useState<PendingAttributeTerm[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const savedDisplayConfig = groupData?.displayConfig && typeof groupData.displayConfig === 'object' && !Array.isArray(groupData.displayConfig)
     ? groupData.displayConfig as Record<string, unknown>
@@ -70,7 +71,8 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
     inputType !== groupData.inputType ||
     isFilterable !== (groupData.isFilterable ?? true) ||
     iconName !== (groupData.iconPath ?? 'Wine') ||
-    iconColor !== (groupData.displayConfig?.iconColor ?? groupData.displayConfig?.color ?? '#ea580c')
+    iconColor !== (groupData.displayConfig?.iconColor ?? groupData.displayConfig?.color ?? '#ea580c') ||
+    pendingImportedTerms.length > 0
   ) : false;
 
   useUnsavedGuard(hasChanges);
@@ -110,6 +112,18 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
           color: iconColor,
         },
       });
+      for (let i = 0; i < pendingImportedTerms.length; i++) {
+        const term = pendingImportedTerms[i];
+        await createTerm({
+          groupId: id as Id<"attributeGroups">,
+          name: term.name,
+          slug: term.slug,
+          description: term.description,
+          active: true,
+          order: (terms?.length ?? 0) + i,
+        });
+      }
+      setPendingImportedTerms([]);
       toast.success('Cập nhật nhóm thuộc tính thành công');
     } catch (error) {
       toast.error(getAdminMutationErrorMessage(error, 'Không thể cập nhật nhóm thuộc tính'));
@@ -118,20 +132,13 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
     }
   };
 
-  const handleApplyAiTerms = async (importedTerms: PendingAttributeTerm[]) => {
-    const existingSlugs = new Set((terms ?? []).map(term => term.slug));
+  const handleApplyAiTerms = (importedTerms: PendingAttributeTerm[]) => {
+    const existingSlugs = new Set([
+      ...(terms ?? []).map(term => term.slug),
+      ...pendingImportedTerms.map(term => term.slug),
+    ]);
     const newTerms = importedTerms.filter(term => !existingSlugs.has(term.slug));
-    for (let i = 0; i < newTerms.length; i++) {
-      const term = newTerms[i];
-      await createTerm({
-        groupId: id as Id<"attributeGroups">,
-        name: term.name,
-        slug: term.slug,
-        description: term.description,
-        active: true,
-        order: (terms?.length ?? 0) + i,
-      });
-    }
+    setPendingImportedTerms(prev => [...prev, ...newTerms]);
     if (newTerms.length < importedTerms.length) {
       toast.info(`Đã bỏ qua ${importedTerms.length - newTerms.length} giá trị trùng slug`);
     }
@@ -385,7 +392,15 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
             inputType={inputType}
             iconName={iconName}
             iconColor={iconColor}
-            terms={terms}
+            terms={[
+              ...(terms ?? []),
+              ...pendingImportedTerms.map((term, index) => ({
+                _id: `pending-${term.slug}`,
+                name: term.name,
+                slug: term.slug,
+                order: (terms?.length ?? 0) + index,
+              })),
+            ]}
           />
         </div>
       </div>
@@ -402,12 +417,14 @@ interface SortableTermRowProps {
     slug: string;
     order: number;
   };
+  checked: boolean;
+  onToggle: (id: Id<"attributeTerms">) => void;
   onRemove: (id: Id<"attributeTerms">) => void;
   groupSlug: string;
   assignedTypeSlug: string | null;
 }
 
-function SortableTermRow({ term, onRemove, groupSlug, assignedTypeSlug }: SortableTermRowProps) {
+function SortableTermRow({ term, checked, onToggle, onRemove, groupSlug, assignedTypeSlug }: SortableTermRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: term._id });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
@@ -421,6 +438,12 @@ function SortableTermRow({ term, onRemove, groupSlug, assignedTypeSlug }: Sortab
       )}
     >
       <div className="flex items-center gap-3 flex-1">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={() => onToggle(term._id)}
+          className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+        />
         <button
           type="button"
           {...attributes}
@@ -461,6 +484,7 @@ function AttributeTermsManager({ groupId, terms, groupSlug, assignedTypeSlug }: 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTermIds, setSelectedTermIds] = useState<Id<"attributeTerms">[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -509,6 +533,30 @@ function AttributeTermsManager({ groupId, terms, groupSlug, assignedTypeSlug }: 
     }
   };
 
+  const toggleSelectedTerm = (id: Id<"attributeTerms">) => {
+    setSelectedTermIds(prev => prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAllTerms = () => {
+    if (!terms) {return;}
+    const allIds = terms.map(term => term._id);
+    setSelectedTermIds(selectedTermIds.length === allIds.length ? [] : allIds);
+  };
+
+  const handleBulkRemove = async () => {
+    if (selectedTermIds.length === 0) {return;}
+    if (!confirm(`Xóa ${selectedTermIds.length} giá trị thuộc tính đã chọn?`)) {return;}
+    try {
+      for (const id of selectedTermIds) {
+        await removeTerm({ id });
+      }
+      setSelectedTermIds([]);
+      toast.success(`Đã xóa ${selectedTermIds.length} giá trị thuộc tính`);
+    } catch (error) {
+      toast.error(getAdminMutationErrorMessage(error, 'Lỗi khi xóa nhiều giá trị thuộc tính'));
+    }
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id || !terms) return;
@@ -527,6 +575,8 @@ function AttributeTermsManager({ groupId, terms, groupSlug, assignedTypeSlug }: 
   };
 
   if (terms === undefined) return <div className="text-center py-4"><Loader2 className="animate-spin mx-auto text-slate-400" /></div>;
+
+  const isAllTermsSelected = terms.length > 0 && selectedTermIds.length === terms.length;
 
   return (
     <Card className="max-w-4xl mx-auto md:mx-0 mt-8">
@@ -548,6 +598,30 @@ function AttributeTermsManager({ groupId, terms, groupSlug, assignedTypeSlug }: 
           </Button>
         </form>
 
+        {terms.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-900/50">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <input
+                type="checkbox"
+                checked={isAllTermsSelected}
+                onChange={toggleSelectAllTerms}
+                className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+              />
+              Chọn tất cả {terms.length} giá trị
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={selectedTermIds.length === 0}
+              className="text-red-500 hover:text-red-600 disabled:text-slate-400"
+              onClick={handleBulkRemove}
+            >
+              Xóa đã chọn ({selectedTermIds.length})
+            </Button>
+          </div>
+        )}
+
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={terms.map(item => item._id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
@@ -555,7 +629,15 @@ function AttributeTermsManager({ groupId, terms, groupSlug, assignedTypeSlug }: 
                 <p className="text-slate-500 text-sm italic">Chưa có giá trị nào.</p>
               ) : (
                 terms.map(term => (
-                  <SortableTermRow key={term._id} term={term} onRemove={handleRemove} groupSlug={groupSlug} assignedTypeSlug={assignedTypeSlug} />
+                  <SortableTermRow
+                    key={term._id}
+                    term={term}
+                    checked={selectedTermIds.includes(term._id)}
+                    onToggle={toggleSelectedTerm}
+                    onRemove={handleRemove}
+                    groupSlug={groupSlug}
+                    assignedTypeSlug={assignedTypeSlug}
+                  />
                 ))
               )}
             </div>
