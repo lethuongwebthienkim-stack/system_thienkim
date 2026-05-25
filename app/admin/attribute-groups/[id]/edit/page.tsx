@@ -16,6 +16,7 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { AttributeGroupPreview } from '../../_components/AttributeGroupPreview';
 
 const COLOR_PRESETS = [
   { label: 'Đen', value: '#000000', class: 'bg-black border-black text-white' },
@@ -96,7 +97,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+    <div className="max-w-6xl mx-auto space-y-6 pb-20">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Chỉnh sửa nhóm thuộc tính</h1>
@@ -106,138 +107,152 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      <Card className="max-w-md mx-auto md:mx-0">
-        <form onSubmit={handleSubmit}>
-          <CardContent className="p-6 space-y-4">
-            <div className="space-y-2">
-              <Label>Tên nhóm thuộc tính <span className="text-red-500">*</span></Label>
-              <Input 
-                value={name} 
-                onChange={(e) =>{  setName(e.target.value); }} 
-                required 
-                placeholder="Nhập tên nhóm thuộc tính..." 
-                autoFocus 
-              />
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <div className="lg:col-span-5">
+          <Card className="w-full">
+            <form onSubmit={handleSubmit}>
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-2">
+                  <Label>Tên nhóm thuộc tính <span className="text-red-500">*</span></Label>
+                  <Input 
+                    value={name} 
+                    onChange={(e) =>{  setName(e.target.value); }} 
+                    required 
+                    placeholder="Nhập tên nhóm thuộc tính..." 
+                    autoFocus 
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label>Slug</Label>
-              <Input 
-                value={slug} 
-                onChange={(e) =>{  setSlug(e.target.value); }} 
-                placeholder="slug" 
-                className="font-mono text-sm" 
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label>Slug</Label>
+                  <Input 
+                    value={slug} 
+                    onChange={(e) =>{  setSlug(e.target.value); }} 
+                    placeholder="slug" 
+                    className="font-mono text-sm" 
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label>Mã (Code) <span className="text-red-500">*</span></Label>
-              <Input 
-                value={code} 
-                onChange={(e) => setCode(e.target.value)} 
-                required 
-                placeholder="VD: color, size..." 
-              />
-            </div>
+                <div className="space-y-2">
+                  <Label>Mã (Code) <span className="text-red-500">*</span></Label>
+                  <Input 
+                    value={code} 
+                    onChange={(e) => setCode(e.target.value)} 
+                    required 
+                    placeholder="VD: color, size..." 
+                  />
+                </div>
 
-            <div className="space-y-2">
-              <Label>Kiểu lọc</Label>
-              <select 
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
-              >
-                <option value="single">Một lựa chọn (Single)</option>
-                <option value="multiple">Nhiều lựa chọn (Multiple)</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Kiểu hiển thị</Label>
-              <select 
-                value={inputType}
-                onChange={(e) => setInputType(e.target.value)}
-                className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
-              >
-                <option value="select">Dropdown (Select)</option>
-                <option value="buttons">Các nút bấm (Buttons)</option>
-                <option value="color">Màu sắc (Color/Hình ảnh)</option>
-                <option value="radio">Nút tròn (Radio)</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Icon đại diện</Label>
-              <IconPopoverPicker 
-                value={iconName}
-                onChange={setIconName}
-                options={ATTRIBUTE_ICON_OPTIONS}
-                brandColor={iconColor}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Màu sắc icon</Label>
-              <div className="flex gap-2 mb-2 flex-wrap">
-                {COLOR_PRESETS.map((p) => (
-                  <button
-                    key={p.value}
-                    type="button"
-                    onClick={() => setIconColor(p.value)}
-                    className={`px-3 py-1.5 rounded text-xs font-medium border transition-all ${p.class} ${iconColor === p.value ? 'ring-2 ring-orange-500 scale-105 shadow-md' : 'opacity-80 hover:opacity-100'}`}
+                <div className="space-y-2">
+                  <Label>Kiểu lọc</Label>
+                  <select 
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
                   >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2 items-center">
-                <Input 
-                  type="color" 
-                  value={iconColor} 
-                  onChange={(e) => setIconColor(e.target.value)} 
-                  className="w-12 h-10 p-1 cursor-pointer border border-slate-200 rounded-md"
-                />
-                <Input 
-                  type="text" 
-                  value={iconColor} 
-                  onChange={(e) => setIconColor(e.target.value)}
-                  placeholder="#ea580c"
-                  className="font-mono text-sm uppercase flex-1"
-                />
-              </div>
-            </div>
+                    <option value="single">Một lựa chọn (Single)</option>
+                    <option value="multiple">Nhiều lựa chọn (Multiple)</option>
+                  </select>
+                </div>
 
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-2 h-10 border border-slate-100 dark:border-slate-800/50 rounded-md px-3 bg-white dark:bg-slate-900/50">
-                <input
-                  type="checkbox"
-                  id="isFilterable"
-                  checked={isFilterable}
-                  onChange={(e) => setIsFilterable(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
-                />
-                <Label htmlFor="isFilterable" className="text-sm font-medium cursor-pointer select-none">
-                  Hiển thị trong bộ lọc (Filter)
-                </Label>
+                <div className="space-y-2">
+                  <Label>Kiểu hiển thị</Label>
+                  <select 
+                    value={inputType}
+                    onChange={(e) => setInputType(e.target.value)}
+                    className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+                  >
+                    <option value="select">Dropdown (Select)</option>
+                    <option value="buttons">Các nút bấm (Buttons)</option>
+                    <option value="color">Màu sắc (Color/Hình ảnh)</option>
+                    <option value="radio">Nút tròn (Radio)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Icon đại diện</Label>
+                  <IconPopoverPicker 
+                    value={iconName}
+                    onChange={setIconName}
+                    options={ATTRIBUTE_ICON_OPTIONS}
+                    brandColor={iconColor}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Màu sắc icon</Label>
+                  <div className="flex gap-2 mb-2 flex-wrap">
+                    {COLOR_PRESETS.map((p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => setIconColor(p.value)}
+                        className={`px-3 py-1.5 rounded text-xs font-medium border transition-all ${p.class} ${iconColor === p.value ? 'ring-2 ring-orange-500 scale-105 shadow-md' : 'opacity-80 hover:opacity-100'}`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Input 
+                      type="color" 
+                      value={iconColor} 
+                      onChange={(e) => setIconColor(e.target.value)} 
+                      className="w-12 h-10 p-1 cursor-pointer border border-slate-200 rounded-md"
+                    />
+                    <Input 
+                      type="text" 
+                      value={iconColor} 
+                      onChange={(e) => setIconColor(e.target.value)}
+                      placeholder="#ea580c"
+                      className="font-mono text-sm uppercase flex-1"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 h-10 border border-slate-100 dark:border-slate-800/50 rounded-md px-3 bg-white dark:bg-slate-900/50">
+                    <input
+                      type="checkbox"
+                      id="isFilterable"
+                      checked={isFilterable}
+                      onChange={(e) => setIsFilterable(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                    />
+                    <Label htmlFor="isFilterable" className="text-sm font-medium cursor-pointer select-none">
+                      Hiển thị trong bộ lọc (Filter)
+                    </Label>
+                  </div>
+                </div>
+              </CardContent>
+              
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 rounded-b-lg flex justify-end gap-3">
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  onClick={() =>{  router.push('/admin/attribute-groups'); }}
+                >
+                  Hủy bỏ
+                </Button>
+                <Button type="submit" variant="accent" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}
+                  Lưu thay đổi
+                </Button>
               </div>
-            </div>
-          </CardContent>
-          
-          <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 rounded-b-lg flex justify-end gap-3">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              onClick={() =>{  router.push('/admin/attribute-groups'); }}
-            >
-              Hủy bỏ
-            </Button>
-            <Button type="submit" variant="accent" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}
-              Lưu thay đổi
-            </Button>
-          </div>
-        </form>
-      </Card>
+            </form>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-7 lg:sticky lg:top-6">
+          <AttributeGroupPreview
+            name={name}
+            filterType={filterType}
+            inputType={inputType}
+            iconName={iconName}
+            iconColor={iconColor}
+          />
+        </div>
+      </div>
 
       <AttributeTermsManager groupId={id as Id<"attributeGroups">} />
     </div>
