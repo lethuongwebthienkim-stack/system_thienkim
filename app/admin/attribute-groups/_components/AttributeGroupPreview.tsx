@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getAttributeIconComponent } from '../_lib/iconRegistry';
-import { Card, CardContent, Button } from '../../../components/ui';
+import { Card, CardContent, Button } from '../../components/ui';
 import { ChevronDown, Check } from 'lucide-react';
 
 interface AttributeGroupPreviewProps {
