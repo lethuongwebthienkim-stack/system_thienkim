@@ -207,9 +207,7 @@ function ProductsContent(props: ProductsPageProps) {
   );
   const { frameConfig, watermarkConfig } = useProductImageOverlayConfigs(imageAspectRatio);
   const listConfig = useProductsListConfig();
-  const layout: ProductsListLayout = props.attributeFilter 
-    ? 'catalog' 
-    : (listConfig.layoutStyle === 'sidebar' ? 'catalog' : listConfig.layoutStyle);
+  const layout: ProductsListLayout = listConfig.layoutStyle === 'sidebar' ? 'catalog' : listConfig.layoutStyle;
   const enableQuickAddVariant = listConfig.enableQuickAddVariant ?? true;
   const showWishlistButton = listConfig.showWishlistButton ?? true;
   const checkoutConfig = useCheckoutConfig();
@@ -330,8 +328,11 @@ function ProductsContent(props: ProductsPageProps) {
   const rawFilterableGroups = useQuery(api.attributeGroups.listFilterable, enableProductTypes ? {} : 'skip');
   const filterableGroups = useMemo(() => {
     if (!rawFilterableGroups) return undefined;
-    if (!enableProductTypes || !props.productTypeId) {
-      return rawFilterableGroups;
+    if (!enableProductTypes) {
+      return [];
+    }
+    if (!props.productTypeId) {
+      return [];
     }
     if (!assignedGroups) {
       return [];
@@ -2128,7 +2129,8 @@ function MobileProductsFilters({
   attributeFilter,
 }: MobileProductsFiltersProps) {
   const [open, setOpen] = useState(false);
-  const hasActiveFilters = Boolean(selectedCategory || searchQuery || selectedPriceRange) || sortBy !== 'newest';
+  const hasSelectedAttributes = Object.values(selectedAttributes ?? {}).some((items) => items.length > 0);
+  const hasActiveFilters = Boolean(selectedCategory || searchQuery || selectedPriceRange || hasSelectedAttributes) || sortBy !== 'newest';
 
   return (
     <div className="lg:hidden rounded-xl border p-3 mb-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
@@ -2155,8 +2157,7 @@ function MobileProductsFilters({
 
       {open && (
         <div className="mt-3 space-y-3 border-t pt-3" style={{ borderColor: tokens.filterBarBorder }}>
-          {!attributeFilter && (
-            <div className="relative">
+          <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: tokens.inputIcon }} />
               <input
                 type="text"
@@ -2181,10 +2182,9 @@ function MobileProductsFilters({
                   <X size={16} />
                 </button>
               )}
-            </div>
-          )}
+          </div>
 
-          {!attributeFilter && enableProductTypes && productTypes && productTypes.length > 0 && (
+          {enableProductTypes && productTypes && productTypes.length > 0 && (
             <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-wider" style={{ color: tokens.metaText }}>Nhóm sản phẩm</p>
               <div className="flex flex-wrap gap-2">
@@ -2215,8 +2215,7 @@ function MobileProductsFilters({
             </div>
           )}
 
-          {!attributeFilter && (
-            <div>
+          <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-wider" style={{ color: tokens.metaText }}>Danh mục</p>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -2243,10 +2242,9 @@ function MobileProductsFilters({
                   </button>
                 ))}
               </div>
-            </div>
-          )}
+          </div>
 
-          {!attributeFilter && enableProductTypes && productType?.priceRanges && productType.priceRanges.length > 0 && (
+          {enableProductTypes && productType?.priceRanges && productType.priceRanges.length > 0 && (
             <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-wider" style={{ color: tokens.metaText }}>Khoảng giá</p>
               <div className="flex flex-wrap gap-2">
@@ -2288,8 +2286,7 @@ function MobileProductsFilters({
             </div>
           ))}
 
-          {!attributeFilter && (
-            <div>
+          <div>
               <label className="mb-2 block text-xs font-medium uppercase tracking-wider" style={{ color: tokens.metaText }}>
                 Sắp xếp
               </label>
@@ -2310,7 +2307,6 @@ function MobileProductsFilters({
               <option value="name">Tên A-Z</option>
             </select>
           </div>
-          )}
         </div>
       )}
     </div>
@@ -2356,8 +2352,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
         <div className="flex gap-6">
           {/* Sidebar */}
           <div className="hidden lg:block w-64 shrink-0 space-y-4 text-sm">
-            {!attributeFilter && (
-              <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+            <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Tìm kiếm</h3>
                 <div className="relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: tokens.inputIcon }} />
@@ -2375,10 +2370,9 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     } as React.CSSProperties}
                   />
                 </div>
-              </div>
-            )}
+            </div>
 
-            {!attributeFilter && enableProductTypes && productTypes && productTypes.length > 0 && (
+            {enableProductTypes && productTypes && productTypes.length > 0 && (
               <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Nhóm sản phẩm</h3>
                 <div className="space-y-1">
@@ -2410,8 +2404,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
               </div>
             )}
 
-            {!attributeFilter && (
-              <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+            <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Danh mục</h3>
                 <div className="space-y-1">
                   <button
@@ -2438,10 +2431,9 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
+            </div>
 
-            {!attributeFilter && enableProductTypes && productType?.priceRanges && productType.priceRanges.length > 0 && (
+            {enableProductTypes && productType?.priceRanges && productType.priceRanges.length > 0 && (
               <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Khoảng giá</h3>
                 <div className="space-y-1">
@@ -2482,8 +2474,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
               </div>
             ))}
 
-            {!attributeFilter && (
-              <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+            <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Sắp xếp</h3>
                 <select
                   value={sortBy}
@@ -2501,8 +2492,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                   <option value="price_desc">Giá cao → thấp</option>
                   <option value="name">Tên A-Z</option>
                 </select>
-              </div>
-            )}
+            </div>
           </div>
 
           {/* Main Content */}
