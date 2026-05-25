@@ -23,12 +23,52 @@ import { QuickCreateCategoryModal } from '@/app/admin/products/components/QuickC
 import { CategoryTagsInput } from '@/app/admin/components/AdditionalCategoriesSelect';
 import { normalizeRichText } from '@/app/admin/lib/normalize-rich-text';
 import { resolveProductImageAspectRatio } from '@/lib/products/image-aspect-ratio';
+import { getAttributeIconComponent } from '@/app/admin/attribute-groups/_lib/iconRegistry';
 import { HomeComponentStickyFooter } from '@/app/admin/home-components/_shared/components/HomeComponentStickyFooter';
 import { AiEntityImportDialog, type AiEntityImportPayload } from '@/app/admin/components/AiEntityImportDialog';
 import { InlineMatrixBuilder, type OptionCatalogItem, type VariantOptionSelection, type VariantRow } from '@/app/admin/products/components/inline-matrix-builder';
 import { normalizeVariantRows, normalizeVariantSelections, validateVariantPayload } from '@/app/admin/products/components/inline-variant-utils';
 
 const MODULE_KEY = 'products';
+
+// Hàm xóa dấu tiếng Việt phục vụ fuzzy search
+const removeTones = (str: string): string => {
+  return str
+    .normalize('NFD')
+    .replaceAll(/[\u0300-\u036f]/g, '')
+    .replaceAll(/[đđ]/g, 'd')
+    .replaceAll(/[ĐĐ]/g, 'D')
+    .toLowerCase();
+};
+
+// Hàm phân tách giá trị và đơn vị của term range
+const parseTermValue = (termName: string) => {
+  const match = termName.match(/^([\d.]+)\s*(.*)$/);
+  if (match) {
+    return { value: match[1], unit: match[2] };
+  }
+  return { value: '', unit: '' };
+};
+
+// Hàm tìm đơn vị chủ đạo của group
+const getDominantUnit = (terms: Array<{ name: string }>) => {
+  const counts: Record<string, number> = {};
+  terms.forEach(t => {
+    const { unit } = parseTermValue(t.name);
+    if (unit) {
+      counts[unit] = (counts[unit] || 0) + 1;
+    }
+  });
+  let dominant = '';
+  let maxCount = 0;
+  Object.entries(counts).forEach(([unit, count]) => {
+    if (count > maxCount) {
+      maxCount = count;
+      dominant = unit;
+    }
+  });
+  return dominant;
+};
 
 export default function ProductEditPage({ params }: { params: Promise<{ id: string }> }) {
   return (
@@ -198,6 +238,10 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
   const assignedTermIdsData = useQuery(api.attributeTerms.getAssignedTermIds, { productId: id as Id<"products"> });
   const [productTypeId, setProductTypeId] = useState('');
   const [attributeTermIds, setAttributeTermIds] = useState<Id<"attributeTerms">[]>([]);
+  const updateAttributeGroup = useMutation(api.attributeGroups.update);
+  const createAttributeTerm = useMutation(api.attributeTerms.create);
+  const [rangeInputs, setRangeInputs] = useState<Record<string, { value: string; unit: string }>>({});
+  const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
   const formConfig = useQuery(api.productTypes.getFormConfig, productTypeId ? { typeId: productTypeId as Id<"productTypes"> } : 'skip');
   const availableProductTypes = useMemo(() => {
     if (categoryId && categoryProductTypesData && categoryProductTypesData.length > 0) {
@@ -223,6 +267,40 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
     });
     return uniqueTypeIds.size > 1;
   }, [enableProductTypes, assignedTypesForSelectedCategories]);
+
+  useEffect(() => {
+    if (formConfig && assignedTermIdsData && isDataLoaded) {
+      const nonRangeIds: Id<"attributeTerms">[] = [];
+      const initialRanges: Record<string, { value: string; unit: string }> = {};
+
+      assignedTermIdsData.forEach(termId => {
+        const group = formConfig.groups.find(g => g.terms.some(t => t._id === termId));
+        if (group) {
+          if (group.filterType === 'range') {
+            const term = group.terms.find(t => t._id === termId);
+            if (term) {
+              const { value, unit } = parseTermValue(term.name);
+              initialRanges[group._id] = { value, unit };
+            }
+          } else {
+            nonRangeIds.push(termId);
+          }
+        }
+      });
+
+      setAttributeTermIds(nonRangeIds);
+
+      // Điền đơn vị chủ đạo mặc định cho các group range chưa có giá trị
+      formConfig.groups.forEach(group => {
+        if (group.filterType === 'range' && !initialRanges[group._id]) {
+          const dominant = getDominantUnit(group.terms) || '%';
+          initialRanges[group._id] = { value: '', unit: dominant };
+        }
+      });
+
+      setRangeInputs(initialRanges);
+    }
+  }, [formConfig, assignedTermIdsData, isDataLoaded]);
 
   const digitalEnabled = productTypeMode !== 'physical';
 
@@ -679,6 +757,62 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
     setIsSubmitting(true);
     setSaveStatus('saving');
     try {
+      // Xử lý các thuộc tính Range
+      const rangeTermIds: Id<"attributeTerms">[] = [];
+      if (enableProductTypes && formConfig) {
+        // Xác nhận đơn vị lệch chuẩn trước khi lưu
+        for (const group of formConfig.groups) {
+          if (group.filterType === 'range') {
+            const input = rangeInputs[group._id];
+            if (input && input.value.trim()) {
+              const dominantUnit = getDominantUnit(group.terms);
+              if (dominantUnit && input.unit !== dominantUnit) {
+                const confirmMsg = `Đơn vị của thuộc tính '${group.name}' bạn chọn là '${input.unit}' khác với đơn vị phổ biến hiện tại là '${dominantUnit}'. Bạn có chắc chắn muốn lưu?`;
+                if (!window.confirm(confirmMsg)) {
+                  setIsSubmitting(false);
+                  setSaveStatus('idle');
+                  return;
+                }
+              }
+            }
+          }
+        }
+
+        // Tạo các term range chưa tồn tại và lấy ID
+        for (const group of formConfig.groups) {
+          if (group.filterType === 'range') {
+            const input = rangeInputs[group._id];
+            if (input && input.value.trim()) {
+              const val = input.value.trim();
+              const unit = input.unit.trim();
+              const termName = `${val}${unit}`;
+              
+              // Tìm term sẵn có
+              const existingTerm = group.terms.find(t => t.name === termName);
+              if (existingTerm) {
+                rangeTermIds.push(existingTerm._id);
+              } else {
+                try {
+                  // Tạo mới term
+                  const newTermId = await createAttributeTerm({
+                    groupId: group._id,
+                    name: termName,
+                    slug: termName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
+                    active: true
+                  });
+                  rangeTermIds.push(newTermId);
+                } catch (err) {
+                  toast.error(`Không thể tạo giá trị thuộc tính "${termName}"`);
+                  setIsSubmitting(false);
+                  setSaveStatus('idle');
+                  return;
+                }
+              }
+            }
+          }
+        }
+      }
+
       const resolvedStock = productType === 'digital' || hideBaseStock ? 0 : (parseInt(stock) || 0);
       const resolvedMetaTitle = truncateText(name.trim(), 60);
       const resolvedMetaDescription = truncateText(stripHtml(description || ''), 160);
@@ -726,7 +860,7 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
         status,
         stock: resolvedStock,
         productTypeId: enableProductTypes && productTypeId ? productTypeId as Id<"productTypes"> : undefined,
-        attributeTermIds: enableProductTypes ? attributeTermIds : undefined,
+        attributeTermIds: enableProductTypes ? [...attributeTermIds, ...rangeTermIds] : undefined,
         productType: digitalEnabled ? productType : undefined,
         digitalDeliveryType: digitalEnabled && productType === 'digital' ? digitalDeliveryType : undefined,
         digitalCredentialsTemplate: digitalEnabled && productType === 'digital' && Object.keys(digitalCredentialsTemplate).length > 0
@@ -1682,36 +1816,154 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                     </p>
                   )}
                 </div>
-                {formConfig && formConfig.groups.map(group => (
-                  <div key={group._id} className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <Label>{group.name}</Label>
-                    <div className="grid grid-cols-2 gap-2 mt-1">
-                      {group.terms.map(term => (
-                        <label key={term._id} className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-900 px-2 py-1.5 rounded-md border border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                          <input
-                            type={group.inputType === 'radio' || group.filterType === 'single' ? 'radio' : 'checkbox'}
-                            name={`attr_${group._id}`}
-                            checked={attributeTermIds.includes(term._id)}
-                            onChange={(e) => {
-                              if (group.inputType === 'radio' || group.filterType === 'single') {
-                                const otherTermIds = group.terms.map(t => t._id).filter(id => id !== term._id);
-                                setAttributeTermIds(prev => [...prev.filter(id => !otherTermIds.includes(id)), term._id]);
-                              } else {
-                                if (e.target.checked) {
-                                  setAttributeTermIds(prev => [...prev, term._id]);
-                                } else {
-                                  setAttributeTermIds(prev => prev.filter(id => id !== term._id));
-                                }
-                              }
-                            }}
-                            className="w-3.5 h-3.5"
-                          />
-                          <span className="text-xs truncate">{term.name}</span>
-                        </label>
-                      ))}
+                {formConfig && formConfig.groups.map(group => {
+                  const isRange = group.filterType === 'range';
+                  const IconComponent = getAttributeIconComponent(group.iconPath);
+                  const iconColor = group.displayConfig?.iconColor || group.displayConfig?.color || '#ea580c';
+                  
+                  const renderLabelWithIcon = () => (
+                    <div className="flex items-center gap-2">
+                      {group.iconPath && (
+                        <span style={{ color: iconColor }} className="shrink-0">
+                          <IconComponent size={16} />
+                        </span>
+                      )}
+                      <Label className="text-sm font-semibold">{group.name}</Label>
                     </div>
-                  </div>
-                ))}
+                  );
+                  
+                  if (isRange) {
+                    const currentInput = rangeInputs[group._id] || { value: '', unit: '%' };
+                    const dominantUnit = getDominantUnit(group.terms);
+                    const isUnitDifferent = dominantUnit && currentInput.value && currentInput.unit !== dominantUnit;
+                    const availableUnits = (group.displayConfig?.units as string[]) || ['%', 'ml', 'kg', 'g'];
+                    
+                    const handleAddUnit = async () => {
+                      const newUnit = window.prompt(`Nhập đơn vị mới cho nhóm thuộc tính "${group.name}":`);
+                      if (newUnit && newUnit.trim()) {
+                        const trimmedUnit = newUnit.trim();
+                        if (availableUnits.includes(trimmedUnit)) {
+                          toast.error("Đơn vị này đã tồn tại.");
+                          return;
+                        }
+                        const updatedUnits = [...availableUnits, trimmedUnit];
+                        try {
+                          await updateAttributeGroup({
+                            id: group._id,
+                            displayConfig: {
+                              ...(group.displayConfig || {}),
+                              units: updatedUnits
+                            }
+                          });
+                          setRangeInputs(prev => ({
+                            ...prev,
+                            [group._id]: { ...prev[group._id], unit: trimmedUnit }
+                          }));
+                          toast.success(`Đã thêm đơn vị "${trimmedUnit}" thành công`);
+                        } catch (err) {
+                          toast.error("Không thể lưu đơn vị mới");
+                        }
+                      }
+                    };
+
+                    return (
+                      <div key={group._id} className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        {renderLabelWithIcon()}
+                        <div className="flex items-center gap-2 mt-1">
+                          <Input
+                            type="number"
+                            step="any"
+                            placeholder="Nhập giá trị số..."
+                            value={currentInput.value}
+                            onChange={(e) => {
+                              setRangeInputs(prev => ({
+                                ...prev,
+                                [group._id]: { ...(prev[group._id] || { unit: dominantUnit || '%' }), value: e.target.value }
+                              }));
+                            }}
+                            className="flex-1 h-9 text-sm"
+                          />
+                          <select
+                            value={currentInput.unit}
+                            onChange={(e) => {
+                              setRangeInputs(prev => ({
+                                ...prev,
+                                [group._id]: { ...(prev[group._id] || { value: '' }), unit: e.target.value }
+                              }));
+                            }}
+                            className="h-9 w-24 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+                          >
+                            {availableUnits.map(unit => (
+                              <option key={unit} value={unit}>{unit}</option>
+                            ))}
+                          </select>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleAddUnit}
+                            className="h-9 w-9 px-0 shrink-0"
+                            title="Thêm đơn vị mới"
+                          >
+                            +
+                          </Button>
+                        </div>
+                        {isUnitDifferent && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+                            ⚠️ Đơn vị đang chọn ({currentInput.unit}) khác với đơn vị phổ biến ({dominantUnit}).
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  const hasManyTerms = group.terms.length > 10;
+                  const searchText = searchTerms[group._id] || '';
+                  const filteredTerms = hasManyTerms && searchText.trim()
+                    ? group.terms.filter(term => removeTones(term.name).includes(removeTones(searchText)))
+                    : group.terms;
+
+                  return (
+                    <div key={group._id} className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      {renderLabelWithIcon()}
+                      {hasManyTerms && (
+                        <Input
+                          type="text"
+                          placeholder={`Tìm nhanh ${group.name.toLowerCase()}...`}
+                          value={searchText}
+                          onChange={(e) => {
+                            setSearchTerms(prev => ({ ...prev, [group._id]: e.target.value }));
+                          }}
+                          className="h-8 text-xs mb-2 bg-white dark:bg-slate-800"
+                        />
+                      )}
+                      <div className={`grid grid-cols-2 gap-2 mt-1 ${hasManyTerms ? 'max-h-48 overflow-y-auto pr-1' : ''}`}>
+                        {filteredTerms.map(term => (
+                          <label key={term._id} className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-900 px-2 py-1.5 rounded-md border border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+                            <input
+                              type={group.inputType === 'radio' || group.filterType === 'single' ? 'radio' : 'checkbox'}
+                              name={`attr_${group._id}`}
+                              checked={attributeTermIds.includes(term._id)}
+                              onChange={(e) => {
+                                if (group.inputType === 'radio' || group.filterType === 'single') {
+                                  const otherTermIds = group.terms.map(t => t._id).filter(id => id !== term._id);
+                                  setAttributeTermIds(prev => [...prev.filter(id => !otherTermIds.includes(id)), term._id]);
+                                } else {
+                                  if (e.target.checked) {
+                                    setAttributeTermIds(prev => [...prev, term._id]);
+                                  } else {
+                                    setAttributeTermIds(prev => prev.filter(id => id !== term._id));
+                                  }
+                                }
+                              }}
+                              className="w-3.5 h-3.5"
+                            />
+                            <span className="text-xs truncate">{term.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </CardContent>
             </Card>
           )}
@@ -1785,6 +2037,7 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
         hasChanges={hasChanges}
         onCancel={() =>{  router.push('/admin/products'); }}
         submitLabel="Lưu thay đổi"
+        disableSave={isSubmitting || hasTaxonomyConflict}
       >
         <>
           <Button type="button" variant="ghost" onClick={() =>{  router.push('/admin/products'); }} disabled={isSubmitting}>Hủy bỏ</Button>
@@ -1810,8 +2063,8 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
             <Button
               type="submit"
               variant="accent"
-              disabled={isSubmitting || !hasChanges}
-              className={!hasChanges && !isSubmitting
+              disabled={isSubmitting || hasTaxonomyConflict || !hasChanges}
+              className={(!hasChanges || hasTaxonomyConflict) && !isSubmitting
                 ? 'bg-slate-300 hover:bg-slate-300 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-800 dark:text-slate-400'
                 : undefined}
             >
