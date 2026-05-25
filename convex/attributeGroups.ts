@@ -350,3 +350,23 @@ export const listAssignedProductTypesForGroups = query({
     productTypes: v.array(assignedProductTypeDoc),
   })),
 });
+
+export const listTermCountsForGroups = query({
+  args: { groupIds: v.array(v.id("attributeGroups")) },
+  handler: async (ctx, args) => {
+    const rows = await Promise.all(
+      args.groupIds.map(async (groupId) => {
+        const terms = await ctx.db
+          .query("attributeTerms")
+          .withIndex("by_group", (q) => q.eq("groupId", groupId))
+          .collect();
+        return { groupId, count: terms.length };
+      })
+    );
+    return rows;
+  },
+  returns: v.array(v.object({
+    groupId: v.id("attributeGroups"),
+    count: v.number(),
+  })),
+});

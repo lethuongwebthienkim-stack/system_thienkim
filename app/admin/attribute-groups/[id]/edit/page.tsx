@@ -17,6 +17,7 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AttributeGroupPreview } from '../../_components/AttributeGroupPreview';
+import { AiAttributeTermsImportDialog, type PendingAttributeTerm } from '../../_components/AiAttributeTermsImportDialog';
 import { useUnsavedGuard } from '../../../home-components/_shared/hooks/useUnsavedGuard';
 import { HomeComponentStickyFooter } from '../../../home-components/_shared/components/HomeComponentStickyFooter';
 
@@ -27,6 +28,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
 
   const groupData = useQuery(api.attributeGroups.getById, { id: id as Id<"attributeGroups"> });
   const updateGroup = useMutation(api.attributeGroups.update);
+  const createTerm = useMutation(api.attributeTerms.create);
   const assignedTypes = useQuery(api.attributeGroups.listAssignedProductTypes, { groupId: id as Id<"attributeGroups"> });
   const assignedType = assignedTypes?.find(type => type.active) ?? assignedTypes?.[0] ?? null;
 
@@ -113,6 +115,25 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
       toast.error(getAdminMutationErrorMessage(error, 'Không thể cập nhật nhóm thuộc tính'));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleApplyAiTerms = async (importedTerms: PendingAttributeTerm[]) => {
+    const existingSlugs = new Set((terms ?? []).map(term => term.slug));
+    const newTerms = importedTerms.filter(term => !existingSlugs.has(term.slug));
+    for (let i = 0; i < newTerms.length; i++) {
+      const term = newTerms[i];
+      await createTerm({
+        groupId: id as Id<"attributeGroups">,
+        name: term.name,
+        slug: term.slug,
+        description: term.description,
+        active: true,
+        order: (terms?.length ?? 0) + i,
+      });
+    }
+    if (newTerms.length < importedTerms.length) {
+      toast.info(`Đã bỏ qua ${importedTerms.length - newTerms.length} giá trị trùng slug`);
     }
   };
 
@@ -295,6 +316,14 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
                     </Button>
                   </div>
                   <div className="flex gap-2">
+                    {filterType !== 'range' && (
+                      <AiAttributeTermsImportDialog
+                        groupName={name}
+                        filterType={filterType}
+                        inputType={inputType}
+                        onApply={handleApplyAiTerms}
+                      />
+                    )}
                     <Button
                       type="submit"
                       disabled={hasChanges === false || isSubmitting}
