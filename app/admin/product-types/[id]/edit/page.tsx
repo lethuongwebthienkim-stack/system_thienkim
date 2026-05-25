@@ -10,6 +10,8 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
 import { Button, Card, CardContent, Input, Label } from '../../../components/ui';
+import { useUnsavedGuard } from '../../home-components/_shared/hooks/useUnsavedGuard';
+import { HomeComponentStickyFooter } from '@/app/admin/home-components/_shared/components/HomeComponentStickyFooter';
 
 const MODULE_KEY = 'productTypes';
 
@@ -45,6 +47,16 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
   const [newRangeMax, setNewRangeMax] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [initialData, setInitialData] = useState<{
+    name: string;
+    slug: string;
+    description: string;
+    active: boolean;
+    attributeGroupIds: Id<"attributeGroups">[];
+    categoryIds: Id<"productCategories">[];
+    priceRanges: PriceRange[];
+  } | null>(null);
 
   const attributeGroups = useQuery(api.attributeGroups.listAll, {});
   const productCategories = useQuery(api.productCategories.listAll, {});
@@ -94,6 +106,56 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
       setCategoryIds(assignedCategoriesData.map(c => c._id));
     }
   }, [assignedCategoriesData]);
+
+  useEffect(() => {
+    if (typeData && assignedGroupsData && assignedCategoriesData) {
+      const initialGroups = assignedGroupsData.map(g => g._id);
+      const initialCats = assignedCategoriesData.map(c => c._id);
+      const initialRanges = typeData.priceRanges ?? [];
+      
+      setInitialData({
+        name: typeData.name,
+        slug: typeData.slug,
+        description: typeData.description ?? '',
+        active: typeData.active,
+        attributeGroupIds: initialGroups,
+        categoryIds: initialCats,
+        priceRanges: initialRanges,
+      });
+      setHasChanges(false);
+    }
+  }, [typeData, assignedGroupsData, assignedCategoriesData]);
+
+  const dirtySnapshot = JSON.stringify({
+    name,
+    slug,
+    description,
+    active,
+    attributeGroupIds,
+    categoryIds,
+    priceRanges,
+    initialData,
+  });
+
+  useEffect(() => {
+    if (!initialData) return;
+
+    const isGroupsChanged = JSON.stringify([...attributeGroupIds].sort()) !== JSON.stringify([...initialData.attributeGroupIds].sort());
+    const isCatsChanged = JSON.stringify([...categoryIds].sort()) !== JSON.stringify([...initialData.categoryIds].sort());
+    const isRangesChanged = JSON.stringify([...priceRanges].sort((a,b) => a.slug.localeCompare(b.slug))) !== JSON.stringify([...initialData.priceRanges].sort((a,b) => a.slug.localeCompare(b.slug)));
+
+    const changed = name !== initialData.name
+      || slug !== initialData.slug
+      || description !== initialData.description
+      || active !== initialData.active
+      || isGroupsChanged
+      || isCatsChanged
+      || isRangesChanged;
+
+    setHasChanges(changed);
+  }, [dirtySnapshot]);
+
+  useUnsavedGuard(hasChanges);
 
   const handleRangeLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -181,8 +243,8 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!name.trim()) {return;}
 
     setIsSubmitting(true);
@@ -197,6 +259,18 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
         categoryIds,
         priceRanges,
       });
+
+      setInitialData({
+        name: name.trim(),
+        slug: slug.trim(),
+        description: description.trim(),
+        active,
+        attributeGroupIds,
+        categoryIds,
+        priceRanges,
+      });
+      setHasChanges(false);
+
       toast.success('Cập nhật kiểu thành công');
     } catch (error) {
       toast.error(getAdminMutationErrorMessage(error, 'Không thể cập nhật kiểu'));
@@ -232,9 +306,9 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-        <Card>
-          <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          <Card>
             <CardContent className="p-6 space-y-4">
               <div className="space-y-2">
                 <Label>Tên kiểu <span className="text-red-500">*</span></Label>
@@ -310,22 +384,7 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
                 </div>
               </div>
             </CardContent>
-            
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 rounded-b-lg flex justify-end gap-3">
-              <Button 
-                type="button" 
-                variant="ghost" 
-                onClick={() =>{  router.push('/admin/product-types'); }}
-              >
-                Hủy bỏ
-              </Button>
-              <Button type="submit" variant="accent" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}
-                Lưu thay đổi
-              </Button>
-            </div>
-          </form>
-        </Card>
+          </Card>
 
         <div className="space-y-6">
           {/* Gán danh mục sản phẩm */}
@@ -482,6 +541,16 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
           </Card>
         </div>
       </div>
+        
+        <HomeComponentStickyFooter
+          isSubmitting={isSubmitting}
+          hasChanges={hasChanges}
+          onCancel={() => router.push('/admin/product-types')}
+          submitLabel="Lưu thay đổi"
+          active={active}
+          onActiveChange={setActive}
+        />
+      </form>
     </div>
   );
 }
