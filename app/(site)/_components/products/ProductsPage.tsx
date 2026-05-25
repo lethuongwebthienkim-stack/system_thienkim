@@ -341,11 +341,8 @@ function ProductsContent(props: ProductsPageProps) {
   }, [assignedGroups, enableProductTypes, props.productTypeId, rawFilterableGroups]);
   const displayFilterableGroups = useMemo(() => {
     if (!filterableGroups) return undefined;
-    if (props.attributeFilter) {
-      return filterableGroups.filter(g => g._id === props.attributeFilter?.groupId);
-    }
     return filterableGroups;
-  }, [filterableGroups, props.attributeFilter]);
+  }, [filterableGroups]);
   const productTypesData = useQuery(api.productTypes.listAll, enableProductTypes ? {} : 'skip');
   const productTypes = useMemo(() => productTypesData?.filter((t) => t.active) ?? [], [productTypesData]);
 
@@ -416,6 +413,10 @@ function ProductsContent(props: ProductsPageProps) {
   // Lấy giá trị min/max price thực tế
   const minPrice = selectedPriceRange?.minPrice ?? props.priceRangeFilter?.minPrice ?? undefined;
   const maxPrice = selectedPriceRange?.maxPrice ?? props.priceRangeFilter?.maxPrice ?? undefined;
+  const queryProductTypeId = useMemo(() => {
+    const hasConcreteFilter = Boolean(activeCategory) || attributeTermIds.length > 0 || minPrice !== undefined || maxPrice !== undefined;
+    return hasConcreteFilter ? undefined : props.productTypeId;
+  }, [activeCategory, attributeTermIds.length, maxPrice, minPrice, props.productTypeId]);
 
   const {
     results: infiniteResults,
@@ -425,7 +426,7 @@ function ProductsContent(props: ProductsPageProps) {
     api.products.listPublishedPaginated,
     {
       categoryId: activeCategory ?? undefined,
-      productTypeId: props.productTypeId ?? undefined,
+      productTypeId: queryProductTypeId ?? undefined,
       minPrice,
       maxPrice,
       sortBy: paginatedSortBy,
@@ -443,7 +444,7 @@ function ProductsContent(props: ProductsPageProps) {
     isPaginationMode
       ? {
           categoryId: activeCategory ?? undefined,
-          productTypeId: props.productTypeId ?? undefined,
+          productTypeId: queryProductTypeId ?? undefined,
           minPrice,
           maxPrice,
           limit: postsPerPage,
@@ -473,7 +474,7 @@ function ProductsContent(props: ProductsPageProps) {
 
   const totalCount = useQuery(api.products.countPublished, {
     categoryId: activeCategory ?? undefined,
-    productTypeId: props.productTypeId ?? undefined,
+    productTypeId: queryProductTypeId ?? undefined,
     minPrice,
     maxPrice,
     search: debouncedSearchQuery || undefined,
