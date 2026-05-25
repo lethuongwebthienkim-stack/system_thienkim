@@ -16,7 +16,7 @@ import { buildCategoryPath, buildDetailPath, buildModuleListPath, normalizeRoute
 import { QuickAddVariantModal } from '@/components/products/QuickAddVariantModal';
 import { ProductImageWithOverlay, useProductImageOverlayConfigs } from '@/components/shared/ProductImageWithOverlay';
 import type { WatermarkConfig, ProductFrameConfig } from '@/components/shared/ProductImageWithOverlay';
-import { ChevronDown, Heart, Package, Search, ShoppingCart, SlidersHorizontal, X } from 'lucide-react';
+import { ChevronDown, Heart, Package, Search, ShoppingCart, SlidersHorizontal, X, Check } from 'lucide-react';
 import type { Id } from '@/convex/_generated/dataModel';
 import { getPublicPriceLabel } from '@/lib/products/public-price';
 import { getProductImageAspectRatioCssValue, resolveProductImageAspectRatio } from '@/lib/products/image-aspect-ratio';
@@ -598,14 +598,16 @@ function ProductsContent(props: ProductsPageProps) {
     navigateWithFilters({ nextCategoryId: categoryId });
   }, [navigateWithFilters]);
 
-  const handleAttributeChange = useCallback((groupSlug: string, termId: string, checked: boolean) => {
+  const handleAttributeChange = useCallback((groupSlug: string, termId: any, checked: boolean) => {
     const group = filterableGroups?.find(g => g.slug === groupSlug);
     if (!group) return;
 
     const groupId = group._id;
     let nextTermIds: string[] = [];
 
-    if (termId === '') {
+    if (Array.isArray(termId)) {
+      nextTermIds = termId;
+    } else if (termId === '') {
       // Clear all terms for this group
       nextTermIds = [];
     } else if (group.filterType === 'single') {
@@ -1525,59 +1527,309 @@ function EmptyState({ tokens, onReset }: { tokens: ProductsListColors; onReset: 
   );
 }
 
-// Helper to render attribute filters based on inputType and filterType
-function renderAttributeFilterGroup(
-  group: any,
-  selectedAttributes: Record<string, string[]> | undefined,
-  onAttributeChange: ((groupSlug: string, termId: string, checked: boolean) => void) | undefined,
-  tokens: ProductsListColors
-) {
+// Helper functions for double slider range filter
+function parseNumericValue(name: string): number | null {
+  const match = name.match(/(\d+(\.\d+)?)/);
+  return match ? parseFloat(match[1]) : null;
+}
+
+interface AttributeFilterGroupWidgetProps {
+  group: any;
+  selectedAttributes: Record<string, string[]> | undefined;
+  onAttributeChange: ((groupSlug: string, termId: any, checked: boolean) => void) | undefined;
+  tokens: ProductsListColors;
+}
+
+function AttributeFilterGroupWidget({
+  group,
+  selectedAttributes,
+  onAttributeChange,
+  tokens
+}: AttributeFilterGroupWidgetProps) {
   const inputType = group.inputType || 'radio';
   const filterType = group.filterType || 'single';
 
+  // State control for custom Dropdown Select dropdown open state
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Range Slider logic
+  const numericTerms = useMemo(() => {
+    return (group.terms || [])
+      .map((t: any) => ({ term: t, value: parseNumericValue(t.name) }))
+      .filter((item: any) => item.value !== null)
+      .sort((a: any, b: any) => a.value - b.value);
+  }, [group.terms]);
+
+  const { minLimit, maxLimit } = useMemo(() => {
+    if (numericTerms.length === 0) {
+      return { minLimit: 0, maxLimit: 100 };
+    }
+    return {
+      minLimit: numericTerms[0].value,
+      maxLimit: numericTerms[numericTerms.length - 1].value
+    };
+  }, [numericTerms]);
+
+  const [sliderMin, setSliderMin] = useState(minLimit);
+  const [sliderMax, setSliderMax] = useState(maxLimit);
+
+  // Sync state slider when URL / selectedAttributes change
+  const currentSelectedTermIds = selectedAttributes?.[group._id] || [];
+
+  useEffect(() => {
+    if (filterType === 'range' && numericTerms.length > 0) {
+      if (currentSelectedTermIds.length > 0) {
+        const selectedValues = numericTerms
+          .filter((item: any) => currentSelectedTermIds.includes(item.term._id))
+          .map((item: any) => item.value);
+        if (selectedValues.length > 0) {
+          setSliderMin(Math.min(...selectedValues));
+          setSliderMax(Math.max(...selectedValues));
+          return;
+        }
+      }
+      setSliderMin(minLimit);
+      setSliderMax(maxLimit);
+    }
+  }, [currentSelectedTermIds, minLimit, maxLimit, numericTerms, filterType]);
+
+  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Math.min(parseFloat(e.target.value), sliderMax);
+    setSliderMin(val);
+  };
+
+  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Math.max(parseFloat(e.target.value), sliderMin);
+    setSliderMax(val);
+  };
+
+  const applyRangeFilter = () => {
+    if (sliderMin === minLimit && sliderMax === maxLimit) {
+      // Clear filter
+      onAttributeChange?.(group.slug, [], false);
+    } else {
+      const matchedTermIds = numericTerms
+        .filter((item: any) => item.value >= sliderMin && item.value <= sliderMax)
+        .map((item: any) => item.term._id);
+      
+      onAttributeChange?.(group.slug, matchedTermIds, true);
+    }
+  };
+
+  const unit = useMemo(() => {
+    if (group.terms && group.terms.length > 0) {
+      const name = group.terms[0].name;
+      const clean = name.replace(/[\d\s\.\-]/g, '');
+      return clean || '';
+    }
+    return '';
+  }, [group.terms]);
+
+  // RENDER DUAL RANGE SLIDER
+  if (filterType === 'range') {
+    if (numericTerms.length === 0) {
+      return <div className="text-xs italic opacity-60">Không có dữ liệu số để lọc theo khoảng.</div>;
+    }
+
+    const primaryColor = tokens.filterChipActiveBg; // Use primary active color
+
+    return (
+      <div className="space-y-5 py-2">
+        <style dangerouslySetInnerHTML={{__html: `
+          .double-range-slider input[type="range"] {
+            position: absolute;
+            width: 100%;
+            height: 6px;
+            top: 0;
+            left: 0;
+            background: none;
+            pointer-events: none;
+            -webkit-appearance: none;
+            appearance: none;
+          }
+          .double-range-slider input[type="range"]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: ${primaryColor};
+            cursor: pointer;
+            pointer-events: auto;
+            -webkit-appearance: none;
+            border: 2px solid #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform 0.1s ease;
+          }
+          .double-range-slider input[type="range"]::-webkit-slider-thumb:active {
+            transform: scale(1.25);
+          }
+          .double-range-slider input[type="range"]::-moz-range-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: ${primaryColor};
+            cursor: pointer;
+            pointer-events: auto;
+            border: 2px solid #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform 0.1s ease;
+          }
+          .double-range-slider input[type="range"]::-moz-range-thumb:active {
+            transform: scale(1.25);
+          }
+        `}} />
+
+        <div className="flex justify-between items-center text-xs font-semibold">
+          <span style={{ color: tokens.metaText }}>Dải chọn:</span>
+          <span className="px-2 py-0.5 rounded font-mono text-sm" style={{ backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText }}>
+            {sliderMin}{unit} - {sliderMax}{unit}
+          </span>
+        </div>
+
+        <div className="space-y-3 pt-1">
+          {/* Container Slider */}
+          <div className="relative w-full h-1.5 rounded-lg double-range-slider" style={{ backgroundColor: tokens.filterChipBg }}>
+            {/* Active Track */}
+            <div 
+              className="absolute h-full rounded-lg"
+              style={{
+                left: minLimit === maxLimit ? '0%' : `${((sliderMin - minLimit) / (maxLimit - minLimit)) * 100}%`,
+                right: minLimit === maxLimit ? '0%' : `${100 - ((sliderMax - minLimit) / (maxLimit - minLimit)) * 100}%`,
+                backgroundColor: tokens.filterChipActiveBg,
+                opacity: 0.85
+              }}
+            />
+            
+            {/* Min Range Input */}
+            <input
+              type="range"
+              min={minLimit}
+              max={maxLimit}
+              step="1"
+              value={sliderMin}
+              onChange={handleMinChange}
+              onMouseUp={applyRangeFilter}
+              onTouchEnd={applyRangeFilter}
+              className="absolute w-full"
+              style={{ zIndex: sliderMin > (maxLimit - minLimit) * 0.9 + minLimit ? 5 : 3 }}
+            />
+            
+            {/* Max Range Input */}
+            <input
+              type="range"
+              min={minLimit}
+              max={maxLimit}
+              step="1"
+              value={sliderMax}
+              onChange={handleMaxChange}
+              onMouseUp={applyRangeFilter}
+              onTouchEnd={applyRangeFilter}
+              className="absolute w-full"
+              style={{ zIndex: 4 }}
+            />
+          </div>
+
+          {/* Min / Max Labels */}
+          <div className="flex justify-between text-[10px] font-mono" style={{ color: tokens.neutralTextLight }}>
+            <span>{minLimit}{unit}</span>
+            <span>{maxLimit}{unit}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // RENDER CUSTOM DROPDOWN SELECT
   if (inputType === 'select') {
+    const handleSelectTerm = (id: string) => {
+      if (!id) {
+        onAttributeChange?.(group.slug, '', false);
+        return;
+      }
+      if (filterType === 'single') {
+        onAttributeChange?.(group.slug, id, true);
+      } else {
+        const isChecked = selectedAttributes?.[group._id]?.includes(id) ?? false;
+        onAttributeChange?.(group.slug, id, !isChecked);
+      }
+    };
+
+    const getDropdownLabel = () => {
+      const selectedIds = selectedAttributes?.[group._id] || [];
+      if (selectedIds.length === 0) {
+        return filterType === 'single' ? `Chọn ${group.name}` : `Thêm ${group.name}...`;
+      }
+      const found = (group.terms || []).filter((t: any) => selectedIds.includes(t._id));
+      if (found.length === 0) {
+        return filterType === 'single' ? `Chọn ${group.name}` : `Thêm ${group.name}...`;
+      }
+      return found.map((f: any) => f.name).join(', ');
+    };
+
     return (
       <div className="relative">
-        <select
-          value={filterType === 'single' ? (selectedAttributes?.[group._id]?.[0] ?? '') : ''}
-          onChange={(e) => {
-            const val = e.target.value;
-            if (!val) {
-              onAttributeChange?.(group.slug, '', false);
-              return;
-            }
-            if (filterType === 'single') {
-              onAttributeChange?.(group.slug, val, true);
-            } else {
-              const isChecked = selectedAttributes?.[group._id]?.includes(val) ?? false;
-              onAttributeChange?.(group.slug, val, !isChecked);
-            }
-          }}
-          className="h-10 w-full pl-3 pr-8 rounded-lg border text-sm outline-none appearance-none truncate bg-white dark:bg-slate-800"
-          style={{
-            borderColor: tokens.inputBorder,
-            color: tokens.inputText,
-          }}
+        <button
+          type="button"
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+          className="w-full flex items-center justify-between h-10 px-3 py-2 text-sm rounded-lg border bg-white dark:bg-slate-800 transition-all font-medium"
+          style={{ borderColor: tokens.inputBorder, color: tokens.inputText }}
         >
-          <option value="">{filterType === 'single' ? `Chọn ${group.name}` : `Thêm ${group.name}...`}</option>
-          {group.terms.map((term: any) => (
-            <option key={term._id} value={term._id}>
-              {term.name} {(filterType === 'multiple' && selectedAttributes?.[group._id]?.includes(term._id)) ? '✓' : ''}
-            </option>
-          ))}
-        </select>
-        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: tokens.inputIcon }} />
-        
-        {filterType === 'multiple' && selectedAttributes?.[group._id] && selectedAttributes[group._id].length > 0 && (
+          <span className="truncate">{getDropdownLabel()}</span>
+          <ChevronDown size={16} className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} style={{ color: tokens.inputIcon }} />
+        </button>
+
+        {isDropdownOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
+            <div className="absolute left-0 right-0 mt-1 z-20 max-h-60 overflow-y-auto rounded-lg border bg-white dark:bg-slate-800 shadow-lg p-1 space-y-0.5" style={{ borderColor: tokens.inputBorder }}>
+              {filterType === 'single' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleSelectTerm('');
+                    setIsDropdownOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Tất cả
+                </button>
+              )}
+              {group.terms.map((term: any) => {
+                const isSelected = selectedAttributes?.[group._id]?.includes(term._id) ?? false;
+                return (
+                  <button
+                    key={term._id}
+                    type="button"
+                    onClick={() => {
+                      handleSelectTerm(term._id);
+                      if (filterType !== 'multiple') setIsDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-md text-left transition-colors ${
+                      isSelected 
+                        ? 'font-semibold' 
+                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    }`}
+                    style={isSelected ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText } : {}}
+                  >
+                    <span>{term.name}</span>
+                    {isSelected && <Check size={14} />}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Selected tags list for multiple filter select */}
+        {filterType === 'multiple' && currentSelectedTermIds.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-2">
-            {selectedAttributes[group._id].map((termId: string) => {
+            {currentSelectedTermIds.map((termId: string) => {
               const term = group.terms.find((t: any) => t._id === termId);
               if (!term) return null;
               return (
                 <span
                   key={termId}
                   onClick={() => onAttributeChange?.(group.slug, termId, false)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs cursor-pointer border hover:opacity-80"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs cursor-pointer border hover:opacity-85 transition-opacity"
                   style={{
                     backgroundColor: tokens.filterChipBg,
                     color: tokens.filterChipText,
@@ -1595,16 +1847,21 @@ function renderAttributeFilterGroup(
     );
   }
 
+  // RENDER BUTTONS (Chips)
   if (inputType === 'buttons') {
     return (
       <div className="flex flex-wrap gap-2">
         {group.terms.map((term: any) => {
           const isChecked = selectedAttributes?.[group._id]?.includes(term._id) ?? false;
+          const handleButtonClick = () => {
+            onAttributeChange?.(group.slug, term._id, !isChecked);
+          };
           return (
             <button
               key={term._id}
-              onClick={() => onAttributeChange?.(group.slug, term._id, !isChecked)}
-              className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors border"
+              type="button"
+              onClick={handleButtonClick}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border"
               style={isChecked
                 ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
                 : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
@@ -1618,25 +1875,47 @@ function renderAttributeFilterGroup(
     );
   }
 
-  // Fallback to Radio or Checkbox based on filterType
+  // RENDER RADIO / CHECKBOX
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {group.terms.map((term: any) => {
         const isChecked = selectedAttributes?.[group._id]?.includes(term._id) ?? false;
         const isRadio = filterType === 'single' || inputType === 'radio';
+        const handleLabelClick = () => {
+          onAttributeChange?.(group.slug, term._id, !isChecked);
+        };
+
         return (
-          <label key={term._id} className="flex items-center gap-2 cursor-pointer group">
-            <input
-              type={isRadio ? 'radio' : 'checkbox'}
-              name={isRadio ? `group_${group._id}` : undefined}
-              checked={isChecked}
-              onChange={(e) => onAttributeChange?.(group.slug, term._id, e.target.checked)}
-              className={`w-4 h-4 border-gray-300 text-black focus:ring-black cursor-pointer ${isRadio ? '' : 'rounded'}`}
-            />
-            <span className="text-sm transition-colors group-hover:opacity-80" style={{ color: tokens.bodyText }}>
+          <button
+            key={term._id}
+            type="button"
+            onClick={handleLabelClick}
+            className="w-full flex items-center gap-2.5 py-1.5 text-xs text-left transition-colors group hover:opacity-85"
+            style={{ color: tokens.bodyText }}
+          >
+            <div 
+              className={`w-4.5 h-4.5 flex items-center justify-center transition-all ${
+                isRadio ? 'rounded-full' : 'rounded border'
+              }`}
+              style={{
+                borderWidth: '1px',
+                borderColor: isChecked ? tokens.filterChipActiveBg : tokens.inputBorder,
+                backgroundColor: isChecked ? tokens.filterChipActiveBg : tokens.inputBackground,
+                color: tokens.filterChipActiveText
+              }}
+            >
+              {isChecked && (
+                isRadio ? (
+                  <div className="w-1.5 h-1.5 rounded-full bg-white" style={{ backgroundColor: tokens.filterChipActiveText }} />
+                ) : (
+                  <Check size={11} className="stroke-[3]" style={{ color: tokens.filterChipActiveText }} />
+                )
+              )}
+            </div>
+            <span className={isChecked ? 'font-semibold' : ''}>
               {term.name}
             </span>
-          </label>
+          </button>
         );
       })}
     </div>
@@ -1683,7 +1962,7 @@ interface LayoutProps {
   enableCategoryFilterFooterContent?: boolean;
   filterableGroups?: any[];
   selectedAttributes?: Record<string, string[]>;
-  onAttributeChange?: (groupSlug: string, termId: string, checked: boolean) => void;
+  onAttributeChange?: (groupSlug: string, termId: any, checked: boolean) => void;
   productType?: any;
   selectedPriceRange: PriceRange | null;
   onPriceRangeChange: (priceRange: PriceRange | null) => void;
@@ -1703,7 +1982,7 @@ interface MobileProductsFiltersProps {
   tokens: ProductsListColors;
   filterableGroups?: any[];
   selectedAttributes?: Record<string, string[]>;
-  onAttributeChange?: (groupSlug: string, termId: string, checked: boolean) => void;
+  onAttributeChange?: (groupSlug: string, termId: any, checked: boolean) => void;
   productType?: any;
   selectedPriceRange: PriceRange | null;
   onPriceRangeChange: (priceRange: PriceRange | null) => void;
@@ -1883,7 +2162,7 @@ function MobileProductsFilters({
             <div key={group._id} className="space-y-3">
               <h3 className="font-semibold" style={{ color: tokens.bodyText }}>{group.name}</h3>
               <div className="pl-1">
-                {renderAttributeFilterGroup(group, selectedAttributes, onAttributeChange, tokens)}
+                <AttributeFilterGroupWidget group={group} selectedAttributes={selectedAttributes} onAttributeChange={onAttributeChange} tokens={tokens} />
               </div>
             </div>
           ))}
@@ -2070,7 +2349,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
               <div key={group._id} className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="font-semibold mb-3" style={{ color: tokens.bodyText }}>{group.name}</h3>
                 <div>
-                  {renderAttributeFilterGroup(group, selectedAttributes, onAttributeChange, tokens)}
+                  <AttributeFilterGroupWidget group={group} selectedAttributes={selectedAttributes} onAttributeChange={onAttributeChange} tokens={tokens} />
                 </div>
               </div>
             ))}
