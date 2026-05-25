@@ -13,6 +13,7 @@ import {
   DialogTitle,
   Label,
   cn,
+  Checkbox,
 } from './ui';
 
 export type AiEntityImportKind = 'product' | 'service' | 'post';
@@ -36,6 +37,8 @@ export type AiEntityImportPayload = {
   stock?: number;
   duration?: string;
   authorName?: string;
+  combos?: any[];
+  attributeTermIds?: string[];
 };
 
 type ParseResult = {
@@ -262,7 +265,12 @@ const buildFormatRules = (kind: AiEntityImportKind, enabledFields?: string[]) =>
   return lines.join('\n');
 };
 
-const buildSchema = (kind: AiEntityImportKind, enabledFields?: string[]) => {
+const buildSchema = (
+  kind: AiEntityImportKind,
+  enabledFields?: string[],
+  suggestCombos?: boolean,
+  includeAttributes?: boolean
+) => {
   const enabled = new Set(enabledFields ?? []);
   const allowAllOptional = enabledFields === undefined;
   const fieldNames = new Set(CORE_FIELDS[kind]);
@@ -277,6 +285,14 @@ const buildSchema = (kind: AiEntityImportKind, enabledFields?: string[]) => {
     .filter((field) => FIELD_SPECS[kind][field])
     .map((field) => `    ${FIELD_SPECS[kind][field]}`);
 
+  if (kind === 'product' && suggestCombos) {
+    lines.push(`    "combos": "mảng các object combo dạng standard (mỗi combo gồm: type: 'standard', name: 'tên combo', price?: number, standardConfig: { minQty: number, rewardType: 'gift'|'discount_percent'|'discount_amount', rewardValue?: number, giftQty?: number, giftProductQuery?: string })"`);
+  }
+
+  if (kind === 'product' && includeAttributes) {
+    lines.push(`    "attributeTermIds": "mảng các string ID của các thuộc tính được chọn (ví dụ: [\\"term_id_1\\", \\"term_id_2\\"])"`);
+  }
+
   return `{
   "${ENTITY_COPY[kind].rootKey}": {
 ${lines.join(',\n')}
@@ -284,18 +300,94 @@ ${lines.join(',\n')}
 }`;
 };
 
-const buildPrompt = (kind: AiEntityImportKind, enabledFields?: string[]) => {
+const buildSample = (
+  kind: AiEntityImportKind,
+  suggestCombos?: boolean,
+  includeAttributes?: boolean,
+  formConfig?: any
+) => {
+  if (kind !== 'product') {
+    return ENTITY_COPY[kind].sample;
+  }
+
+  const baseProduct: any = {
+    name: "Giá kệ góc liên hoàn inox 304",
+    slug: "gia-ke-goc-lien-hoan-inox-304",
+    description: "Giá kệ góc liên hoàn inox 304 giúp tận dụng góc tủ bếp khó dùng, phù hợp gia đình muốn tăng không gian lưu trữ xoong nồi, chén đĩa và vật dụng bếp hằng ngày.",
+    content: "<h2>Tổng quan giá kệ góc liên hoàn inox 304</h2><p>Giá kệ góc liên hoàn inox 304 là giải pháp lưu trữ cho khoang góc tủ bếp, nơi thường khó thao tác và dễ bị bỏ trống. Sản phẩm phù hợp với gia đình muốn sắp xếp xoong nồi, chén đĩa hoặc đồ dùng bếp theo cách gọn hơn mà vẫn dễ lấy khi nấu nướng.</p><h3>Điểm nổi bật khi sử dụng</h3><ul><li>Tận dụng tốt khu vực góc tủ, giảm lãng phí không gian lưu trữ.</li><li>Thiết kế kéo mở giúp quan sát và lấy vật dụng thuận tiện hơn so với để đồ sâu trong góc tủ.</li><li>Chất liệu inox 304 phù hợp môi trường bếp ẩm, dễ lau chùi và hạn chế bám mùi.</li></ul><h3>Ứng dụng và thông số cần kiểm tra</h3><p>Trước khi chọn mua, nên kiểm tra kích thước khoang tủ, hướng mở cánh, tải trọng sử dụng và kiểu ray trượt đi kèm. Nếu dùng cho nồi lớn hoặc vật nặng, hãy đối chiếu tải trọng theo thông tin nhà cung cấp.</p><h3>Phù hợp với ai?</h3><p>Sản phẩm phù hợp với căn bếp có tủ chữ L, tủ góc hoặc gia đình cần tăng không gian lưu trữ nhưng không muốn thay đổi toàn bộ hệ tủ.</p><h3>Lưu ý khi chọn mua</h3><ul><li>Đo đúng chiều rộng, chiều sâu và chiều cao khoang tủ trước khi đặt hàng.</li><li>Kiểm tra hướng mở trái/phải để tránh lắp sai cấu hình.</li><li>Hỏi rõ phụ kiện đi kèm, chính sách lắp đặt và điều kiện bảo hành nếu có.</li></ul>",
+    metaTitle: "Giá kệ góc liên hoàn inox 304",
+    metaDescription: "Giá kệ góc inox 304 bền đẹp, tối ưu góc tủ và phù hợp nội thất bếp cao cấp.",
+    image: "https://example.com/product.jpg",
+    price: 3500000,
+    salePrice: 4200000,
+    stock: 10
+  };
+
+  if (suggestCombos) {
+    baseProduct.combos = [
+      {
+        type: "standard",
+        name: "Combo Mua Kệ Tặng Nước Rửa Chén",
+        standardConfig: {
+          minQty: 1,
+          rewardType: "gift",
+          giftQty: 1,
+          giftProductQuery: "Nước rửa chén sinh học"
+        }
+      }
+    ];
+  }
+
+  if (includeAttributes && formConfig && formConfig.groups && formConfig.groups.length > 0) {
+    const sampleIds = formConfig.groups.slice(0, 2).map((g: any) => g.terms[0]?._id).filter(Boolean);
+    baseProduct.attributeTermIds = sampleIds.length > 0 ? sampleIds : ["sample_term_id_1", "sample_term_id_2"];
+  }
+
+  return JSON.stringify({ product: baseProduct }, null, 2);
+};
+
+const buildPrompt = (
+  kind: AiEntityImportKind,
+  enabledFields?: string[],
+  suggestCombos?: boolean,
+  includeAttributes?: boolean,
+  formConfig?: any
+) => {
   const enabledLine = enabledFields
     ? enabledFields.length > 0
       ? `Các trường đang được kích hoạt: ${enabledFields.join(', ')}. Chỉ sinh các field tương ứng trong schema bên dưới.`
       : 'Hiện không có trường mở rộng nào được kích hoạt. Chỉ sinh các field bắt buộc/core trong schema bên dưới.'
     : 'Bám đúng schema bên dưới và không tự thêm field ngoài schema.';
 
+  const comboPrompt = suggestCombos
+    ? `
+Riêng về Combo bán kèm (standard combo):
+- Hãy chủ động đề xuất 1-3 combo bán kèm hợp lý (standard combo) cho sản phẩm này dựa trên tính chất của sản phẩm.
+- Ví dụ: Mua sản phẩm này kèm phụ kiện hoặc quà tặng liên quan.
+- Quy tắc: Chỉ đề xuất combo loại "standard", TUYỆT ĐỐI không đề xuất combo loại "mix" (combo phối chọn nhiều sản phẩm). Đặt thông tin này vào trường "combos" trong JSON.`
+    : '';
+
+  let attributesPrompt = '';
+  if (includeAttributes && formConfig && formConfig.groups && formConfig.groups.length > 0) {
+    const attributeDescriptions = formConfig.groups.map((group: any) => {
+      const termList = group.terms.map((t: any) => `"${t.name}" (ID: "${t._id}")`).join(', ');
+      return `- Nhóm thuộc tính "${group.name}": Chỉ được chọn các giá trị sau: ${termList}`;
+    }).join('\n');
+
+    attributesPrompt = `
+Riêng về Thuộc tính phân loại & bộ lọc:
+- Hãy phân tích sản phẩm này để chọn ra các thuộc tính lọc phù hợp nhất từ danh sách thuộc tính có sẵn dưới đây:
+${attributeDescriptions}
+- Đặt danh sách các ID của những thuộc tính (terms) được chọn vào mảng "attributeTermIds" trong JSON đầu ra. Mỗi nhóm thuộc tính chỉ chọn tối đa 1 giá trị tương thích nhất với sản phẩm (nếu phù hợp, hoặc để trống nếu nhóm đó không liên quan).`;
+  }
+
   return `Bạn là senior Vietnamese SEO & conversion copywriter cho website thương mại/dịch vụ/blog.
 
 Nhiệm vụ: tạo nội dung ${kind === 'product' ? 'SẢN PHẨM' : kind === 'service' ? 'DỊCH VỤ' : 'BÀI VIẾT'} bằng tiếng Việt, có thể dùng ngay sau khi dán vào admin.
 
 ${enabledLine}
+${comboPrompt}
+${attributesPrompt}
 
 Output rule:
 - Chỉ trả về JSON hợp lệ.
@@ -312,7 +404,7 @@ ${KIND_GUIDE[kind]}
 ${buildFormatRules(kind, enabledFields)}
 
 Schema bắt buộc:
-${buildSchema(kind, enabledFields)}`;
+${buildSchema(kind, enabledFields, suggestCombos, includeAttributes)}`;
 };
 
 const cleanJsonInput = (raw: string) => {
@@ -376,6 +468,36 @@ const parseAiEntity = (raw: string, kind: AiEntityImportKind): ParseResult => {
     errors.push('Ảnh phải là URL http/https hoặc path bắt đầu bằng /.');
   }
 
+  // parse combos
+  let combos: any[] | undefined = undefined;
+  if (kind === 'product' && Array.isArray(record.combos)) {
+    combos = record.combos
+      .filter((c: any) => c && typeof c === 'object' && c.type === 'standard')
+      .map((c: any) => {
+        const standardConfig = c.standardConfig || {};
+        return {
+          type: 'standard',
+          name: trimText(c.name, 120) || undefined,
+          price: parseNumber(c.price),
+          standardConfig: {
+            minQty: parseNumber(standardConfig.minQty) ?? 1,
+            rewardType: trimText(standardConfig.rewardType, 40) || 'gift',
+            rewardValue: parseNumber(standardConfig.rewardValue),
+            giftQty: parseNumber(standardConfig.giftQty) ?? 1,
+            giftProductQuery: trimText(standardConfig.giftProductQuery, 140) || undefined,
+          }
+        };
+      });
+  }
+
+  // parse attributeTermIds
+  let attributeTermIds: string[] | undefined = undefined;
+  if (kind === 'product' && Array.isArray(record.attributeTermIds)) {
+    attributeTermIds = record.attributeTermIds
+      .filter((id: unknown) => typeof id === 'string')
+      .map((id: unknown) => id as string);
+  }
+
   const item: AiEntityImportPayload = {
     authorName: trimText(record.authorName, 120),
     content: trimText(record.content, 20_000),
@@ -395,6 +517,8 @@ const parseAiEntity = (raw: string, kind: AiEntityImportKind): ParseResult => {
     stock: parseNumber(record.stock),
     thumbnail: image,
     title: kind !== 'product' ? title : undefined,
+    combos,
+    attributeTermIds,
   };
 
   return { errors, item: errors.length > 0 ? null : item };
@@ -405,18 +529,37 @@ export function AiEntityImportDialog({
   enabledFields,
   kind,
   onApply,
+  enableProductTypes = false,
+  enableCombos = false,
+  formConfig,
 }: {
   buttonClassName?: string;
   enabledFields?: Iterable<string>;
   kind: AiEntityImportKind;
   onApply: (item: AiEntityImportPayload) => void;
+  enableProductTypes?: boolean;
+  enableCombos?: boolean;
+  formConfig?: any;
 }) {
   const [open, setOpen] = useState(false);
   const [rawInput, setRawInput] = useState('');
   const [lastCopied, setLastCopied] = useState<'prompt' | 'sample' | null>(null);
+
+  // Trạng thái toggles mới
+  const [suggestCombos, setSuggestCombos] = useState(false);
+  const [includeAttributes, setIncludeAttributes] = useState(false);
+
   const copy = ENTITY_COPY[kind];
   const enabledFieldList = useMemo(() => enabledFields ? Array.from(enabledFields).sort() : undefined, [enabledFields]);
-  const prompt = useMemo(() => buildPrompt(kind, enabledFieldList), [enabledFieldList, kind]);
+  
+  const prompt = useMemo(() => {
+    return buildPrompt(kind, enabledFieldList, suggestCombos, includeAttributes, formConfig);
+  }, [enabledFieldList, kind, suggestCombos, includeAttributes, formConfig]);
+
+  const sample = useMemo(() => {
+    return buildSample(kind, suggestCombos, includeAttributes, formConfig);
+  }, [kind, suggestCombos, includeAttributes, formConfig]);
+
   const result = useMemo(() => parseAiEntity(rawInput, kind), [kind, rawInput]);
   const canApply = rawInput.trim().length > 0 && Boolean(result.item) && result.errors.length === 0;
 
@@ -448,6 +591,33 @@ export function AiEntityImportDialog({
             <DialogDescription>{copy.description}</DialogDescription>
           </DialogHeader>
 
+          {/* Khối toggles tùy chọn AI */}
+          {kind === 'product' && (enableCombos || (enableProductTypes && formConfig && formConfig.groups && formConfig.groups.length > 0)) && (
+            <div className="flex flex-wrap gap-4 items-center p-3 rounded-lg border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/30 text-xs">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">Tùy chọn Prompt AI:</span>
+              
+              {enableCombos && (
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <Checkbox
+                    checked={suggestCombos}
+                    onCheckedChange={(checked) => setSuggestCombos(checked)}
+                  />
+                  <span className="font-medium text-slate-600 dark:text-slate-400">Đề xuất Combo thường</span>
+                </label>
+              )}
+
+              {enableProductTypes && formConfig && formConfig.groups && formConfig.groups.length > 0 && (
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <Checkbox
+                    checked={includeAttributes}
+                    onCheckedChange={(checked) => setIncludeAttributes(checked)}
+                  />
+                  <span className="font-medium text-slate-600 dark:text-slate-400">Điền thuộc tính lọc</span>
+                </label>
+              )}
+            </div>
+          )}
+
           <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-3">
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-800/50">
@@ -468,13 +638,13 @@ export function AiEntityImportDialog({
               <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <Label>JSON mẫu</Label>
-                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => void copyText(copy.sample, 'sample')}>
+                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={() => void copyText(sample, 'sample')}>
                     {lastCopied === 'sample' ? <Check size={12} /> : <Copy size={12} />}
                     Copy
                   </Button>
                 </div>
                 <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-slate-50 p-2 text-[11px] leading-5 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                  {copy.sample}
+                  {sample}
                 </pre>
               </div>
             </div>
@@ -484,7 +654,7 @@ export function AiEntityImportDialog({
                 <Label>Dán kết quả AI</Label>
                 <textarea
                   className="min-h-64 w-full rounded-md border border-slate-200 bg-white px-3 py-2 font-mono text-xs text-slate-800 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
-                  placeholder={copy.sample}
+                  placeholder={sample}
                   value={rawInput}
                   onChange={(event) => setRawInput(event.target.value)}
                 />

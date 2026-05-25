@@ -351,6 +351,17 @@ function ProductCreateContent() {
       setImage(item.image);
       setImageStorageId(undefined);
     }
+    
+    // Gán thuộc tính phân loại từ AI
+    if (enableProductTypes && item.attributeTermIds && item.attributeTermIds.length > 0) {
+      const validIds = formConfig
+        ? item.attributeTermIds.filter((id: any) => 
+            formConfig.groups.some((g: any) => g.terms.some((t: any) => t._id === id))
+          )
+        : item.attributeTermIds;
+      setAttributeTermIds(validIds as any);
+    }
+
     setEditorResetKey((prev) => prev + 1);
   };
 
@@ -942,7 +953,14 @@ function ProductCreateContent() {
         <>
           <Button type="button" variant="ghost" onClick={() =>{  router.push('/admin/products'); }}>Hủy bỏ</Button>
           <div className="flex flex-wrap justify-end gap-2">
-            <AiEntityImportDialog kind="product" enabledFields={enabledFields} onApply={handleApplyAiProduct} />
+            <AiEntityImportDialog
+              kind="product"
+              enabledFields={enabledFields}
+              onApply={handleApplyAiProduct}
+              enableProductTypes={enableProductTypes}
+              enableCombos={enableCombos}
+              formConfig={formConfig}
+            />
             <Button type="button" variant="secondary" onClick={() =>{  setStatus('Draft'); }}>Lưu nháp</Button>
             <Button type="submit" variant="accent" disabled={isSubmitting}>
               {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}

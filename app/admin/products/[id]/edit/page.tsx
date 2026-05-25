@@ -412,6 +412,22 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
       setImage(item.image);
       setImageStorageId(undefined);
     }
+
+    // Gán thuộc tính phân loại từ AI
+    if (enableProductTypes && item.attributeTermIds && item.attributeTermIds.length > 0) {
+      const validIds = formConfig
+        ? item.attributeTermIds.filter((id: any) => 
+            formConfig.groups.some((g: any) => g.terms.some((t: any) => t._id === id))
+          )
+        : item.attributeTermIds;
+      setAttributeTermIds(validIds as any);
+    }
+
+    // Gán combo từ AI
+    if (enableCombosSetting && item.combos && item.combos.length > 0) {
+      setCombos(item.combos);
+    }
+
     setEditorResetKey((prev) => prev + 1);
   };
 
@@ -1773,7 +1789,14 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
         <>
           <Button type="button" variant="ghost" onClick={() =>{  router.push('/admin/products'); }} disabled={isSubmitting}>Hủy bỏ</Button>
           <div className="flex flex-wrap justify-end gap-2">
-            <AiEntityImportDialog kind="product" enabledFields={enabledFields} onApply={handleApplyAiProduct} />
+            <AiEntityImportDialog
+              kind="product"
+              enabledFields={enabledFields}
+              onApply={handleApplyAiProduct}
+              enableProductTypes={enableProductTypes}
+              enableCombos={enableCombosSetting}
+              formConfig={formConfig}
+            />
             <Button
               type="button"
               variant="outline"
