@@ -2474,12 +2474,21 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
               </div>
             ))}
 
-            <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
-                <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Sắp xếp</h3>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+              <p className="text-sm" style={{ color: tokens.metaText }}>
+                Hiển thị <span className="font-medium" style={{ color: tokens.bodyText }}>{products.length}</span>
+                {totalCount !== undefined && products.length > 0 && totalCount > products.length && <> / {totalCount}</>} sản phẩm
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium" style={{ color: tokens.metaText }}>Sắp xếp</span>
                 <select
                   value={sortBy}
                   onChange={(e) =>{  onSortChange(e.target.value as ProductSortOption); }}
-                  className="w-full h-10 px-3 rounded-lg border text-sm leading-5"
+                  className="h-10 min-w-[160px] rounded-lg border px-3 text-sm leading-5 outline-none"
                   style={{
                     borderColor: tokens.inputBorder,
                     backgroundColor: tokens.inputBackground,
@@ -2492,16 +2501,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                   <option value="price_desc">Giá cao → thấp</option>
                   <option value="name">Tên A-Z</option>
                 </select>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-sm" style={{ color: tokens.metaText }}>
-                Hiển thị <span className="font-medium" style={{ color: tokens.bodyText }}>{products.length}</span>
-                {totalCount !== undefined && products.length > 0 && totalCount > products.length && <> / {totalCount}</>} sản phẩm
-              </p>
+              </div>
             </div>
 
             {isLoadingProducts ? (
