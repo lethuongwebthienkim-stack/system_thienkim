@@ -976,11 +976,17 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                 {enabledFields.has('sku') && (
                   <div className="space-y-2">
                     <Label>Mã gốc SKU / Prefix</Label>
-                    <Input value={sku} onChange={(e) =>{  setSku(e.target.value); }} placeholder="VD: NK-AM90, để trống sẽ tự sinh" className="font-mono" />
+                    <Input
+                      value={sku || generatedSku || ''}
+                      onChange={(e) =>{  setSku(e.target.value); }}
+                      placeholder="Mã SKU được hệ thống tự động sinh..."
+                      className="font-mono bg-slate-50 dark:bg-slate-900 cursor-not-allowed"
+                      disabled={true}
+                    />
                     {skuExists === true && (
                       <p className="text-xs text-red-500">SKU này đã tồn tại.</p>
                     )}
-                    <p className="text-xs text-slate-500">Phiên bản sẽ nối đuôi theo mã này, ví dụ NK-AM90-BLK-42.</p>
+                    <p className="text-xs text-slate-500">Mã SKU được sinh tự động dựa trên danh mục chính và số thứ tự độc lập.</p>
                   </div>
                 )}
               </div>

@@ -263,14 +263,33 @@ async function generateUniqueSmartSku(
   const source = category?.name?.trim() || name.trim();
   const words = source.split(/\s+/).filter(Boolean);
   const prefix = words.map((word) => normalizeSkuText(word).charAt(0)).join("").slice(0, 4) || "SP";
-  const stats = await ctx.db
-    .query("productStats")
-    .withIndex("by_key", (q) => q.eq("key", "total"))
-    .unique();
-  const baseCount = (stats?.count ?? 0) + 1;
+
+  // Sử dụng range query để quét các sản phẩm có cùng tiền tố SKU nhằm tối ưu hóa băng thông DB
+  const startSku = `${prefix}-0000`;
+  const endSku = `${prefix}-9999`;
+  const existingProducts = await ctx.db
+    .query("products")
+    .withIndex("by_sku", (q) => q.gte("sku", startSku).lte("sku", endSku))
+    .collect();
+
+  const regex = new RegExp(`^${prefix}-(\\d+)$`);
+  let maxNum = 0;
+  for (const p of existingProducts) {
+    if (p.sku) {
+      const match = p.sku.match(regex);
+      if (match) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num) && num > maxNum) {
+          maxNum = num;
+        }
+      }
+    }
+  }
+
+  const baseCount = maxNum + 1;
 
   for (let attempt = 0; attempt < 500; attempt += 1) {
-    const suffix = (baseCount + attempt).toString().padStart(3, "0");
+    const suffix = (baseCount + attempt).toString().padStart(4, "0");
     const candidate = `${prefix}-${suffix}`;
     const existing = await ctx.db
       .query("products")
