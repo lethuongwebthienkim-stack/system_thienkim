@@ -287,7 +287,7 @@ const buildSchema = (
     .map((field) => `    ${FIELD_SPECS[kind][field]}`);
 
   if (kind === 'product' && suggestCombos) {
-    lines.push(`    "combos": "mảng các object combo dạng standard (mỗi combo gồm: type: 'standard', name: 'tên combo', price?: number, standardConfig: { minQty: number, rewardType: 'gift_self'|'gift_other'|'discount_percent'|'discount_amount', rewardValue?: number, giftQty?: number, giftProductQuery?: string })"`);
+    lines.push(`    "combos": "mảng các object combo dạng standard (mỗi combo gồm: type: 'standard', name: 'tên combo', price?: number, standardConfig: { minQty: number, rewardType: 'discount_percent'|'discount_amount'|'gift_self', rewardValue?: number, giftQty?: number })"`);
   }
 
   if (kind === 'product' && includeAttributes) {
@@ -329,12 +329,11 @@ const buildSample = (
     baseProduct.combos = [
       {
         type: "standard",
-        name: "Combo Mua Kệ Tặng Nước Rửa Chén",
+        name: "Combo Mua Nhiều Giảm Giá",
         standardConfig: {
-          minQty: 1,
-          rewardType: "gift_other",
-          giftQty: 1,
-          giftProductQuery: "Nước rửa chén sinh học"
+          minQty: 2,
+          rewardType: "discount_percent",
+          rewardValue: 10
         }
       }
     ];
@@ -372,9 +371,9 @@ const buildPrompt = (
   const comboPrompt = suggestCombos
     ? `
 Riêng về Combo bán kèm (standard combo):
-- Hãy chủ động đề xuất 1-3 combo bán kèm hợp lý (standard combo) cho sản phẩm này dựa trên tính chất của sản phẩm.
-- Ví dụ: Mua sản phẩm này kèm phụ kiện hoặc quà tặng liên quan.
-- Quy tắc: Chỉ đề xuất combo loại "standard", TUYỆT ĐỐI không đề xuất combo loại "mix" (combo phối chọn nhiều sản phẩm). Đặt thông tin này vào trường "combos" trong JSON.`
+- Hãy chủ động đề xuất 1-2 combo bán kèm hợp lý (standard combo) cho sản phẩm này dựa trên tính chất của sản phẩm.
+- Ví dụ: Mua số lượng nhiều giảm giá % hoặc tặng chính sản phẩm này.
+- Quy tắc quan trọng: Chỉ chọn hình thức ưu đãi (rewardType) là "discount_percent", "discount_amount" hoặc "gift_self" (tặng chính sản phẩm này). TUYỆT ĐỐI không đề xuất loại "gift_other" (tặng sản phẩm khác) vì yêu cầu chọn sản phẩm khác có sẵn gây phiền phức cho admin. Đặt thông tin này vào trường "combos" trong JSON.`
     : '';
 
   let attributesPrompt = '';
