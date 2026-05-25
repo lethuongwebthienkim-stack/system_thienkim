@@ -10,7 +10,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
 import { Button, Card, CardContent, Input, Label } from '../../../components/ui';
-import { useUnsavedGuard } from '../../home-components/_shared/hooks/useUnsavedGuard';
+import { useUnsavedGuard } from '@/app/admin/home-components/_shared/hooks/useUnsavedGuard';
 import { HomeComponentStickyFooter } from '@/app/admin/home-components/_shared/components/HomeComponentStickyFooter';
 
 const MODULE_KEY = 'productTypes';
