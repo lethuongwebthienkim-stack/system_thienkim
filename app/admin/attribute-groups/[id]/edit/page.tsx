@@ -1,6 +1,6 @@
 'use client';
 
-import React, { use, useEffect, useState } from 'react';
+import React, { use, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
@@ -16,7 +16,7 @@ import type { DragEndEvent } from '@dnd-kit/core';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { AttributeGroupPreview } from '../../_components/AttributeGroupPreview';
+import { AttributeGroupPreview, getSmartRangeConfig, normalizeRangeConfig } from '../../_components/AttributeGroupPreview';
 import { useUnsavedGuard } from '../../../home-components/_shared/hooks/useUnsavedGuard';
 import { HomeComponentStickyFooter } from '../../../home-components/_shared/components/HomeComponentStickyFooter';
 
@@ -55,7 +55,36 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
   const [isFilterable, setIsFilterable] = useState(true);
   const [iconName, setIconName] = useState('Wine');
   const [iconColor, setIconColor] = useState('#ea580c');
+  const [rangeMin, setRangeMin] = useState(0);
+  const [rangeMax, setRangeMax] = useState(100);
+  const [rangeStep, setRangeStep] = useState(1);
+  const [rangeUnit, setRangeUnit] = useState('');
+  const [rangeDefaultMin, setRangeDefaultMin] = useState(0);
+  const [rangeDefaultMax, setRangeDefaultMax] = useState(100);
+  const [rangeTouched, setRangeTouched] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const savedDisplayConfig = groupData?.displayConfig && typeof groupData.displayConfig === 'object' && !Array.isArray(groupData.displayConfig)
+    ? groupData.displayConfig as Record<string, unknown>
+    : {};
+  const savedRangeConfig = savedDisplayConfig.range && typeof savedDisplayConfig.range === 'object' && !Array.isArray(savedDisplayConfig.range)
+    ? savedDisplayConfig.range
+    : undefined;
+  const smartRangeConfig = useMemo(() => getSmartRangeConfig(name, terms ?? []), [name, terms]);
+  const rangeConfig = useMemo(() => normalizeRangeConfig({
+    min: rangeMin,
+    max: rangeMax,
+    step: rangeStep,
+    unit: rangeUnit,
+    defaultMin: rangeDefaultMin,
+    defaultMax: rangeDefaultMax,
+  }, smartRangeConfig), [rangeDefaultMax, rangeDefaultMin, rangeMax, rangeMin, rangeStep, rangeUnit, smartRangeConfig]);
+  const savedNormalizedRangeConfig = useMemo(
+    () => normalizeRangeConfig(savedRangeConfig, smartRangeConfig),
+    [savedRangeConfig, smartRangeConfig]
+  );
+  const rangeHasChanges = filterType === 'range' && (
+    rangeTouched || (savedRangeConfig !== undefined && JSON.stringify(rangeConfig) !== JSON.stringify(savedNormalizedRangeConfig))
+  );
 
   const hasChanges = groupData ? (
     name !== groupData.name ||
@@ -65,7 +94,8 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
     inputType !== groupData.inputType ||
     isFilterable !== (groupData.isFilterable ?? true) ||
     iconName !== (groupData.iconPath ?? 'Wine') ||
-    iconColor !== (groupData.displayConfig?.iconColor ?? groupData.displayConfig?.color ?? '#ea580c')
+    iconColor !== (groupData.displayConfig?.iconColor ?? groupData.displayConfig?.color ?? '#ea580c') ||
+    rangeHasChanges
   ) : false;
 
   useUnsavedGuard(hasChanges);
@@ -80,8 +110,31 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
       setIsFilterable(groupData.isFilterable ?? true);
       setIconName(groupData.iconPath ?? 'Wine');
       setIconColor(groupData.displayConfig?.iconColor ?? groupData.displayConfig?.color ?? '#ea580c');
+      const initialRange = normalizeRangeConfig(
+        groupData.displayConfig?.range && typeof groupData.displayConfig.range === 'object' ? groupData.displayConfig.range : undefined,
+        getSmartRangeConfig(groupData.name)
+      );
+      setRangeMin(initialRange.min);
+      setRangeMax(initialRange.max);
+      setRangeStep(initialRange.step);
+      setRangeUnit(initialRange.unit);
+      setRangeDefaultMin(initialRange.defaultMin);
+      setRangeDefaultMax(initialRange.defaultMax);
+      setRangeTouched(Boolean(groupData.displayConfig?.range));
     }
   }, [groupData]);
+
+  useEffect(() => {
+    if (filterType !== 'range' || rangeTouched || savedRangeConfig !== undefined) {return;}
+    setRangeMin(smartRangeConfig.min);
+    setRangeMax(smartRangeConfig.max);
+    setRangeStep(smartRangeConfig.step);
+    setRangeUnit(smartRangeConfig.unit);
+    setRangeDefaultMin(smartRangeConfig.defaultMin);
+    setRangeDefaultMax(smartRangeConfig.defaultMax);
+  }, [filterType, rangeTouched, savedRangeConfig, smartRangeConfig]);
+
+  const markRangeTouched = () => setRangeTouched(true);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,6 +142,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
 
     setIsSubmitting(true);
     try {
+      const { range: _range, ...displayConfigWithoutRange } = savedDisplayConfig;
       await updateGroup({
         id: id as Id<"attributeGroups">,
         name: name.trim(),
@@ -98,7 +152,12 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
         inputType,
         isFilterable,
         iconPath: iconName,
-        displayConfig: { iconColor, color: iconColor },
+        displayConfig: {
+          ...displayConfigWithoutRange,
+          iconColor,
+          color: iconColor,
+          ...(filterType === 'range' ? { range: rangeConfig } : {}),
+        },
       });
       toast.success('Cập nhật nhóm thuộc tính thành công');
     } catch (error) {
@@ -175,7 +234,13 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
                   <Label>Kiểu lọc</Label>
                   <select 
                     value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
+                    onChange={(e) => {
+                      const nextFilterType = e.target.value;
+                      setFilterType(nextFilterType);
+                      if (nextFilterType === 'range' && savedRangeConfig === undefined) {
+                        setRangeTouched(false);
+                      }
+                    }}
                     className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
                   >
                     <option value="single">Một lựa chọn (Single)</option>
@@ -196,6 +261,57 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
                       <option value="buttons">Các nút bấm (Buttons)</option>
                       <option value="radio">Nút tròn (Radio)</option>
                     </select>
+                  </div>
+                )}
+
+                {filterType === 'range' && (
+                  <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-900/40">
+                    <div>
+                      <Label>Cấu hình khoảng giá trị</Label>
+                      <p className="text-xs text-slate-500">Tự gợi ý theo tên nhóm, nhưng bạn có thể chỉnh cho dung tích, nồng độ, giá, điểm số...</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label>Min</Label>
+                        <Input type="number" value={rangeMin} onChange={(e) => { markRangeTouched(); setRangeMin(Number(e.target.value)); }} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Max</Label>
+                        <Input type="number" value={rangeMax} onChange={(e) => { markRangeTouched(); setRangeMax(Number(e.target.value)); }} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Bước nhảy</Label>
+                        <Input type="number" value={rangeStep} onChange={(e) => { markRangeTouched(); setRangeStep(Number(e.target.value)); }} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Đơn vị</Label>
+                        <Input value={rangeUnit} onChange={(e) => { markRangeTouched(); setRangeUnit(e.target.value); }} placeholder="ml, %, ₫, điểm..." />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Mặc định từ</Label>
+                        <Input type="number" value={rangeDefaultMin} onChange={(e) => { markRangeTouched(); setRangeDefaultMin(Number(e.target.value)); }} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Mặc định đến</Label>
+                        <Input type="number" value={rangeDefaultMax} onChange={(e) => { markRangeTouched(); setRangeDefaultMax(Number(e.target.value)); }} />
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setRangeTouched(true);
+                        setRangeMin(smartRangeConfig.min);
+                        setRangeMax(smartRangeConfig.max);
+                        setRangeStep(smartRangeConfig.step);
+                        setRangeUnit(smartRangeConfig.unit);
+                        setRangeDefaultMin(smartRangeConfig.defaultMin);
+                        setRangeDefaultMax(smartRangeConfig.defaultMax);
+                      }}
+                    >
+                      Gợi ý lại theo tên nhóm
+                    </Button>
                   </div>
                 )}
 
@@ -348,6 +464,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
             inputType={inputType}
             iconName={iconName}
             iconColor={iconColor}
+            rangeConfig={filterType === 'range' ? rangeConfig : undefined}
             terms={terms}
           />
         </div>

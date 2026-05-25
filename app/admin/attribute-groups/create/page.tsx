@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
@@ -26,7 +26,7 @@ import { IconPopoverPicker } from '../../home-components/_shared/components/Icon
 import { HomeComponentStickyFooter } from '../../home-components/_shared/components/HomeComponentStickyFooter';
 import { useUnsavedGuard } from '../../home-components/_shared/hooks/useUnsavedGuard';
 import { ATTRIBUTE_ICON_OPTIONS } from '../_lib/iconRegistry';
-import { AttributeGroupPreview } from '../_components/AttributeGroupPreview';
+import { AttributeGroupPreview, getSmartRangeConfig, normalizeRangeConfig } from '../_components/AttributeGroupPreview';
 
 type PendingTerm = {
   name: string;
@@ -283,8 +283,24 @@ export default function AttributeGroupCreatePage() {
   const [isFilterable, setIsFilterable] = useState(true);
   const [iconName, setIconName] = useState('Wine');
   const [iconColor, setIconColor] = useState('#ea580c');
+  const [rangeMin, setRangeMin] = useState(0);
+  const [rangeMax, setRangeMax] = useState(100);
+  const [rangeStep, setRangeStep] = useState(1);
+  const [rangeUnit, setRangeUnit] = useState('');
+  const [rangeDefaultMin, setRangeDefaultMin] = useState(0);
+  const [rangeDefaultMax, setRangeDefaultMax] = useState(100);
+  const [rangeTouched, setRangeTouched] = useState(false);
   const [pendingTerms, setPendingTerms] = useState<PendingTerm[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const smartRangeConfig = useMemo(() => getSmartRangeConfig(name, pendingTerms), [name, pendingTerms]);
+  const rangeConfig = useMemo(() => normalizeRangeConfig({
+    min: rangeMin,
+    max: rangeMax,
+    step: rangeStep,
+    unit: rangeUnit,
+    defaultMin: rangeDefaultMin,
+    defaultMax: rangeDefaultMax,
+  }, smartRangeConfig), [rangeDefaultMax, rangeDefaultMin, rangeMax, rangeMin, rangeStep, rangeUnit, smartRangeConfig]);
   const hasChanges = Boolean(
     name.trim() ||
     code.trim() ||
@@ -298,6 +314,18 @@ export default function AttributeGroupCreatePage() {
   );
 
   useUnsavedGuard(hasChanges);
+
+  useEffect(() => {
+    if (filterType !== 'range' || rangeTouched) {return;}
+    setRangeMin(smartRangeConfig.min);
+    setRangeMax(smartRangeConfig.max);
+    setRangeStep(smartRangeConfig.step);
+    setRangeUnit(smartRangeConfig.unit);
+    setRangeDefaultMin(smartRangeConfig.defaultMin);
+    setRangeDefaultMax(smartRangeConfig.defaultMax);
+  }, [filterType, rangeTouched, smartRangeConfig]);
+
+  const markRangeTouched = () => setRangeTouched(true);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -327,7 +355,11 @@ export default function AttributeGroupCreatePage() {
         inputType,
         isFilterable,
         iconPath: iconName,
-        displayConfig: { iconColor, color: iconColor },
+        displayConfig: {
+          iconColor,
+          color: iconColor,
+          ...(filterType === 'range' ? { range: rangeConfig } : {}),
+        },
       });
       for (let i = 0; i < pendingTerms.length; i++) {
         const term = pendingTerms[i];
@@ -406,7 +438,13 @@ export default function AttributeGroupCreatePage() {
                   <Label>Kiểu lọc</Label>
                   <select 
                     value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
+                    onChange={(e) => {
+                      const nextFilterType = e.target.value;
+                      setFilterType(nextFilterType);
+                      if (nextFilterType === 'range') {
+                        setRangeTouched(false);
+                      }
+                    }}
                     className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
                   >
                     <option value="single">Một lựa chọn (Single)</option>
@@ -427,6 +465,57 @@ export default function AttributeGroupCreatePage() {
                       <option value="buttons">Các nút bấm (Buttons)</option>
                       <option value="radio">Nút tròn (Radio)</option>
                     </select>
+                  </div>
+                )}
+
+                {filterType === 'range' && (
+                  <div className="space-y-3 rounded-lg border border-slate-100 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-900/40">
+                    <div>
+                      <Label>Cấu hình khoảng giá trị</Label>
+                      <p className="text-xs text-slate-500">Tự gợi ý theo tên nhóm, nhưng bạn có thể chỉnh cho dung tích, nồng độ, giá, điểm số...</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label>Min</Label>
+                        <Input type="number" value={rangeMin} onChange={(e) => { markRangeTouched(); setRangeMin(Number(e.target.value)); }} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Max</Label>
+                        <Input type="number" value={rangeMax} onChange={(e) => { markRangeTouched(); setRangeMax(Number(e.target.value)); }} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Bước nhảy</Label>
+                        <Input type="number" value={rangeStep} onChange={(e) => { markRangeTouched(); setRangeStep(Number(e.target.value)); }} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Đơn vị</Label>
+                        <Input value={rangeUnit} onChange={(e) => { markRangeTouched(); setRangeUnit(e.target.value); }} placeholder="ml, %, ₫, điểm..." />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Mặc định từ</Label>
+                        <Input type="number" value={rangeDefaultMin} onChange={(e) => { markRangeTouched(); setRangeDefaultMin(Number(e.target.value)); }} />
+                      </div>
+                      <div className="space-y-1">
+                        <Label>Mặc định đến</Label>
+                        <Input type="number" value={rangeDefaultMax} onChange={(e) => { markRangeTouched(); setRangeDefaultMax(Number(e.target.value)); }} />
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setRangeTouched(false);
+                        setRangeMin(smartRangeConfig.min);
+                        setRangeMax(smartRangeConfig.max);
+                        setRangeStep(smartRangeConfig.step);
+                        setRangeUnit(smartRangeConfig.unit);
+                        setRangeDefaultMin(smartRangeConfig.defaultMin);
+                        setRangeDefaultMax(smartRangeConfig.defaultMax);
+                      }}
+                    >
+                      Gợi ý lại theo tên nhóm
+                    </Button>
                   </div>
                 )}
 
@@ -568,6 +657,7 @@ export default function AttributeGroupCreatePage() {
             inputType={inputType}
             iconName={iconName}
             iconColor={iconColor}
+            rangeConfig={filterType === 'range' ? rangeConfig : undefined}
             terms={pendingTerms.map((term, index) => ({ _id: term.slug, name: term.name, slug: term.slug, order: index }))}
           />
         </div>

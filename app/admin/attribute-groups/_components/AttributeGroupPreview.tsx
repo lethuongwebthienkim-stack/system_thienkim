@@ -11,6 +11,7 @@ interface AttributeGroupPreviewProps {
   inputType: string;
   iconName?: string;
   iconColor?: string;
+  rangeConfig?: Partial<RangeConfig>;
   terms?: {
     _id: string;
     name: string;
@@ -19,12 +20,86 @@ interface AttributeGroupPreviewProps {
   }[];
 }
 
+export type RangeConfig = {
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+  defaultMin: number;
+  defaultMax: number;
+};
+
+const GENERIC_RANGE_CONFIG: RangeConfig = {
+  min: 0,
+  max: 100,
+  step: 1,
+  unit: '',
+  defaultMin: 0,
+  defaultMax: 100,
+};
+
+const normalizeText = (value: string) => value.toLowerCase()
+  .normalize('NFD')
+  .replaceAll(/[\u0300-\u036F]/g, '')
+  .replaceAll(/[đĐ]/g, 'd');
+
+const clampNumber = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+export const getSmartRangeConfig = (name: string, terms: { name: string }[] = []): RangeConfig => {
+  const source = normalizeText(`${name} ${terms.map(term => term.name).join(' ')}`);
+  if (source.match(/gia|price|tien|cost|amount/)) {
+    return { min: 0, max: 10000000, step: 100000, unit: '₫', defaultMin: 0, defaultMax: 5000000 };
+  }
+  if (source.match(/nong do|do con|abv|alcohol|con/)) {
+    return { min: 1, max: 100, step: 1, unit: '%', defaultMin: 1, defaultMax: 15 };
+  }
+  if (source.match(/dung tich|the tich|volume|ml|lit|liter|litre|cl/)) {
+    return { min: 1, max: 2000, step: 1, unit: 'ml', defaultMin: 1, defaultMax: 750 };
+  }
+  if (source.match(/trong luong|can nang|weight|kg|gram|gam/)) {
+    return { min: 0, max: 100, step: 1, unit: 'kg', defaultMin: 0, defaultMax: 10 };
+  }
+  if (source.match(/nam|year|vintage|nien vu/)) {
+    const year = new Date().getFullYear();
+    return { min: 1900, max: year, step: 1, unit: '', defaultMin: year - 20, defaultMax: year };
+  }
+  if (source.match(/diem|score|rating|rank/)) {
+    return { min: 0, max: 100, step: 1, unit: 'điểm', defaultMin: 80, defaultMax: 100 };
+  }
+  return GENERIC_RANGE_CONFIG;
+};
+
+export const normalizeRangeConfig = (config?: Partial<RangeConfig>, fallback: RangeConfig = GENERIC_RANGE_CONFIG): RangeConfig => {
+  const min = Number.isFinite(config?.min) ? Number(config?.min) : fallback.min;
+  const maxCandidate = Number.isFinite(config?.max) ? Number(config?.max) : fallback.max;
+  const max = maxCandidate > min ? maxCandidate : min + Math.max(fallback.step, 1);
+  const stepCandidate = Number.isFinite(config?.step) ? Number(config?.step) : fallback.step;
+  const step = stepCandidate > 0 ? stepCandidate : 1;
+  const defaultMin = clampNumber(Number.isFinite(config?.defaultMin) ? Number(config?.defaultMin) : fallback.defaultMin, min, max);
+  const defaultMax = clampNumber(Number.isFinite(config?.defaultMax) ? Number(config?.defaultMax) : fallback.defaultMax, min, max);
+  return {
+    min,
+    max,
+    step,
+    unit: typeof config?.unit === 'string' ? config.unit : fallback.unit,
+    defaultMin: Math.min(defaultMin, defaultMax),
+    defaultMax: Math.max(defaultMin, defaultMax),
+  };
+};
+
+const formatRangeValue = (value: number, unit: string) => {
+  const formatted = Number.isInteger(value) ? value.toLocaleString('vi-VN') : value.toLocaleString('vi-VN', { maximumFractionDigits: 2 });
+  if (!unit) { return formatted; }
+  return unit === '₫' ? `${formatted}${unit}` : `${formatted}${unit}`;
+};
+
 export function AttributeGroupPreview({
   name,
   filterType,
   inputType,
   iconName = 'Wine',
   iconColor = '#ea580c',
+  rangeConfig,
   terms = []
 }: AttributeGroupPreviewProps) {
   // Lấy Icon component động
@@ -34,15 +109,29 @@ export function AttributeGroupPreview({
   const [selectedTerms, setSelectedTerms] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Range Slider States
-  const [minVal, setMinVal] = useState(75);
-  const [maxVal, setMaxVal] = useState(750);
+  const smartRangeConfig = getSmartRangeConfig(name, terms);
+  const resolvedRangeConfig = normalizeRangeConfig(rangeConfig, smartRangeConfig);
+  const rangeGap = resolvedRangeConfig.step;
+  const [minVal, setMinVal] = useState(resolvedRangeConfig.defaultMin);
+  const [maxVal, setMaxVal] = useState(resolvedRangeConfig.defaultMax);
 
   // Reset selected terms khi đổi kiểu
   useEffect(() => {
     setSelectedTerms([]);
     setIsDropdownOpen(false);
   }, [filterType, inputType]);
+
+  useEffect(() => {
+    setMinVal(resolvedRangeConfig.defaultMin);
+    setMaxVal(resolvedRangeConfig.defaultMax);
+  }, [
+    resolvedRangeConfig.defaultMin,
+    resolvedRangeConfig.defaultMax,
+    resolvedRangeConfig.min,
+    resolvedRangeConfig.max,
+    resolvedRangeConfig.step,
+    resolvedRangeConfig.unit,
+  ]);
 
   const displayGroupName = name.trim() || 'Tên nhóm thuộc tính';
 
@@ -188,7 +277,7 @@ export function AttributeGroupPreview({
                 <div className="flex justify-between items-center text-xs font-semibold text-slate-600 dark:text-slate-400">
                   <span>Dải chọn:</span>
                   <span className="px-2 py-0.5 rounded font-mono text-white" style={{ backgroundColor: iconColor }}>
-                    {minVal}ml - {maxVal}ml
+                    {formatRangeValue(minVal, resolvedRangeConfig.unit)} - {formatRangeValue(maxVal, resolvedRangeConfig.unit)}
                   </span>
                 </div>
 
@@ -199,8 +288,8 @@ export function AttributeGroupPreview({
                     <div 
                       className="absolute h-full rounded-lg"
                       style={{
-                        left: `${((minVal - 10) / (1000 - 10)) * 100}%`,
-                        right: `${100 - ((maxVal - 10) / (1000 - 10)) * 100}%`,
+                        left: `${((minVal - resolvedRangeConfig.min) / (resolvedRangeConfig.max - resolvedRangeConfig.min)) * 100}%`,
+                        right: `${100 - ((maxVal - resolvedRangeConfig.min) / (resolvedRangeConfig.max - resolvedRangeConfig.min)) * 100}%`,
                         backgroundColor: iconColor,
                         opacity: 0.8
                       }}
@@ -209,27 +298,27 @@ export function AttributeGroupPreview({
                     {/* Min Range Input */}
                     <input
                       type="range"
-                      min="10"
-                      max="1000"
-                      step="10"
+                      min={resolvedRangeConfig.min}
+                      max={resolvedRangeConfig.max}
+                      step={resolvedRangeConfig.step}
                       value={minVal}
                       onChange={(e) => {
-                        const val = Math.min(Number(e.target.value), maxVal - 50);
+                        const val = Math.min(Number(e.target.value), maxVal - rangeGap);
                         setMinVal(val);
                       }}
                       className="absolute w-full"
-                      style={{ zIndex: minVal > 900 ? 5 : 3 }}
+                      style={{ zIndex: minVal > resolvedRangeConfig.max - (resolvedRangeConfig.max - resolvedRangeConfig.min) * 0.1 ? 5 : 3 }}
                     />
                     
                     {/* Max Range Input */}
                     <input
                       type="range"
-                      min="10"
-                      max="1000"
-                      step="10"
+                      min={resolvedRangeConfig.min}
+                      max={resolvedRangeConfig.max}
+                      step={resolvedRangeConfig.step}
                       value={maxVal}
                       onChange={(e) => {
-                        const val = Math.max(Number(e.target.value), minVal + 50);
+                        const val = Math.max(Number(e.target.value), minVal + rangeGap);
                         setMaxVal(val);
                       }}
                       className="absolute w-full"
@@ -239,8 +328,8 @@ export function AttributeGroupPreview({
 
                   {/* Min / Max Labels */}
                   <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 font-mono">
-                    <span>10ml</span>
-                    <span>1000ml</span>
+                    <span>{formatRangeValue(resolvedRangeConfig.min, resolvedRangeConfig.unit)}</span>
+                    <span>{formatRangeValue(resolvedRangeConfig.max, resolvedRangeConfig.unit)}</span>
                   </div>
                 </div>
               </div>
@@ -355,7 +444,7 @@ export function AttributeGroupPreview({
         {/* Note chú thích bên dưới */}
         <div className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 rounded-lg p-3 max-w-sm mx-auto w-full italic">
           {filterType === 'range' ? (
-            <span>⚡ **Kiểu Lọc Range:** Cho phép người dùng lọc sản phẩm theo khoảng giá trị số liên tục (ví dụ: Dung tích từ {minVal}ml đến {maxVal}ml).</span>
+            <span>⚡ **Kiểu Lọc Range:** Cho phép người dùng lọc sản phẩm theo khoảng giá trị số liên tục (ví dụ: {displayGroupName} từ {formatRangeValue(minVal, resolvedRangeConfig.unit)} đến {formatRangeValue(maxVal, resolvedRangeConfig.unit)}).</span>
           ) : hasRealTerms ? (
             <span>⚡ **Dữ liệu thật:** Preview đang hiển thị đúng {terms.length} giá trị thuộc tính đã lưu của bạn!</span>
           ) : (
