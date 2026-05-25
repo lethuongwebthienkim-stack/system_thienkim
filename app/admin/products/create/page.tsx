@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { ExternalLink, Loader2, Sparkles, Plus, Trash, Trash2 } from 'lucide-react';
+import { Check, Copy, ExternalLink, Loader2, Sparkles, Plus, Trash, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from '../../components/ui';
@@ -105,6 +105,7 @@ function ProductCreateContent() {
   const [galleryItems, setGalleryItems] = useState<ImageItem[]>([]);
   const [status, setStatus] = useState<'Draft' | 'Active' | 'Archived'>('Draft');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isNameCopied, setIsNameCopied] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editorResetKey, setEditorResetKey] = useState(0);
   const [hasVariants, setHasVariants] = useState(false);
@@ -390,6 +391,19 @@ function ProductCreateContent() {
     setSlug(generateSlugFromTitle(val));
   };
 
+  const handleCopyName = async () => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {return;}
+    try {
+      await navigator.clipboard.writeText(trimmedName);
+      setIsNameCopied(true);
+      toast.success('Đã copy tên sản phẩm');
+      setTimeout(() =>{  setIsNameCopied(false); }, 2000);
+    } catch {
+      toast.error('Không thể copy, vui lòng copy thủ công');
+    }
+  };
+
   const handleApplyAiProduct = (item: AiEntityImportPayload) => {
     const nextName = item.name?.trim() || item.title?.trim() || '';
     if (!nextName) {return;}
@@ -646,7 +660,21 @@ function ProductCreateContent() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Tên sản phẩm <span className="text-red-500">*</span></Label>
-                <Input value={name} onChange={handleNameChange} required placeholder="Nhập tên sản phẩm..." autoFocus />
+                <div className="flex gap-2">
+                  <Input value={name} onChange={handleNameChange} required placeholder="Nhập tên sản phẩm..." autoFocus />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={handleCopyName}
+                    disabled={!name.trim()}
+                    title="Copy tên sản phẩm"
+                    aria-label="Copy tên sản phẩm"
+                  >
+                    {isNameCopied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                  </Button>
+                </div>
               </div>
               <div className={enabledFields.has('sku') ? "grid grid-cols-2 gap-4" : ""}>
                 <div className="space-y-2">
