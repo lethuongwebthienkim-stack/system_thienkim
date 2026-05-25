@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
 import { Button, Card, CardContent, Input, Label, cn } from '../../../components/ui';
@@ -552,11 +552,13 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
                 <Button 
                   type="button" 
                   variant="outline" 
+                  size="icon"
                   onClick={() => window.open(`/${slug}`, '_blank')}
                   disabled={isSubmitting}
-                  className="gap-1 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  className="h-9 w-9 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  title="Mở trang nhóm sản phẩm"
                 >
-                  Mở trang nhóm sản phẩm
+                  <ExternalLink size={16} />
                 </Button>
               )}
               <div className="flex items-center gap-2 ml-2 pl-3 border-l border-slate-200 dark:border-slate-700">
