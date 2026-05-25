@@ -2393,3 +2393,22 @@ export const initStats = mutation({
   },
   returns: v.null(),
 });
+
+export const getActiveTermsForProducts = query({
+  args: { productIds: v.array(v.id("products")) },
+  handler: async (ctx, args) => {
+    if (args.productIds.length === 0) return [];
+
+    const allMappings = await Promise.all(
+      args.productIds.map((productId) =>
+        ctx.db
+          .query("productAttributeTerms")
+          .withIndex("by_product", (q) => q.eq("productId", productId))
+          .collect()
+      )
+    );
+    const termIds = allMappings.flat().map((m) => m.termId);
+    return Array.from(new Set(termIds));
+  },
+  returns: v.array(v.id("attributeTerms")),
+});

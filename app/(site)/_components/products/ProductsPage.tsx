@@ -297,6 +297,29 @@ function ProductsContent(props: ProductsPageProps) {
   const enableCategoryFilterFooterContent = enableCategoryFilterFooterContentSetting?.value === true;
   const enableProductTypes = enableProductTypesSetting?.value === true;
 
+  const categoryIds = useMemo(() => {
+    return categories?.map((c) => c._id) ?? [];
+  }, [categories]);
+
+  const categoryTypes = useQuery(
+    api.productTypes.listAssignedTypesForCategories,
+    enableProductTypes && categoryIds.length > 0 ? { categoryIds } : 'skip'
+  );
+
+  const categoryToTypeMap = useMemo(() => {
+    const map = new Map<Id<"productCategories">, { slug: string; name: string }>();
+    if (!categoryTypes) return map;
+    categoryTypes.forEach((row) => {
+      if (row.types && row.types.length > 0) {
+        map.set(row.categoryId, {
+          slug: row.types[0].slug,
+          name: row.types[0].name,
+        });
+      }
+    });
+    return map;
+  }, [categoryTypes]);
+
   const productType = useQuery(api.productTypes.getById, props.productTypeId ? { id: props.productTypeId } : 'skip');
   const assignedCategories = useQuery(
     api.productTypes.listAssignedCategories,
@@ -353,10 +376,6 @@ function ProductsContent(props: ProductsPageProps) {
     const assignedSet = new Set(assignedGroups.map((group) => group._id));
     return rawFilterableGroups.filter((group) => assignedSet.has(group._id));
   }, [assignedGroups, enableProductTypes, props.productTypeId, rawFilterableGroups]);
-  const displayFilterableGroups = useMemo(() => {
-    if (!filterableGroups) return undefined;
-    return filterableGroups;
-  }, [filterableGroups]);
   const productTypesData = useQuery(api.productTypes.listAll, enableProductTypes ? {} : 'skip');
   const productTypes = useMemo(() => productTypesData?.filter((t) => t.active) ?? [], [productTypesData]);
 
@@ -435,10 +454,7 @@ function ProductsContent(props: ProductsPageProps) {
   // Lấy giá trị min/max price thực tế
   const minPrice = selectedPriceRange?.minPrice ?? props.priceRangeFilter?.minPrice ?? undefined;
   const maxPrice = selectedPriceRange?.maxPrice ?? props.priceRangeFilter?.maxPrice ?? undefined;
-  const queryProductTypeId = useMemo(() => {
-    const hasConcreteFilter = Boolean(activeCategory) || attributeTermIds.length > 0 || minPrice !== undefined || maxPrice !== undefined;
-    return hasConcreteFilter ? undefined : props.productTypeId;
-  }, [activeCategory, attributeTermIds.length, maxPrice, minPrice, props.productTypeId]);
+  const queryProductTypeId = props.productTypeId;
 
   const {
     results: infiniteResults,
@@ -486,6 +502,46 @@ function ProductsContent(props: ProductsPageProps) {
   }, [infiniteResults, isPaginationMode, paginatedProducts]);
 
   const productIds = useMemo(() => products.map((product) => product._id), [products]);
+
+  const activeTermIds = useQuery(
+    api.products.getActiveTermsForProducts,
+    enableProductTypes && productIds.length > 0
+      ? { productIds }
+      : 'skip'
+  );
+
+  const displayFilterableGroups = useMemo(() => {
+    if (!filterableGroups) return undefined;
+    if (!enableProductTypes) return filterableGroups;
+    if (activeTermIds === undefined) return filterableGroups;
+
+    const activeTermSet = new Set(activeTermIds);
+    return filterableGroups
+      .map((group) => {
+        const filteredTerms = (group.terms || []).filter((term: any) =>
+          activeTermSet.has(term._id)
+        );
+        return { ...group, terms: filteredTerms };
+      })
+      .filter((group) => {
+        const filterType = group.filterType || 'single';
+
+        if (filterType === 'range') {
+          const numericValues = group.terms
+            .map((t: any) => parseNumericValue(t.name))
+            .filter((v: number | null): v is number => v !== null);
+          
+          if (numericValues.length <= 1) return false;
+          
+          const minLimit = Math.min(...numericValues);
+          const maxLimit = Math.max(...numericValues);
+          return minLimit !== maxLimit;
+        }
+
+        return group.terms.length > 1;
+      });
+  }, [filterableGroups, activeTermIds, enableProductTypes]);
+
   const wishlistProductIds = useQuery(
     api.wishlist.listCustomerProductIds,
     isAuthenticated && customer && productIds.length > 0 && (wishlistModule?.enabled ?? false)
@@ -571,7 +627,9 @@ function ProductsContent(props: ProductsPageProps) {
     }
 
     // 2. Khi bật: Phân giải SEO Catch-all URLs thông minh theo primary filter và fallback đôn filter
-    const baseSlug = productType ? productType.slug : 'products';
+    const assignedType = targetCategoryId ? categoryToTypeMap.get(targetCategoryId) : null;
+    const effectiveProductTypeSlug = assignedType ? assignedType.slug : (productType ? productType.slug : null);
+    const hasEffectiveProductType = !!effectiveProductTypeSlug;
 
     // Dữ liệu filter active mới
     const hasCategory = !!targetCategoryId;
@@ -647,7 +705,7 @@ function ProductsContent(props: ProductsPageProps) {
       }
     }
 
-    let path = `/${baseSlug}`;
+    let path = `/products`;
     const params = new URLSearchParams();
 
     // Giữ nguyên các params hệ thống như search, sort (xóa page khi filter thay đổi)
@@ -656,11 +714,11 @@ function ProductsContent(props: ProductsPageProps) {
     const sortVal = searchParams.get('sort');
     if (sortVal) params.set('sort', sortVal);
 
-    if (!productType) {
+    if (!hasEffectiveProductType) {
       // Nếu chưa có product type cụ thể (fallback /products), không dựng URL đẹp
       path = `/products`;
       if (hasCategory) {
-        const category = categoryOptions.find(c => c._id === targetCategoryId);
+        const category = (categories ?? []).find(c => c._id === targetCategoryId);
         if (category) params.set('category', category.slug);
       }
       if (hasPriceRange) {
@@ -670,9 +728,10 @@ function ProductsContent(props: ProductsPageProps) {
         params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
       });
     } else {
+      const baseSlug = effectiveProductTypeSlug!;
       // Dựng URL đẹp theo primary path
       if (primaryPath === 'category' && hasCategory) {
-        const category = categoryOptions.find(c => c._id === targetCategoryId);
+        const category = (categories ?? []).find(c => c._id === targetCategoryId);
         if (category) {
           path = `/${baseSlug}/${category.slug}`;
         }
@@ -685,7 +744,7 @@ function ProductsContent(props: ProductsPageProps) {
       } else if (primaryPath === 'priceRange' && hasPriceRange) {
         path = `/${baseSlug}/${targetPriceRange!.slug}`;
         if (hasCategory) {
-          const category = categoryOptions.find(c => c._id === targetCategoryId);
+          const category = (categories ?? []).find(c => c._id === targetCategoryId);
           if (category) params.set('category', category.slug);
         }
         activeGroups.forEach(g => {
@@ -706,7 +765,7 @@ function ProductsContent(props: ProductsPageProps) {
         path = `/${baseSlug}/${primaryGroup.groupSlug}/${primaryGroup.termSlugs.join(',')}`;
 
         if (hasCategory) {
-          const category = categoryOptions.find(c => c._id === targetCategoryId);
+          const category = (categories ?? []).find(c => c._id === targetCategoryId);
           if (category) params.set('category', category.slug);
         }
         if (hasPriceRange) {
@@ -717,13 +776,25 @@ function ProductsContent(props: ProductsPageProps) {
             params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
           }
         });
+      } else {
+        path = `/${baseSlug}`;
+        if (hasCategory) {
+          const category = (categories ?? []).find(c => c._id === targetCategoryId);
+          if (category) params.set('category', category.slug);
+        }
+        if (hasPriceRange) {
+          params.set('priceRange', targetPriceRange!.slug);
+        }
+        activeGroups.forEach(g => {
+          params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
+        });
       }
     }
 
     const queryStr = params.toString();
     const finalUrl = queryStr ? `${path}?${queryStr}` : path;
     router.push(finalUrl, { scroll: false });
-  }, [enableProductTypes, productType, activeCategory, selectedPriceRange, selectedAttributes, categoryOptions, filterableGroups, searchParams, routeMode, router, props.categoryId, props.priceRangeFilter, props.attributeFilter]);
+  }, [enableProductTypes, productType, activeCategory, selectedPriceRange, selectedAttributes, categoryOptions, filterableGroups, searchParams, routeMode, router, props.categoryId, props.priceRangeFilter, props.attributeFilter, categoryToTypeMap, categories]);
 
   const handleCategoryChange = useCallback((categoryId: Id<"productCategories"> | null) => {
     navigateWithFilters({ nextCategoryId: categoryId, primary: 'category' });
@@ -1753,8 +1824,47 @@ function AttributeFilterGroupWidget({
     };
   }, [numericTerms]);
 
+  const step = useMemo(() => {
+    const diff = maxLimit - minLimit;
+    if (diff <= 0) return 1;
+    if (diff <= 2) return 0.1;
+    if (diff <= 20) return 0.5;
+    return 1;
+  }, [minLimit, maxLimit]);
+
   const [sliderMin, setSliderMin] = useState(minLimit);
   const [sliderMax, setSliderMax] = useState(maxLimit);
+  const [activeInput, setActiveInput] = useState<'min' | 'max'>('min');
+  const sliderRef = useRef<HTMLDivElement>(null);
+
+  const handleSliderInteraction = useCallback((clientX: number) => {
+    if (!sliderRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const clickVal = minLimit + pct * (maxLimit - minLimit);
+    
+    if (Math.abs(clickVal - sliderMin) < Math.abs(clickVal - sliderMax)) {
+      setActiveInput('min');
+    } else {
+      setActiveInput('max');
+    }
+  }, [minLimit, maxLimit, sliderMin, sliderMax]);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (e.buttons === 0) {
+      handleSliderInteraction(e.clientX);
+    }
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    handleSliderInteraction(e.clientX);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches[0]) {
+      handleSliderInteraction(e.touches[0].clientX);
+    }
+  };
 
   // Sync state slider when URL / selectedAttributes change (currentSelectedTermIds actually holds slugs now)
   const currentSelectedTermIds = selectedAttributes?.[group._id] || [];
@@ -1779,11 +1889,13 @@ function AttributeFilterGroupWidget({
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = Math.min(parseFloat(e.target.value), sliderMax);
     setSliderMin(val);
+    setActiveInput('min');
   };
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = Math.max(parseFloat(e.target.value), sliderMin);
     setSliderMax(val);
+    setActiveInput('max');
   };
 
   const applyRangeFilter = () => {
@@ -1826,7 +1938,6 @@ function AttributeFilterGroupWidget({
             top: 0;
             left: 0;
             background: none;
-            pointer-events: none;
             -webkit-appearance: none;
             appearance: none;
           }
@@ -1836,7 +1947,6 @@ function AttributeFilterGroupWidget({
             border-radius: 50%;
             background: ${primaryColor};
             cursor: pointer;
-            pointer-events: auto;
             -webkit-appearance: none;
             border: 2px solid #ffffff;
             box-shadow: 0 1px 3px rgba(0,0,0,0.3);
@@ -1851,7 +1961,6 @@ function AttributeFilterGroupWidget({
             border-radius: 50%;
             background: ${primaryColor};
             cursor: pointer;
-            pointer-events: auto;
             border: 2px solid #ffffff;
             box-shadow: 0 1px 3px rgba(0,0,0,0.3);
             transition: transform 0.1s ease;
@@ -1870,7 +1979,14 @@ function AttributeFilterGroupWidget({
 
         <div className="space-y-3 pt-1">
           {/* Container Slider */}
-          <div className="relative w-full h-1.5 rounded-lg double-range-slider" style={{ backgroundColor: tokens.filterChipBg }}>
+          <div 
+            ref={sliderRef}
+            onMouseMove={handleMouseMove}
+            onMouseDown={handleMouseDown}
+            onTouchStart={handleTouchStart}
+            className="relative w-full h-1.5 rounded-lg double-range-slider" 
+            style={{ backgroundColor: tokens.filterChipBg }}
+          >
             {/* Active Track */}
             <div 
               className="absolute h-full rounded-lg"
@@ -1887,13 +2003,13 @@ function AttributeFilterGroupWidget({
               type="range"
               min={minLimit}
               max={maxLimit}
-              step="1"
+              step={step}
               value={sliderMin}
               onChange={handleMinChange}
               onMouseUp={applyRangeFilter}
               onTouchEnd={applyRangeFilter}
-              className="absolute w-full"
-              style={{ zIndex: sliderMin > (maxLimit - minLimit) * 0.9 + minLimit ? 5 : 3 }}
+              className="absolute w-full cursor-pointer"
+              style={{ zIndex: activeInput === 'min' ? 10 : 3 }}
             />
             
             {/* Max Range Input */}
@@ -1901,13 +2017,13 @@ function AttributeFilterGroupWidget({
               type="range"
               min={minLimit}
               max={maxLimit}
-              step="1"
+              step={step}
               value={sliderMax}
               onChange={handleMaxChange}
               onMouseUp={applyRangeFilter}
               onTouchEnd={applyRangeFilter}
-              className="absolute w-full"
-              style={{ zIndex: 4 }}
+              className="absolute w-full cursor-pointer"
+              style={{ zIndex: activeInput === 'max' ? 10 : 4 }}
             />
           </div>
 
