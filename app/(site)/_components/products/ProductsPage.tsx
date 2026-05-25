@@ -762,20 +762,57 @@ function ProductsContent(props: ProductsPageProps) {
           if (current) primaryGroup = current;
         }
 
-        path = `/${baseSlug}/${primaryGroup.groupSlug}/${primaryGroup.termSlugs.join(',')}`;
+        // Range filterType không thể làm primary path (Convex resolver reject range trong URL path)
+        // → dùng query param cho range group, đôn primary lên group khác nếu có
+        const primaryGroupFilterType = filterableGroups?.find(g => g._id === primaryGroup.groupId)?.filterType;
+        const isRangeGroup = primaryGroupFilterType === 'range';
 
-        if (hasCategory) {
-          const category = (categories ?? []).find(c => c._id === targetCategoryId);
-          if (category) params.set('category', category.slug);
-        }
-        if (hasPriceRange) {
-          params.set('priceRange', targetPriceRange!.slug);
-        }
-        activeGroups.forEach(g => {
-          if (g.groupId !== primaryGroup.groupId) {
-            params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
+        if (isRangeGroup) {
+          // Tìm group không phải range để làm primary path
+          const nonRangePrimary = activeGroups.find(g => {
+            const ft = filterableGroups?.find(fg => fg._id === g.groupId)?.filterType;
+            return ft !== 'range';
+          });
+          if (nonRangePrimary) {
+            path = `/${baseSlug}/${nonRangePrimary.groupSlug}/${nonRangePrimary.termSlugs.join(',')}`;
+            if (hasCategory) {
+              const category = (categories ?? []).find(c => c._id === targetCategoryId);
+              if (category) params.set('category', category.slug);
+            }
+            if (hasPriceRange) params.set('priceRange', targetPriceRange!.slug);
+            activeGroups.forEach(g => {
+              if (g.groupId !== nonRangePrimary.groupId) {
+                params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
+              }
+            });
+          } else {
+            // Tất cả groups đều là range → dùng base type path + query params
+            path = `/${baseSlug}`;
+            if (hasCategory) {
+              const category = (categories ?? []).find(c => c._id === targetCategoryId);
+              if (category) params.set('category', category.slug);
+            }
+            if (hasPriceRange) params.set('priceRange', targetPriceRange!.slug);
+            activeGroups.forEach(g => {
+              params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
+            });
           }
-        });
+        } else {
+          path = `/${baseSlug}/${primaryGroup.groupSlug}/${primaryGroup.termSlugs.join(',')}`;
+
+          if (hasCategory) {
+            const category = (categories ?? []).find(c => c._id === targetCategoryId);
+            if (category) params.set('category', category.slug);
+          }
+          if (hasPriceRange) {
+            params.set('priceRange', targetPriceRange!.slug);
+          }
+          activeGroups.forEach(g => {
+            if (g.groupId !== primaryGroup.groupId) {
+              params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
+            }
+          });
+        }
       } else {
         path = `/${baseSlug}`;
         if (hasCategory) {
@@ -1838,32 +1875,22 @@ function AttributeFilterGroupWidget({
   const sliderRef = useRef<HTMLDivElement>(null);
   const lastAppliedSlugsRef = useRef<string[] | null>(null);
 
-  const handleSliderInteraction = useCallback((clientX: number) => {
+  // Xác định thumb nào gần clientX hơn để gán activeInput đúng trước khi kéo
+  const resolveActiveThumb = useCallback((clientX: number) => {
     if (!sliderRef.current) return;
     const rect = sliderRef.current.getBoundingClientRect();
     const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const clickVal = minLimit + pct * (maxLimit - minLimit);
-    
-    if (Math.abs(clickVal - sliderMin) < Math.abs(clickVal - sliderMax)) {
-      setActiveInput('min');
-    } else {
-      setActiveInput('max');
-    }
+    setActiveInput(Math.abs(clickVal - sliderMin) <= Math.abs(clickVal - sliderMax) ? 'min' : 'max');
   }, [minLimit, maxLimit, sliderMin, sliderMax]);
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (e.buttons === 0) {
-      handleSliderInteraction(e.clientX);
-    }
-  };
-
   const handleMouseDown = (e: React.MouseEvent) => {
-    handleSliderInteraction(e.clientX);
+    resolveActiveThumb(e.clientX);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches[0]) {
-      handleSliderInteraction(e.touches[0].clientX);
+      resolveActiveThumb(e.touches[0].clientX);
     }
   };
 
@@ -1994,7 +2021,6 @@ function AttributeFilterGroupWidget({
           {/* Container Slider */}
           <div 
             ref={sliderRef}
-            onMouseMove={handleMouseMove}
             onMouseDown={handleMouseDown}
             onTouchStart={handleTouchStart}
             className="relative w-full h-1.5 rounded-lg double-range-slider" 
