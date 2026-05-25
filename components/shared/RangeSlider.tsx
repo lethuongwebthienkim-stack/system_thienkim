@@ -55,6 +55,9 @@ export function RangeSlider({
   // Local state để hiển thị real-time mà không gây navigate
   const [localValues, setLocalValues] = useState<[number, number]>([valueMin, valueMax]);
 
+  // Debounce timer ref
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Sync khi props thay đổi từ bên ngoài (URL change)
   const prevExternalRef = useRef<[number, number]>([valueMin, valueMax]);
   useEffect(() => {
@@ -65,18 +68,39 @@ export function RangeSlider({
     }
   }, [valueMin, valueMax]);
 
+  // Dọn dẹp timer khi unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleChange = useCallback(
     (values: number[]) => {
       const [min, max] = values as [number, number];
       setLocalValues([min, max]);
       onValueChange?.(min, max);
+
+      // Debounce: hẹn giờ 500ms để trigger commit
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      debounceTimerRef.current = setTimeout(() => {
+        onValueCommit?.(min, max);
+      }, 500);
     },
-    [onValueChange]
+    [onValueChange, onValueCommit]
   );
 
   const handleCommit = useCallback(
     (values: number[]) => {
       const [min, max] = values as [number, number];
+      // Hủy timer đang chờ vì đã commit trực tiếp
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
       setLocalValues([min, max]);
       onValueCommit?.(min, max);
     },
@@ -84,6 +108,9 @@ export function RangeSlider({
   );
 
   const handleReset = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
     setLocalValues([minLimit, maxLimit]);
     onValueCommit?.(minLimit, maxLimit);
   }, [minLimit, maxLimit, onValueCommit]);
