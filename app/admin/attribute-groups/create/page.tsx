@@ -168,7 +168,7 @@ Chỉ trả về JSON đúng schema:
     <>
       <Button type="button" variant="outline" onClick={() => setOpen(true)} className="gap-2">
         <Bot size={16} />
-        Import AI giá trị
+        Import AI
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-3xl">
