@@ -309,6 +309,8 @@ function ProductsContent(props: ProductsPageProps) {
   const productType = useQuery(api.productTypes.getById, props.productTypeId ? { id: props.productTypeId } : 'skip');
 
   const filterableGroups = useQuery(api.attributeGroups.listFilterable, enableProductTypes ? {} : 'skip');
+  const productTypesData = useQuery(api.productTypes.listAll, enableProductTypes ? {} : 'skip');
+  const productTypes = useMemo(() => productTypesData?.filter((t) => t.active) ?? [], [productTypesData]);
 
   // Load price range from URL or props
   const [selectedPriceRange, setSelectedPriceRange] = useState<PriceRange | null>(null);
@@ -621,6 +623,14 @@ function ProductsContent(props: ProductsPageProps) {
   const handlePriceRangeChange = useCallback((priceRange: PriceRange | null) => {
     navigateWithFilters({ nextPriceRange: priceRange });
   }, [navigateWithFilters]);
+
+  const handleProductTypeChange = useCallback((typeSlug: string | null) => {
+    if (typeSlug) {
+      router.push(`/${typeSlug}`, { scroll: false });
+    } else {
+      router.push(buildModuleListPath('products'), { scroll: false });
+    }
+  }, [router]);
 
   const handlePageSizeChange = useCallback((value: number) => {
     setPageSizeOverride(value);
@@ -986,6 +996,8 @@ function ProductsContent(props: ProductsPageProps) {
           selectedPriceRange={selectedPriceRange}
           onPriceRangeChange={handlePriceRangeChange}
           enableProductTypes={enableProductTypes}
+          productTypes={productTypes}
+          onProductTypeChange={handleProductTypeChange}
         />
         {quickAddModal}
       </>
@@ -1038,6 +1050,8 @@ function ProductsContent(props: ProductsPageProps) {
           selectedPriceRange={selectedPriceRange}
           onPriceRangeChange={handlePriceRangeChange}
           enableProductTypes={enableProductTypes}
+          productTypes={productTypes}
+          onProductTypeChange={handleProductTypeChange}
         />
         {quickAddModal}
       </>
@@ -1077,6 +1091,8 @@ function ProductsContent(props: ProductsPageProps) {
           selectedPriceRange={selectedPriceRange}
           onPriceRangeChange={handlePriceRangeChange}
           enableProductTypes={enableProductTypes}
+          productTypes={productTypes}
+          onProductTypeChange={handleProductTypeChange}
         />
 
         <div
@@ -1109,6 +1125,29 @@ function ProductsContent(props: ProductsPageProps) {
                 </button>
               )}
             </div>
+
+            {enableProductTypes && productTypes && productTypes.length > 0 && (
+              <div className="hidden lg:flex items-center gap-2">
+                <div className="relative">
+                  <select
+                    value={productType?.slug ?? ''}
+                    onChange={(e) => { handleProductTypeChange(e.target.value || null); }}
+                    className="h-10 w-[200px] pl-3 pr-8 rounded-lg border text-sm outline-none appearance-none truncate"
+                    style={{
+                      borderColor: tokens.inputBorder,
+                      backgroundColor: tokens.inputBackground,
+                      color: tokens.inputText,
+                    }}
+                  >
+                    <option value="">Tất cả nhóm sản phẩm</option>
+                    {productTypes.map((t) => (
+                      <option key={t._id} value={t.slug}>{t.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: tokens.inputIcon }} />
+                </div>
+              </div>
+            )}
 
             <div className="hidden lg:flex items-center gap-2">
               <div className="relative">
@@ -1523,6 +1562,8 @@ interface LayoutProps {
   selectedPriceRange: PriceRange | null;
   onPriceRangeChange: (priceRange: PriceRange | null) => void;
   enableProductTypes: boolean;
+  productTypes?: { _id: Id<"productTypes">; name: string; slug: string }[];
+  onProductTypeChange?: (slug: string | null) => void;
 }
 
 interface MobileProductsFiltersProps {
@@ -1541,6 +1582,8 @@ interface MobileProductsFiltersProps {
   selectedPriceRange: PriceRange | null;
   onPriceRangeChange: (priceRange: PriceRange | null) => void;
   enableProductTypes: boolean;
+  productTypes?: { _id: Id<"productTypes">; name: string; slug: string }[];
+  onProductTypeChange?: (slug: string | null) => void;
 }
 
 function MobileProductsFilters({
@@ -1559,6 +1602,8 @@ function MobileProductsFilters({
   selectedPriceRange,
   onPriceRangeChange,
   enableProductTypes,
+  productTypes,
+  onProductTypeChange,
 }: MobileProductsFiltersProps) {
   const [open, setOpen] = useState(false);
   const hasActiveFilters = Boolean(selectedCategory || searchQuery || selectedPriceRange) || sortBy !== 'newest';
@@ -1614,6 +1659,37 @@ function MobileProductsFilters({
               </button>
             )}
           </div>
+
+          {enableProductTypes && productTypes && productTypes.length > 0 && (
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wider" style={{ color: tokens.metaText }}>Nhóm sản phẩm</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { onProductTypeChange?.(null); }}
+                  className="px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                  style={!productType
+                    ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
+                    : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
+                  }
+                >
+                  Tất cả nhóm
+                </button>
+                {productTypes.map((t) => (
+                  <button
+                    key={t._id}
+                    onClick={() => { onProductTypeChange?.(t.slug); }}
+                    className="px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
+                    style={productType?.slug === t.slug
+                      ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
+                      : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
+                    }
+                  >
+                    {t.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <p className="mb-2 text-xs font-medium uppercase tracking-wider" style={{ color: tokens.metaText }}>Danh mục</p>
@@ -1726,7 +1802,7 @@ function MobileProductsFilters({
   );
 }
 
-function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap: _categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes }: LayoutProps) {
+function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap: _categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange }: LayoutProps) {
   return (
     <div className="py-8 md:py-12 px-4">
       <div className="max-w-7xl mx-auto">
@@ -1757,6 +1833,8 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
           selectedPriceRange={selectedPriceRange}
           onPriceRangeChange={onPriceRangeChange}
           enableProductTypes={enableProductTypes}
+          productTypes={productTypes}
+          onProductTypeChange={onProductTypeChange}
         />
 
         <div className="flex gap-6">
@@ -1781,6 +1859,38 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                 />
               </div>
             </div>
+
+            {enableProductTypes && productTypes && productTypes.length > 0 && (
+              <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+                <h3 className="font-semibold mb-3" style={{ color: tokens.bodyText }}>Nhóm sản phẩm</h3>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => { onProductTypeChange?.(null); }}
+                    className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border"
+                    style={!productType
+                      ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
+                      : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
+                    }
+                  >
+                    Tất cả nhóm
+                  </button>
+                  {productTypes.map((t) => (
+                    <button
+                      key={t._id}
+                      onClick={() => { onProductTypeChange?.(t.slug); }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border truncate"
+                      style={productType?.slug === t.slug
+                        ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
+                        : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
+                      }
+                      title={t.name}
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
               <h3 className="font-semibold mb-3" style={{ color: tokens.bodyText }}>Danh mục</h3>
@@ -1986,7 +2096,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
 
 // ========== LIST LAYOUT (Full width list view) ==========
 
-function ListLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes }: LayoutProps) {
+function ListLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange }: LayoutProps) {
   return (
     <div className="py-8 md:py-12 px-4">
       <div className="max-w-5xl mx-auto">
@@ -2017,6 +2127,8 @@ function ListLayout({ isLoadingProducts, postsPerPage, products, categories, cat
           selectedPriceRange={selectedPriceRange}
           onPriceRangeChange={onPriceRangeChange}
           enableProductTypes={enableProductTypes}
+          productTypes={productTypes}
+          onProductTypeChange={onProductTypeChange}
         />
 
         <div
@@ -2040,6 +2152,24 @@ function ListLayout({ isLoadingProducts, postsPerPage, products, categories, cat
                 } as React.CSSProperties}
               />
             </div>
+            {enableProductTypes && productTypes && productTypes.length > 0 && (
+              <select
+                value={productType?.slug ?? ''}
+                onChange={(e) => { onProductTypeChange?.(e.target.value || null); }}
+                className="h-10 px-3 rounded-lg border text-sm max-w-[200px]"
+                style={{
+                  borderColor: tokens.inputBorder,
+                  backgroundColor: tokens.inputBackground,
+                  color: tokens.inputText,
+                }}
+              >
+                <option value="">Tất cả nhóm sản phẩm</option>
+                {productTypes.map((t) => (
+                  <option key={t._id} value={t.slug}>{t.name}</option>
+                ))}
+              </select>
+            )}
+
             <select
               value={selectedCategory ?? ''}
               onChange={(e) => { onCategoryChange(e.target.value ? e.target.value as Id<"productCategories"> : null); }}
