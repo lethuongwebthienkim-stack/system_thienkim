@@ -134,3 +134,15 @@ export const getAssignedTermIds = query({
   },
   returns: v.array(v.id("attributeTerms")),
 });
+
+export const reorder = mutation({
+  args: { items: v.array(v.object({ id: v.id("attributeTerms"), order: v.number() })) },
+  handler: async (ctx, args) => {
+    await Promise.all(
+      args.items.map(async (item) => ctx.db.patch(item.id, { order: item.order }))
+    );
+    return null;
+  },
+  returns: v.null(),
+});
+

@@ -6,10 +6,23 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { Loader2 } from 'lucide-react';
+import { Loader2, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
-import { Button, Card, CardContent, Input, Label } from '../../../components/ui';
+import { Button, Card, CardContent, Input, Label, cn } from '../../../components/ui';
+import { IconPopoverPicker } from '../../../home-components/_shared/components/IconPopoverPicker';
+import { ATTRIBUTE_ICON_OPTIONS } from '../../_lib/iconRegistry';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+const COLOR_PRESETS = [
+  { label: 'Đen', value: '#000000', class: 'bg-black border-black text-white' },
+  { label: 'Trắng', value: '#ffffff', class: 'bg-white border-slate-200 text-slate-800' },
+  { label: 'Màu chính', value: '#ea580c', class: 'bg-orange-600 border-orange-600 text-white' },
+  { label: 'Màu phụ', value: '#475569', class: 'bg-slate-600 border-slate-600 text-white' }
+];
 
 export default function AttributeGroupEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -24,7 +37,8 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
   const [filterType, setFilterType] = useState('single');
   const [inputType, setInputType] = useState('select');
   const [isFilterable, setIsFilterable] = useState(true);
-  const [order, setOrder] = useState('0');
+  const [iconName, setIconName] = useState('Wine');
+  const [iconColor, setIconColor] = useState('#ea580c');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -35,7 +49,8 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
       setFilterType(groupData.filterType);
       setInputType(groupData.inputType);
       setIsFilterable(groupData.isFilterable ?? true);
-      setOrder(groupData.order.toString());
+      setIconName(groupData.iconPath ?? 'Wine');
+      setIconColor(groupData.displayConfig?.iconColor ?? groupData.displayConfig?.color ?? '#ea580c');
     }
   }, [groupData]);
 
@@ -53,7 +68,8 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
         filterType,
         inputType,
         isFilterable,
-        order: parseInt(order) || 0,
+        iconPath: iconName,
+        displayConfig: { iconColor, color: iconColor },
       });
       toast.success('Cập nhật nhóm thuộc tính thành công');
     } catch (error) {
@@ -151,12 +167,44 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
             </div>
 
             <div className="space-y-2">
-              <Label>Vị trí hiển thị (Thứ tự)</Label>
-              <Input 
-                type="number"
-                value={order} 
-                onChange={(e) => setOrder(e.target.value)} 
+              <Label>Icon đại diện</Label>
+              <IconPopoverPicker 
+                value={iconName}
+                onChange={setIconName}
+                options={ATTRIBUTE_ICON_OPTIONS}
+                brandColor={iconColor}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Màu sắc icon</Label>
+              <div className="flex gap-2 mb-2 flex-wrap">
+                {COLOR_PRESETS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    onClick={() => setIconColor(p.value)}
+                    className={`px-3 py-1.5 rounded text-xs font-medium border transition-all ${p.class} ${iconColor === p.value ? 'ring-2 ring-orange-500 scale-105 shadow-md' : 'opacity-80 hover:opacity-100'}`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2 items-center">
+                <Input 
+                  type="color" 
+                  value={iconColor} 
+                  onChange={(e) => setIconColor(e.target.value)} 
+                  className="w-12 h-10 p-1 cursor-pointer border border-slate-200 rounded-md"
+                />
+                <Input 
+                  type="text" 
+                  value={iconColor} 
+                  onChange={(e) => setIconColor(e.target.value)}
+                  placeholder="#ea580c"
+                  className="font-mono text-sm uppercase flex-1"
+                />
+              </div>
             </div>
 
             <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
@@ -196,15 +244,64 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
   );
 }
 
+interface SortableTermRowProps {
+  term: {
+    _id: Id<"attributeTerms">;
+    name: string;
+    slug: string;
+    order: number;
+  };
+  onRemove: (id: Id<"attributeTerms">) => void;
+}
+
+function SortableTermRow({ term, onRemove }: SortableTermRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: term._id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex justify-between items-center p-3 border border-slate-100 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-900/50",
+        isDragging && "bg-slate-100 dark:bg-slate-800 opacity-80"
+      )}
+    >
+      <div className="flex items-center gap-3 flex-1">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="p-1 rounded text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-grab active:cursor-grabbing"
+        >
+          <GripVertical size={16} />
+        </button>
+        <div>
+          <div className="font-medium text-slate-900 dark:text-slate-100">{term.name}</div>
+          <div className="text-xs text-slate-500 font-mono">{term.slug}</div>
+        </div>
+      </div>
+      <div className="flex gap-4 items-center">
+        <Button variant="ghost" size="sm" className="text-red-500" onClick={() => onRemove(term._id)}>Xóa</Button>
+      </div>
+    </div>
+  );
+}
+
 function AttributeTermsManager({ groupId }: { groupId: Id<"attributeGroups"> }) {
   const terms = useQuery(api.attributeTerms.listByGroup, { groupId });
   const createTerm = useMutation(api.attributeTerms.create);
   const removeTerm = useMutation(api.attributeTerms.remove);
+  const reorderTerms = useMutation(api.attributeTerms.reorder);
 
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
-  const [order, setOrder] = useState('0');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -215,12 +312,10 @@ function AttributeTermsManager({ groupId }: { groupId: Id<"attributeGroups"> }) 
         groupId,
         name: name.trim(),
         slug: slug.trim(),
-        order: parseInt(order) || 0,
         active: true,
       });
       setName('');
       setSlug('');
-      setOrder('0');
       toast.success('Đã thêm giá trị thuộc tính');
     } catch (error) {
       toast.error(getAdminMutationErrorMessage(error, 'Lỗi khi thêm giá trị thuộc tính'));
@@ -236,6 +331,23 @@ function AttributeTermsManager({ groupId }: { groupId: Id<"attributeGroups"> }) 
       toast.success('Đã xóa giá trị thuộc tính');
     } catch (error) {
       toast.error(getAdminMutationErrorMessage(error, 'Lỗi khi xóa giá trị thuộc tính'));
+    }
+  };
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id || !terms) return;
+
+    const oldIndex = terms.findIndex(item => item._id === active.id);
+    const newIndex = terms.findIndex(item => item._id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    const reordered = arrayMove(terms, oldIndex, newIndex);
+    try {
+      await reorderTerms({ items: reordered.map((item, index) => ({ id: item._id, order: index })) });
+      toast.success('Đã cập nhật thứ tự');
+    } catch (error) {
+      toast.error('Không thể cập nhật thứ tự');
     }
   };
 
@@ -256,33 +368,24 @@ function AttributeTermsManager({ groupId }: { groupId: Id<"attributeGroups"> }) 
             <Label className="text-xs">Slug</Label>
             <Input value={slug} onChange={(e) => setSlug(e.target.value)} placeholder="do, xl..." className="font-mono" />
           </div>
-          <div className="space-y-1 w-24">
-            <Label className="text-xs">Thứ tự</Label>
-            <Input type="number" value={order} onChange={(e) => setOrder(e.target.value)} />
-          </div>
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : 'Thêm'}
           </Button>
         </form>
 
-        <div className="space-y-2">
-          {terms.length === 0 ? (
-            <p className="text-slate-500 text-sm italic">Chưa có giá trị nào.</p>
-          ) : (
-            terms.map(term => (
-              <div key={term._id} className="flex justify-between items-center p-3 border border-slate-100 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-900/50">
-                <div>
-                  <div className="font-medium">{term.name}</div>
-                  <div className="text-xs text-slate-500 font-mono">{term.slug}</div>
-                </div>
-                <div className="flex gap-4 items-center">
-                  <div className="text-sm text-slate-500">Thứ tự: {term.order}</div>
-                  <Button variant="ghost" size="sm" className="text-red-500" onClick={() => handleRemove(term._id)}>Xóa</Button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={terms.map(item => item._id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {terms.length === 0 ? (
+                <p className="text-slate-500 text-sm italic">Chưa có giá trị nào.</p>
+              ) : (
+                terms.map(term => (
+                  <SortableTermRow key={term._id} term={term} onRemove={handleRemove} />
+                ))
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
       </CardContent>
     </Card>
   );
