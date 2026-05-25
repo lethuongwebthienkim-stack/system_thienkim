@@ -542,7 +542,7 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
         
-        <HomeComponentStickyFooter isSubmitting={isSubmitting}>
+        <HomeComponentStickyFooter isSubmitting={isSubmitting} submitLabel="Lưu thay đổi">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
               <Button type="button" variant="ghost" onClick={() => router.push('/admin/product-types')} disabled={isSubmitting}>

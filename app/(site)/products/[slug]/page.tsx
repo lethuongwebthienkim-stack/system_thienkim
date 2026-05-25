@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import ProductDetailPageShared from '../../[categorySlug]/[recordSlug]/_components/ProductDetailPage';
+import ProductDetailPageShared from '../../_components/details/ProductDetailPage';
 
 interface PageProps {
   params: Promise<{ slug: string }>;

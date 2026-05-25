@@ -796,7 +796,7 @@ function ProductsContent(props: ProductsPageProps) {
 
   const paginationNode = (
     <>
-      {listConfig.paginationType === 'pagination' && totalCount && totalCount > postsPerPage && (
+      {listConfig.paginationType === 'pagination' && !!totalCount && totalCount > postsPerPage && (
         <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div
             className="order-2 flex w-full items-center justify-between text-sm sm:order-1 sm:w-auto sm:justify-start sm:gap-6"

@@ -19,6 +19,30 @@ import {
   mergeProductsByCategoryAssignments,
 } from "./lib/multiCategory";
 
+export async function recalculateProductEffectivePrice(ctx: MutationCtx, productId: Id<"products">) {
+  const product = await ctx.db.get(productId);
+  if (!product) return;
+
+  let effectivePrice = product.salePrice ?? product.price;
+
+  if (product.hasVariants) {
+    const variants = await ctx.db
+      .query("productVariants")
+      .withIndex("by_product", (q) => q.eq("productId", productId))
+      .collect();
+    
+    const activeVariants = variants.filter(v => v.status === "Active");
+    if (activeVariants.length > 0) {
+      const prices = activeVariants.map(v => v.salePrice ?? v.price).filter((p): p is number => p !== undefined);
+      if (prices.length > 0) {
+        effectivePrice = Math.min(...prices);
+      }
+    }
+  }
+
+  await ctx.db.patch(productId, { effectivePrice });
+}
+
 const comboItemDoc = v.object({
   name: v.string(),
   price: v.optional(v.number()),
@@ -777,6 +801,9 @@ export const listPublishedPaginated = query({
   args: {
     paginationOpts: paginationOptsValidator,
     categoryId: v.optional(v.id("productCategories")),
+    productTypeId: v.optional(v.id("productTypes")),
+    minPrice: v.optional(v.number()),
+    maxPrice: v.optional(v.number()),
     sortBy: v.optional(v.union(
       v.literal("newest"),
       v.literal("oldest"),
@@ -803,6 +830,14 @@ export const listPublishedPaginated = query({
             .filter((product) => product.status === "Active"),
         };
       }
+    } else if (args.productTypeId) {
+      result = await ctx.db
+        .query("products")
+        .withIndex("by_type_status_effectivePrice", (q) =>
+          q.eq("productTypeId", args.productTypeId!).eq("status", "Active")
+        )
+        .order(sortBy === "oldest" ? "asc" : "desc")
+        .paginate(args.paginationOpts);
     } else if (sortBy === "popular") {
       result = await ctx.db
         .query("products")
@@ -815,6 +850,16 @@ export const listPublishedPaginated = query({
         .withIndex("by_status_order", (q) => q.eq("status", "Active"))
         .order(sortBy === "oldest" ? "asc" : "desc")
         .paginate(args.paginationOpts);
+    }
+
+    // Filter by minPrice and maxPrice
+    if (args.minPrice !== undefined || args.maxPrice !== undefined) {
+      result.page = result.page.filter((p) => {
+        const price = p.effectivePrice ?? p.salePrice ?? p.price;
+        if (args.minPrice !== undefined && price < args.minPrice) return false;
+        if (args.maxPrice !== undefined && price > args.maxPrice) return false;
+        return true;
+      });
     }
 
     const hasAttributeFilter = args.attributeTermIds && args.attributeTermIds.length > 0;
@@ -852,6 +897,9 @@ export const listPublishedPaginated = query({
 export const listPublishedWithOffset = query({
   args: {
     categoryId: v.optional(v.id("productCategories")),
+    productTypeId: v.optional(v.id("productTypes")),
+    minPrice: v.optional(v.number()),
+    maxPrice: v.optional(v.number()),
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
     search: v.optional(v.string()),
@@ -872,7 +920,7 @@ export const listPublishedWithOffset = query({
 
     let products: Doc<"products">[] = [];
     const hasAttributeFilter = args.attributeTermIds && args.attributeTermIds.length > 0;
-    const fetchLimit = hasAttributeFilter ? 1000 : offset + limit + 10;
+    const fetchLimit = (hasAttributeFilter || args.minPrice !== undefined || args.maxPrice !== undefined) ? 1000 : offset + limit + 10;
 
     if (args.search?.trim()) {
       const searchLower = args.search.toLowerCase().trim();
@@ -895,6 +943,13 @@ export const listPublishedWithOffset = query({
         products = await mergeProductsByCategoryAssignments(ctx, args.categoryId, products, fetchLimit);
         products = products.filter((product) => product.status === "Active");
       }
+    } else if (args.productTypeId) {
+      products = await ctx.db
+        .query("products")
+        .withIndex("by_type_status_effectivePrice", (q) =>
+          q.eq("productTypeId", args.productTypeId!).eq("status", "Active")
+        )
+        .take(fetchLimit);
     } else if (sortBy === "popular") {
       products = await ctx.db
         .query("products")
@@ -916,6 +971,15 @@ export const listPublishedWithOffset = query({
         42,
       );
       products = ranked.map((entry) => entry.item);
+    }
+
+    if (args.minPrice !== undefined || args.maxPrice !== undefined) {
+      products = products.filter((p) => {
+        const price = p.effectivePrice ?? p.salePrice ?? p.price;
+        if (args.minPrice !== undefined && price < args.minPrice) return false;
+        if (args.maxPrice !== undefined && price > args.maxPrice) return false;
+        return true;
+      });
     }
 
     if (hasAttributeFilter && args.attributeTermIds) {
@@ -1078,11 +1142,14 @@ export const searchPublished = query({
 export const countPublished = query({
   args: {
     categoryId: v.optional(v.id("productCategories")),
+    productTypeId: v.optional(v.id("productTypes")),
+    minPrice: v.optional(v.number()),
+    maxPrice: v.optional(v.number()),
     search: v.optional(v.string()),
     attributeTermIds: v.optional(v.array(v.array(v.id("attributeTerms")))),
   },
   handler: async (ctx, args) => {
-    if (!args.categoryId && !args.search?.trim() && !(args.attributeTermIds && args.attributeTermIds.length > 0)) {
+    if (!args.categoryId && !args.productTypeId && args.minPrice === undefined && args.maxPrice === undefined && !args.search?.trim() && !(args.attributeTermIds && args.attributeTermIds.length > 0)) {
       const activeStats = await ctx.db
         .query("productStats")
         .withIndex("by_key", (q) => q.eq("key", "Active"))
@@ -1092,21 +1159,30 @@ export const countPublished = query({
       }
     }
 
-    let products = args.categoryId
-      ? await ctx.db
-          .query("products")
-          .withIndex("by_category_status", (q) =>
-            q.eq("categoryId", args.categoryId!).eq("status", "Active")
-          )
-          .collect()
-      : await ctx.db
-          .query("products")
-          .withIndex("by_status_order", (q) => q.eq("status", "Active"))
-          .collect();
-
-    if (args.categoryId && await isMultiCategoryEnabled(ctx, "products")) {
-      products = await mergeProductsByCategoryAssignments(ctx, args.categoryId, products, 1000);
-      products = products.filter((product) => product.status === "Active");
+    let products;
+    if (args.categoryId) {
+      products = await ctx.db
+        .query("products")
+        .withIndex("by_category_status", (q) =>
+          q.eq("categoryId", args.categoryId!).eq("status", "Active")
+        )
+        .collect();
+      if (await isMultiCategoryEnabled(ctx, "products")) {
+        products = await mergeProductsByCategoryAssignments(ctx, args.categoryId, products, 1000);
+        products = products.filter((product) => product.status === "Active");
+      }
+    } else if (args.productTypeId) {
+      products = await ctx.db
+        .query("products")
+        .withIndex("by_type_status_effectivePrice", (q) =>
+          q.eq("productTypeId", args.productTypeId!).eq("status", "Active")
+        )
+        .collect();
+    } else {
+      products = await ctx.db
+        .query("products")
+        .withIndex("by_status_order", (q) => q.eq("status", "Active"))
+        .collect();
     }
 
     if (args.search?.trim()) {
@@ -1115,6 +1191,15 @@ export const countPublished = query({
         product.name.toLowerCase().includes(searchLower) ||
         product.sku.toLowerCase().includes(searchLower)
       );
+    }
+
+    if (args.minPrice !== undefined || args.maxPrice !== undefined) {
+      products = products.filter((p) => {
+        const price = p.effectivePrice ?? p.salePrice ?? p.price;
+        if (args.minPrice !== undefined && price < args.minPrice) return false;
+        if (args.maxPrice !== undefined && price > args.maxPrice) return false;
+        return true;
+      });
     }
 
     const hasAttributeFilter = args.attributeTermIds && args.attributeTermIds.length > 0;
@@ -1612,6 +1697,7 @@ export const create = mutation({
 
     // Update stats counters
     await updateStats(ctx, { new: status });
+    await recalculateProductEffectivePrice(ctx, productId);
     await ctx.runMutation(api.landingPages.syncProgrammaticFromSourceChange, { source: "product" });
 
     return productId;
@@ -1821,6 +1907,7 @@ export const update = mutation({
       }
     }
 
+    await recalculateProductEffectivePrice(ctx, id);
     await ctx.runMutation(api.landingPages.syncProgrammaticFromSourceChange, { source: "product" });
     return null;
   },

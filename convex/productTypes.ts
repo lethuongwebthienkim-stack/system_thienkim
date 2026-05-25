@@ -1,6 +1,16 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { resolveUniqueSlug } from "./lib/iaSlugs";
+import { isMultiCategoryEnabled } from "./lib/multiCategory";
+import { MutationCtx } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+
+const priceRangeSchema = v.object({
+  label: v.string(),
+  slug: v.string(),
+  minPrice: v.optional(v.number()),
+  maxPrice: v.optional(v.number()),
+});
 
 const productTypeDoc = v.object({
   _creationTime: v.number(),
@@ -10,7 +20,71 @@ const productTypeDoc = v.object({
   description: v.optional(v.string()),
   order: v.number(),
   active: v.boolean(),
+  priceRanges: v.optional(v.array(priceRangeSchema)),
 });
+
+// Helper function to sync productCategoryTypes
+async function syncProductCategoryTypes(
+  ctx: MutationCtx,
+  typeId: Id<"productTypes">,
+  categoryIds: Id<"productCategories">[]
+) {
+  const isMulti = await isMultiCategoryEnabled(ctx, "products");
+  
+  if (isMulti) {
+    // 1-N: 1 danh mục thuộc tối đa 1 loại.
+    // Xóa tất cả các liên kết cũ của typeId này
+    const existingForType = await ctx.db
+      .query("productCategoryTypes")
+      .withIndex("by_type", (q) => q.eq("typeId", typeId))
+      .collect();
+    for (const item of existingForType) {
+      await ctx.db.delete(item._id);
+    }
+    
+    // Với mỗi categoryId mới, xóa liên kết của nó với bất kỳ typeId nào khác
+    for (const catId of categoryIds) {
+      const existingForCat = await ctx.db
+        .query("productCategoryTypes")
+        .withIndex("by_category", (q) => q.eq("categoryId", catId))
+        .collect();
+      for (const item of existingForCat) {
+        await ctx.db.delete(item._id);
+      }
+      
+      // Chèn liên kết mới
+      await ctx.db.insert("productCategoryTypes", {
+        categoryId: catId,
+        typeId,
+      });
+    }
+  } else {
+    // N-N: 1 danh mục thuộc nhiều loại, 1 loại thuộc nhiều danh mục.
+    const existing = await ctx.db
+      .query("productCategoryTypes")
+      .withIndex("by_type", (q) => q.eq("typeId", typeId))
+      .collect();
+    
+    const nextSet = new Set(categoryIds);
+    // Xóa liên kết cũ không còn nằm trong danh sách mới
+    for (const item of existing) {
+      if (!nextSet.has(item.categoryId)) {
+        await ctx.db.delete(item._id);
+      }
+    }
+    
+    // Chèn liên kết mới chưa tồn tại
+    const existingCatIds = new Set(existing.map(item => item.categoryId));
+    for (const catId of categoryIds) {
+      if (!existingCatIds.has(catId)) {
+        await ctx.db.insert("productCategoryTypes", {
+          categoryId: catId,
+          typeId,
+        });
+      }
+    }
+  }
+}
 
 export const listAll = query({
   args: {},
@@ -73,6 +147,17 @@ export const getById = query({
   returns: v.union(productTypeDoc, v.null()),
 });
 
+export const getBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    return ctx.db
+      .query("productTypes")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .unique();
+  },
+  returns: v.union(productTypeDoc, v.null()),
+});
+
 export const create = mutation({
   args: {
     name: v.string(),
@@ -81,6 +166,8 @@ export const create = mutation({
     order: v.optional(v.number()),
     active: v.optional(v.boolean()),
     attributeGroupIds: v.optional(v.array(v.id("attributeGroups"))),
+    priceRanges: v.optional(v.array(priceRangeSchema)),
+    categoryIds: v.optional(v.array(v.id("productCategories"))),
   },
   handler: async (ctx, args) => {
     const resolvedSlug = await resolveUniqueSlug(ctx, { scope: "category", slug: args.slug });
@@ -97,6 +184,7 @@ export const create = mutation({
       description: args.description,
       order: nextOrder,
       active: args.active ?? true,
+      priceRanges: args.priceRanges,
     });
 
     if (args.attributeGroupIds && args.attributeGroupIds.length > 0) {
@@ -107,6 +195,10 @@ export const create = mutation({
           order: i,
         });
       }
+    }
+
+    if (args.categoryIds) {
+      await syncProductCategoryTypes(ctx, typeId, args.categoryIds);
     }
 
     return typeId;
@@ -123,9 +215,11 @@ export const update = mutation({
     order: v.optional(v.number()),
     active: v.optional(v.boolean()),
     attributeGroupIds: v.optional(v.array(v.id("attributeGroups"))),
+    priceRanges: v.optional(v.array(priceRangeSchema)),
+    categoryIds: v.optional(v.array(v.id("productCategories"))),
   },
   handler: async (ctx, args) => {
-    const { id, attributeGroupIds, ...updates } = args;
+    const { id, attributeGroupIds, categoryIds, ...updates } = args;
     const type = await ctx.db.get(id);
     if (!type) throw new Error("Product Type not found");
 
@@ -161,6 +255,10 @@ export const update = mutation({
       }
     }
 
+    if (categoryIds) {
+      await syncProductCategoryTypes(ctx, id, categoryIds);
+    }
+
     return null;
   },
   returns: v.null(),
@@ -186,6 +284,14 @@ export const remove = mutation({
       .collect();
     for (const mapping of mappings) {
       await ctx.db.delete(mapping._id);
+    }
+
+    const catMappings = await ctx.db
+      .query("productCategoryTypes")
+      .withIndex("by_type", (q) => q.eq("typeId", args.id))
+      .collect();
+    for (const m of catMappings) {
+      await ctx.db.delete(m._id);
     }
 
     await ctx.db.delete(args.id);
@@ -230,6 +336,22 @@ export const listAssignedGroups = query({
       if (g) groups.push(g);
     }
     return groups;
+  },
+});
+
+export const listAssignedCategories = query({
+  args: { typeId: v.id("productTypes") },
+  handler: async (ctx, args) => {
+    const mappings = await ctx.db
+      .query("productCategoryTypes")
+      .withIndex("by_type", (q) => q.eq("typeId", args.typeId))
+      .collect();
+    const categories = [];
+    for (const m of mappings) {
+      const cat = await ctx.db.get(m.categoryId);
+      if (cat) categories.push(cat);
+    }
+    return categories;
   },
 });
 
