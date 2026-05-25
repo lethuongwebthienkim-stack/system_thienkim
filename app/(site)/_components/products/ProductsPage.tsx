@@ -468,8 +468,63 @@ function ProductsContent(props: ProductsPageProps) {
     const targetPriceRange = options.nextPriceRange !== undefined ? options.nextPriceRange : selectedPriceRange;
     const targetAttributes = options.nextAttributes !== undefined ? options.nextAttributes : { ...selectedAttributes };
 
-    // 1. Feature Toggle bảo vệ: Nếu tắt, phục hồi 100% cơ chế URL danh mục truyền thống
-    if (!enableProductTypes || !productType) {
+    // 1. Nhánh xử lý khi bật Phân loại & Thuộc tính nhưng đang ở trang Tất cả sản phẩm chung (/products)
+    if (enableProductTypes && !productType) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('page');
+
+      // Cập nhật Category
+      if (targetCategoryId && categoryOptions.length > 0) {
+        const category = categoryOptions.find(c => c._id === targetCategoryId);
+        if (category) {
+          params.set('category', category.slug);
+        }
+      } else {
+        params.delete('category');
+      }
+
+      // Cập nhật Price Range
+      if (targetPriceRange) {
+        params.set('priceRange', targetPriceRange.slug);
+      } else {
+        params.delete('priceRange');
+      }
+
+      // Cập nhật Attributes
+      // Xóa tất cả attr_* cũ
+      Array.from(params.keys()).forEach(key => {
+        if (key.startsWith('attr_')) params.delete(key);
+      });
+      // Thêm attr_* mới
+      const groupAttrs = new Map<string, string[]>();
+      if (filterableGroups) {
+        filterableGroups.forEach(group => {
+          const termIds = targetAttributes[group._id] || [];
+          termIds.forEach((termId: string) => {
+            const term = group.terms.find((t: any) => t._id === termId);
+            if (term) {
+              if (!groupAttrs.has(group.slug)) {
+                groupAttrs.set(group.slug, []);
+              }
+              groupAttrs.get(group.slug)!.push(term._id);
+            }
+          });
+        });
+      }
+      groupAttrs.forEach((termIds, groupSlug) => {
+        params.set(`attr_${groupSlug}`, termIds.join(','));
+      });
+
+      const queryStr = params.toString();
+      const finalUrl = queryStr
+        ? `${buildModuleListPath('products')}?${queryStr}`
+        : buildModuleListPath('products');
+      router.push(finalUrl, { scroll: false });
+      return;
+    }
+
+    // 2. Feature Toggle bảo vệ: Nếu tắt tính năng Phân loại & Thuộc tính, phục hồi 100% cơ chế URL danh mục truyền thống
+    if (!enableProductTypes) {
       const params = new URLSearchParams(searchParams.toString());
       params.delete('page');
       params.delete('priceRange');
@@ -499,7 +554,7 @@ function ProductsContent(props: ProductsPageProps) {
     }
 
     // 2. Khi bật: Phân giải SEO Catch-all URLs thông minh
-    const typeSlug = productType.slug;
+    const typeSlug = productType?.slug ?? '';
     const selectedCategoryDoc = targetCategoryId ? categoryOptions.find(c => c._id === targetCategoryId) : null;
     const activePriceRange = targetPriceRange;
 
