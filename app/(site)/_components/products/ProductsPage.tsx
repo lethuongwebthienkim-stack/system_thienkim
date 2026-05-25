@@ -403,6 +403,14 @@ function ProductsContent(props: ProductsPageProps) {
   }, [selectedAttributes, filterableGroups]);
 
   const isFilterActive = attributeTermIds.length > 0 || selectedPriceRange !== null;
+  const hasActiveProductFilters = Boolean(
+    activeCategory ||
+    searchQuery.trim() ||
+    debouncedSearchQuery.trim() ||
+    selectedPriceRange ||
+    attributeTermIds.length > 0 ||
+    sortBy !== 'newest'
+  );
 
   const activeCategoryDoc = useMemo(() => {
     if (!activeCategory || categoryOptions.length === 0) {return null;}
@@ -750,6 +758,15 @@ function ProductsContent(props: ProductsPageProps) {
       router.push(buildModuleListPath('products'), { scroll: false });
     }
   }, [router]);
+
+  const handleClearAllFilters = useCallback(() => {
+    setSearchQuery('');
+    setDebouncedSearchQuery('');
+    setSortBy('newest');
+    setSelectedPriceRange(null);
+    const basePath = enableProductTypes && productType?.slug ? `/${productType.slug}` : buildModuleListPath('products');
+    router.push(basePath, { scroll: false });
+  }, [enableProductTypes, productType?.slug, router]);
 
   const handlePageSizeChange = useCallback((value: number) => {
     setPageSizeOverride(value);
@@ -1118,6 +1135,8 @@ function ProductsContent(props: ProductsPageProps) {
           productTypes={productTypes}
           onProductTypeChange={handleProductTypeChange}
           attributeFilter={props.attributeFilter}
+          hasActiveFilters={hasActiveProductFilters}
+          onClearFilters={handleClearAllFilters}
         />
         {quickAddModal}
       </>
@@ -1173,6 +1192,8 @@ function ProductsContent(props: ProductsPageProps) {
           productTypes={productTypes}
           onProductTypeChange={handleProductTypeChange}
           attributeFilter={props.attributeFilter}
+          hasActiveFilters={hasActiveProductFilters}
+          onClearFilters={handleClearAllFilters}
         />
         {quickAddModal}
       </>
@@ -1215,6 +1236,8 @@ function ProductsContent(props: ProductsPageProps) {
           productTypes={productTypes}
           onProductTypeChange={handleProductTypeChange}
           attributeFilter={props.attributeFilter}
+          hasActiveFilters={hasActiveProductFilters}
+          onClearFilters={handleClearAllFilters}
         />
 
         <div
@@ -1345,13 +1368,16 @@ function ProductsContent(props: ProductsPageProps) {
             Hiển thị <span className="font-medium" style={{ color: tokens.bodyText }}>{products.length}</span>
             {totalCount !== undefined && products.length > 0 && totalCount > products.length && <> / {totalCount}</>} sản phẩm
           </p>
+          {hasActiveProductFilters && (
+            <ClearFiltersButton tokens={tokens} onClear={handleClearAllFilters} />
+          )}
         </div>
 
         {/* Products Grid/List */}
         {isLoadingProducts ? (
           <ProductsGridSkeleton count={postsPerPage} tokens={tokens} />
         ) : products.length === 0 ? (
-          <EmptyState tokens={tokens} onReset={() => { setSearchQuery(''); handleCategoryChange(null); }} />
+          <EmptyState tokens={tokens} onReset={handleClearAllFilters} />
         ) : (
           <ProductGrid
             products={products}
@@ -1636,6 +1662,25 @@ function EmptyState({ tokens, onReset }: { tokens: ProductsListColors; onReset: 
         Xóa bộ lọc
       </button>
     </div>
+  );
+}
+
+function ClearFiltersButton({ tokens, onClear }: { tokens: ProductsListColors; onClear: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClear}
+      className="inline-flex h-9 items-center gap-1.5 rounded-lg border px-3 text-sm font-medium transition-colors hover:opacity-85"
+      style={{
+        backgroundColor: tokens.filterChipBg,
+        borderColor: tokens.filterChipActiveBorder,
+        color: tokens.filterChipActiveBg,
+      }}
+      title="Xóa toàn bộ bộ lọc"
+    >
+      <X size={14} />
+      Xóa lọc
+    </button>
   );
 }
 
@@ -2085,6 +2130,8 @@ interface LayoutProps {
   productTypes?: { _id: Id<"productTypes">; name: string; slug: string }[];
   onProductTypeChange?: (slug: string | null) => void;
   attributeFilter?: { groupId: string; termId?: string; termSlug?: string };
+  hasActiveFilters?: boolean;
+  onClearFilters?: () => void;
 }
 
 interface MobileProductsFiltersProps {
@@ -2106,6 +2153,8 @@ interface MobileProductsFiltersProps {
   productTypes?: { _id: Id<"productTypes">; name: string; slug: string }[];
   onProductTypeChange?: (slug: string | null) => void;
   attributeFilter?: { groupId: string; termId?: string; termSlug?: string };
+  hasActiveFilters?: boolean;
+  onClearFilters?: () => void;
 }
 
 function MobileProductsFilters({
@@ -2127,10 +2176,12 @@ function MobileProductsFilters({
   productTypes,
   onProductTypeChange,
   attributeFilter,
+  hasActiveFilters: externalHasActiveFilters,
+  onClearFilters,
 }: MobileProductsFiltersProps) {
   const [open, setOpen] = useState(false);
   const hasSelectedAttributes = Object.values(selectedAttributes ?? {}).some((items) => items.length > 0);
-  const hasActiveFilters = Boolean(selectedCategory || searchQuery || selectedPriceRange || hasSelectedAttributes) || sortBy !== 'newest';
+  const hasActiveFilters = externalHasActiveFilters ?? (Boolean(selectedCategory || searchQuery || selectedPriceRange || hasSelectedAttributes) || sortBy !== 'newest');
 
   return (
     <div className="lg:hidden rounded-xl border p-3 mb-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
@@ -2152,7 +2203,32 @@ function MobileProductsFilters({
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: tokens.filterChipActiveBg }} />
           )}
         </span>
-        <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="flex items-center gap-2">
+          {hasActiveFilters && onClearFilters && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(event) => {
+                event.stopPropagation();
+                onClearFilters();
+              }}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onClearFilters();
+                }
+              }}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors hover:opacity-85"
+              style={{ borderColor: tokens.filterChipActiveBorder, color: tokens.filterChipActiveBg, backgroundColor: tokens.filterChipBg }}
+              aria-label="Xóa toàn bộ bộ lọc"
+              title="Xóa toàn bộ bộ lọc"
+            >
+              <X size={14} />
+            </span>
+          )}
+          <ChevronDown size={16} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        </span>
       </button>
 
       {open && (
@@ -2313,7 +2389,7 @@ function MobileProductsFilters({
   );
 }
 
-function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap: _categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, attributeFilter }: LayoutProps) {
+function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap: _categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, attributeFilter, hasActiveFilters, onClearFilters }: LayoutProps) {
   return (
     <div className="py-8 md:py-12 px-4">
       <div className="max-w-7xl mx-auto">
@@ -2484,6 +2560,9 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                 {totalCount !== undefined && products.length > 0 && totalCount > products.length && <> / {totalCount}</>} sản phẩm
               </p>
               <div className="flex items-center gap-2">
+                {hasActiveFilters && onClearFilters && (
+                  <ClearFiltersButton tokens={tokens} onClear={onClearFilters} />
+                )}
                 <span className="text-sm font-medium" style={{ color: tokens.metaText }}>Sắp xếp</span>
                 <select
                   value={sortBy}
@@ -2507,7 +2586,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
             {isLoadingProducts ? (
               <ProductsGridSkeleton count={postsPerPage} tokens={tokens} />
             ) : products.length === 0 ? (
-              <EmptyState tokens={tokens} onReset={() => { onSearchChange(''); onCategoryChange(null); }} />
+              <EmptyState tokens={tokens} onReset={onClearFilters ?? (() => { onSearchChange(''); onCategoryChange(null); })} />
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {products.map((product) => (
@@ -2593,7 +2672,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
 
 // ========== LIST LAYOUT (Full width list view) ==========
 
-function ListLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange }: LayoutProps) {
+function ListLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, hasActiveFilters, onClearFilters }: LayoutProps) {
   return (
     <div className="py-8 md:py-12 px-4">
       <div className="max-w-5xl mx-auto">
@@ -2725,12 +2804,15 @@ function ListLayout({ isLoadingProducts, postsPerPage, products, categories, cat
             Hiển thị <span className="font-medium" style={{ color: tokens.bodyText }}>{products.length}</span>
             {totalCount !== undefined && products.length > 0 && totalCount > products.length && <> / {totalCount}</>} sản phẩm
           </p>
+          {hasActiveFilters && onClearFilters && (
+            <ClearFiltersButton tokens={tokens} onClear={onClearFilters} />
+          )}
         </div>
 
         {isLoadingProducts ? (
           <ProductsGridSkeleton count={postsPerPage} tokens={tokens} />
         ) : products.length === 0 ? (
-          <EmptyState tokens={tokens} onReset={() => { onSearchChange(''); onCategoryChange(null); }} />
+          <EmptyState tokens={tokens} onReset={onClearFilters ?? (() => { onSearchChange(''); onCategoryChange(null); })} />
         ) : (
           <ProductList
             products={products}
