@@ -1792,7 +1792,7 @@ function AttributeFilterGroupWidget({
           }
         `}} />
 
-        <div className="flex justify-between items-center text-xs font-semibold">
+        <div className="flex justify-between items-center text-sm font-semibold">
           <span style={{ color: tokens.metaText }}>Dải chọn:</span>
           <span className="px-2 py-0.5 rounded font-mono text-sm" style={{ backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText }}>
             {sliderMin}{unit} - {sliderMax}{unit}
@@ -1843,7 +1843,7 @@ function AttributeFilterGroupWidget({
           </div>
 
           {/* Min / Max Labels */}
-          <div className="flex justify-between text-[10px] font-mono" style={{ color: tokens.neutralTextLight }}>
+          <div className="flex justify-between text-xs font-mono" style={{ color: tokens.neutralTextLight }}>
             <span>{minLimit}{unit}</span>
             <span>{maxLimit}{unit}</span>
           </div>
@@ -1902,7 +1902,7 @@ function AttributeFilterGroupWidget({
                     handleSelectTerm('');
                     toggleDropdown(false);
                   }}
-                  className="w-full flex items-center justify-between px-3 py-2 text-xs rounded-md text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-2 text-sm rounded-md text-left text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   Tất cả
                 </button>
@@ -1917,7 +1917,7 @@ function AttributeFilterGroupWidget({
                       handleSelectTerm(term.slug);
                       if (filterType !== 'multiple') toggleDropdown(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-md text-left transition-colors ${
+                    className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md text-left transition-colors ${
                       isSelected 
                         ? 'font-semibold' 
                         : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -1943,7 +1943,7 @@ function AttributeFilterGroupWidget({
                 <span
                   key={termSlug}
                   onClick={() => onAttributeChange?.(group.slug, termSlug, false)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs cursor-pointer border hover:opacity-85 transition-opacity"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-sm cursor-pointer border hover:opacity-85 transition-opacity"
                   style={{
                     backgroundColor: tokens.filterChipBg,
                     color: tokens.filterChipText,
@@ -1975,7 +1975,7 @@ function AttributeFilterGroupWidget({
               key={term._id}
               type="button"
               onClick={handleButtonClick}
-              className="px-3 py-1.5 rounded-full text-xs font-semibold transition-colors border"
+              className="px-3 py-1.5 rounded-full text-sm font-medium transition-colors border"
               style={isChecked
                 ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
                 : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
@@ -1991,7 +1991,7 @@ function AttributeFilterGroupWidget({
 
   // RENDER RADIO / CHECKBOX
   return (
-    <div className="space-y-2.5">
+    <div className="space-y-2">
       {group.terms.map((term: any) => {
         const isChecked = selectedAttributes?.[group._id]?.includes(term.slug) ?? false;
         const isRadio = filterType === 'single' || inputType === 'radio';
@@ -2004,11 +2004,11 @@ function AttributeFilterGroupWidget({
             key={term._id}
             type="button"
             onClick={handleLabelClick}
-            className="w-full flex items-center gap-2.5 py-1.5 text-xs text-left transition-colors group hover:opacity-85"
+            className="w-full min-h-9 flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-left leading-5 transition-colors group hover:opacity-85"
             style={{ color: tokens.bodyText }}
           >
             <div 
-              className={`w-4.5 h-4.5 flex items-center justify-center transition-all ${
+              className={`w-4 h-4 flex shrink-0 items-center justify-center transition-all ${
                 isRadio ? 'rounded-full' : 'rounded border'
               }`}
               style={{
@@ -2026,7 +2026,7 @@ function AttributeFilterGroupWidget({
                 )
               )}
             </div>
-            <span className={isChecked ? 'font-semibold' : ''}>
+            <span className={isChecked ? 'font-semibold' : 'font-normal'}>
               {term.name}
             </span>
           </button>
@@ -2355,10 +2355,10 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
 
         <div className="flex gap-6">
           {/* Sidebar */}
-          <div className="hidden lg:block w-64 shrink-0 space-y-4">
+          <div className="hidden lg:block w-64 shrink-0 space-y-4 text-sm">
             {!attributeFilter && (
               <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
-                <h3 className="font-semibold mb-3" style={{ color: tokens.bodyText }}>Tìm kiếm</h3>
+                <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Tìm kiếm</h3>
                 <div className="relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: tokens.inputIcon }} />
                   <input
@@ -2366,7 +2366,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     placeholder="Tìm sản phẩm..."
                     value={searchQuery}
                     onChange={(e) => { onSearchChange(e.target.value); }}
-                    className="w-full h-9 pl-9 pr-3 rounded-lg border text-sm outline-none placeholder:text-[var(--placeholder-color)]"
+                    className="w-full h-10 pl-9 pr-3 rounded-lg border text-sm leading-5 outline-none placeholder:text-[var(--placeholder-color)]"
                     style={{
                       borderColor: tokens.inputBorder,
                       backgroundColor: tokens.inputBackground,
@@ -2380,11 +2380,11 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
 
             {!attributeFilter && enableProductTypes && productTypes && productTypes.length > 0 && (
               <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
-                <h3 className="font-semibold mb-3" style={{ color: tokens.bodyText }}>Nhóm sản phẩm</h3>
+                <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Nhóm sản phẩm</h3>
                 <div className="space-y-1">
                   <button
                     onClick={() => { onProductTypeChange?.(null); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border"
+                    className="w-full min-h-9 text-left px-3 py-2 rounded-lg text-sm leading-5 transition-colors border"
                     style={!productType
                       ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
                       : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
@@ -2396,7 +2396,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     <button
                       key={t._id}
                       onClick={() => { onProductTypeChange?.(t.slug); }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border truncate"
+                      className="w-full min-h-9 text-left px-3 py-2 rounded-lg text-sm leading-5 transition-colors border truncate"
                       style={productType?.slug === t.slug
                         ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
                         : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
@@ -2412,11 +2412,11 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
 
             {!attributeFilter && (
               <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
-                <h3 className="font-semibold mb-3" style={{ color: tokens.bodyText }}>Danh mục</h3>
+                <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Danh mục</h3>
                 <div className="space-y-1">
                   <button
                     onClick={() => { onCategoryChange(null); }}
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border"
+                    className="w-full min-h-9 text-left px-3 py-2 rounded-lg text-sm leading-5 transition-colors border"
                     style={selectedCategory === null
                       ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
                       : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
@@ -2428,7 +2428,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     <button
                       key={cat._id}
                       onClick={() => { onCategoryChange(cat._id); }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border"
+                      className="w-full min-h-9 text-left px-3 py-2 rounded-lg text-sm leading-5 transition-colors border"
                       style={selectedCategory === cat._id
                         ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
                         : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
@@ -2443,11 +2443,11 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
 
             {!attributeFilter && enableProductTypes && productType?.priceRanges && productType.priceRanges.length > 0 && (
               <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
-                <h3 className="font-semibold mb-3" style={{ color: tokens.bodyText }}>Khoảng giá</h3>
+                <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Khoảng giá</h3>
                 <div className="space-y-1">
                   <button
                     onClick={() => onPriceRangeChange(null)}
-                    className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border"
+                    className="w-full min-h-9 text-left px-3 py-2 rounded-lg text-sm leading-5 transition-colors border"
                     style={selectedPriceRange === null
                       ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
                       : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
@@ -2459,7 +2459,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     <button
                       key={range.slug}
                       onClick={() => onPriceRangeChange(range)}
-                      className="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors border"
+                      className="w-full min-h-9 text-left px-3 py-2 rounded-lg text-sm leading-5 transition-colors border"
                       style={selectedPriceRange?.slug === range.slug
                         ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
                         : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
@@ -2475,7 +2475,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
             {/* Desktop Attribute Filters */}
             {filterableGroups?.map(group => (
               <div key={group._id} className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
-                <h3 className="font-semibold mb-3" style={{ color: tokens.bodyText }}>{group.name}</h3>
+                <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>{group.name}</h3>
                 <div>
                   <AttributeFilterGroupWidget group={group} selectedAttributes={selectedAttributes} onAttributeChange={onAttributeChange} tokens={tokens} />
                 </div>
@@ -2484,11 +2484,11 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
 
             {!attributeFilter && (
               <div className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
-                <h3 className="font-semibold mb-3" style={{ color: tokens.bodyText }}>Sắp xếp</h3>
+                <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Sắp xếp</h3>
                 <select
                   value={sortBy}
                   onChange={(e) =>{  onSortChange(e.target.value as ProductSortOption); }}
-                  className="w-full h-9 px-3 rounded-lg border text-sm"
+                  className="w-full h-10 px-3 rounded-lg border text-sm leading-5"
                   style={{
                     borderColor: tokens.inputBorder,
                     backgroundColor: tokens.inputBackground,
