@@ -1263,7 +1263,7 @@ function ProductsContent(props: ProductsPageProps) {
                 placeholder="Tìm kiếm sản phẩm..."
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); }}
-                className="w-full h-10 pl-10 pr-4 rounded-lg border outline-none transition-colors placeholder:text-[var(--placeholder-color)]"
+                className="w-full h-10 pl-10 pr-9 rounded-lg border outline-none transition-colors placeholder:text-[var(--placeholder-color)]"
                 style={{
                   borderColor: tokens.inputBorder,
                   backgroundColor: tokens.inputBackground,
@@ -1276,6 +1276,7 @@ function ProductsContent(props: ProductsPageProps) {
                   onClick={() => { setSearchQuery(''); }}
                   className="absolute right-3 top-1/2 -translate-y-1/2"
                   style={{ color: tokens.inputIcon }}
+                  aria-label="Xóa tìm kiếm"
                 >
                   <X size={16} />
                 </button>
@@ -2455,7 +2456,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     placeholder="Tìm sản phẩm..."
                     value={searchQuery}
                     onChange={(e) => { onSearchChange(e.target.value); }}
-                    className="w-full h-10 pl-9 pr-3 rounded-lg border text-sm leading-5 outline-none placeholder:text-[var(--placeholder-color)]"
+                    className="w-full h-10 pl-9 pr-9 rounded-lg border text-sm leading-5 outline-none placeholder:text-[var(--placeholder-color)]"
                     style={{
                       borderColor: tokens.inputBorder,
                       backgroundColor: tokens.inputBackground,
@@ -2463,6 +2464,16 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                       '--placeholder-color': tokens.inputPlaceholder,
                     } as React.CSSProperties}
                   />
+                  {searchQuery && (
+                    <button
+                      onClick={() => { onSearchChange(''); }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2"
+                      style={{ color: tokens.inputIcon }}
+                      aria-label="Xóa tìm kiếm"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
             </div>
 
@@ -2740,7 +2751,7 @@ function ListLayout({ isLoadingProducts, postsPerPage, products, categories, cat
                 placeholder="Tìm kiếm sản phẩm..."
                 value={searchQuery}
                 onChange={(e) => { onSearchChange(e.target.value); }}
-                className="w-full h-10 pl-10 pr-4 rounded-lg border outline-none placeholder:text-[var(--placeholder-color)]"
+                className="w-full h-10 pl-10 pr-9 rounded-lg border outline-none placeholder:text-[var(--placeholder-color)]"
                 style={{
                   borderColor: tokens.inputBorder,
                   backgroundColor: tokens.inputBackground,
@@ -2748,6 +2759,16 @@ function ListLayout({ isLoadingProducts, postsPerPage, products, categories, cat
                   '--placeholder-color': tokens.inputPlaceholder,
                 } as React.CSSProperties}
               />
+              {searchQuery && (
+                <button
+                  onClick={() => { onSearchChange(''); }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                  style={{ color: tokens.inputIcon }}
+                  aria-label="Xóa tìm kiếm"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
             {enableProductTypes && productTypes && productTypes.length > 0 && (
               <select

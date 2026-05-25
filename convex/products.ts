@@ -1205,12 +1205,14 @@ export const countPublished = query({
         .collect();
     }
 
-    if (args.search?.trim()) {
-      const searchLower = args.search.toLowerCase().trim();
-      products = products.filter((product) =>
-        product.name.toLowerCase().includes(searchLower) ||
-        product.sku.toLowerCase().includes(searchLower)
+    if (args.search?.trim() && products.length > 0) {
+      const ranked = rankByFuzzyMatches(
+        products,
+        args.search,
+        (product) => [product.name ?? "", product.sku ?? ""],
+        42,
       );
+      products = ranked.map((entry) => entry.item);
     }
 
     if (args.minPrice !== undefined || args.maxPrice !== undefined) {
