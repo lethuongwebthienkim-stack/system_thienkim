@@ -2409,6 +2409,26 @@ function MobileProductsFilters({
 }
 
 function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap: _categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, attributeFilter, hasActiveFilters, onClearFilters, radiusClass }: LayoutProps) {
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
+
+  const filteredCategories = useMemo(() => {
+    if (!categories) return [];
+    if (categories.length <= 8) {
+      return categories;
+    }
+    if (!categorySearchQuery.trim()) {
+      return categories;
+    }
+    const query = categorySearchQuery.toLowerCase().trim();
+    const removeDiacritics = (str: string) => {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    };
+    const normalizedQuery = removeDiacritics(query);
+    return categories.filter(cat => 
+      removeDiacritics(cat.name).includes(normalizedQuery)
+    );
+  }, [categories, categorySearchQuery]);
+
   return (
     <div className="py-8 md:py-12 px-4">
       <div className="max-w-7xl mx-auto">
@@ -2514,6 +2534,34 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
 
             <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="text-sm font-semibold leading-5 mb-3" style={{ color: tokens.bodyText }}>Danh mục</h3>
+                {categories.length > 8 && (
+                  <div className="relative mb-2.5">
+                    <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: tokens.inputIcon }} />
+                    <input
+                      type="text"
+                      placeholder="Tìm nhanh danh mục..."
+                      value={categorySearchQuery}
+                      onChange={(e) => { setCategorySearchQuery(e.target.value); }}
+                      className="w-full h-8 pl-8 pr-7 rounded-lg border text-xs outline-none placeholder:text-[var(--placeholder-color)]"
+                      style={{
+                        borderColor: tokens.inputBorder,
+                        backgroundColor: tokens.inputBackground,
+                        color: tokens.inputText,
+                        '--placeholder-color': tokens.inputPlaceholder,
+                      } as React.CSSProperties}
+                    />
+                    {categorySearchQuery && (
+                      <button
+                        onClick={() => { setCategorySearchQuery(''); }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2"
+                        style={{ color: tokens.inputIcon }}
+                        aria-label="Xóa tìm danh mục"
+                      >
+                        <X size={12} />
+                      </button>
+                    )}
+                  </div>
+                )}
                 <div className="space-y-1">
                   <button
                     onClick={() => { onCategoryChange(null); }}
@@ -2525,19 +2573,34 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                   >
                     Tất cả sản phẩm
                   </button>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat._id}
-                      onClick={() => { onCategoryChange(cat._id); }}
-                      className="w-full min-h-9 text-left px-3 py-2 rounded-lg text-sm leading-5 transition-colors border"
-                      style={selectedCategory === cat._id
-                        ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
-                        : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
-                      }
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
+                  <div
+                    className="space-y-1 pr-0.5"
+                    style={categories.length > 8 ? {
+                      maxHeight: '240px',
+                      overflowY: 'auto',
+                      scrollbarWidth: 'thin',
+                    } : undefined}
+                  >
+                    {filteredCategories.map((cat) => (
+                      <button
+                        key={cat._id}
+                        onClick={() => { onCategoryChange(cat._id); }}
+                        className="w-full min-h-9 text-left px-3 py-2 rounded-lg text-sm leading-5 transition-colors border truncate"
+                        style={selectedCategory === cat._id
+                          ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
+                          : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
+                        }
+                        title={cat.name}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                    {filteredCategories.length === 0 && (
+                      <p className="text-xs text-center py-4 italic opacity-60" style={{ color: tokens.bodyText }}>
+                        Không tìm thấy danh mục
+                      </p>
+                    )}
+                  </div>
                 </div>
             </div>
 
