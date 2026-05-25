@@ -386,22 +386,24 @@ export const resolveProductLandingContext = query({
         
         if (group && group.isFilterable) {
           const requestedSlugs = termSlug.split(",");
-          const term = await ctx.db
+          const allTerms = await ctx.db
             .query("attributeTerms")
             .withIndex("by_group", (q) => q.eq("groupId", group._id))
-            .collect()
-            .then((terms) => terms.find((t) => requestedSlugs.includes(t.slug)));
+            .collect();
           
-          if (term && term.active) {
+          const matchedTerms = allTerms.filter(t => requestedSlugs.includes(t.slug) && t.active);
+          const uniqueRequested = Array.from(new Set(requestedSlugs));
+          
+          if (matchedTerms.length === uniqueRequested.length && matchedTerms.length > 0) {
             return {
               type: "productTypeAttribute" as const,
               productTypeSlug: "products",
               groupId: group._id,
               groupSlug: group.slug,
               groupName: group.name,
-              termId: term._id,
+              termId: matchedTerms[0]._id,
               termSlug: termSlug,
-              termName: term.name,
+              termName: matchedTerms.map(t => t.name).join(", "),
             };
           }
         }
@@ -419,7 +421,7 @@ export const resolveProductLandingContext = query({
           .withIndex("by_slug", (q) => q.eq("slug", groupSlug))
           .unique();
         
-        if (group) {
+        if (group && group.isFilterable) {
           const mapping = await ctx.db
             .query("productTypeAttributeGroups")
             .withIndex("by_type", (q) => q.eq("typeId", productType._id))
@@ -428,13 +430,15 @@ export const resolveProductLandingContext = query({
           const isAssigned = mapping.some((m) => m.groupId === group._id);
           if (isAssigned) {
             const requestedSlugs = termSlug.split(",");
-            const term = await ctx.db
+            const allTerms = await ctx.db
               .query("attributeTerms")
               .withIndex("by_group", (q) => q.eq("groupId", group._id))
-              .collect()
-              .then((terms) => terms.find((t) => requestedSlugs.includes(t.slug)));
+              .collect();
             
-            if (term && term.active) {
+            const matchedTerms = allTerms.filter(t => requestedSlugs.includes(t.slug) && t.active);
+            const uniqueRequested = Array.from(new Set(requestedSlugs));
+            
+            if (matchedTerms.length === uniqueRequested.length && matchedTerms.length > 0) {
               return {
                 type: "productTypeAttribute" as const,
                 productTypeId: productType._id,
@@ -442,9 +446,9 @@ export const resolveProductLandingContext = query({
                 groupId: group._id,
                 groupSlug: group.slug,
                 groupName: group.name,
-                termId: term._id,
+                termId: matchedTerms[0]._id,
                 termSlug: termSlug,
-                termName: term.name,
+                termName: matchedTerms.map(t => t.name).join(", "),
               };
             }
           }

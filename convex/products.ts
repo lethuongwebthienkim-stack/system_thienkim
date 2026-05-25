@@ -816,18 +816,25 @@ export const listPublishedPaginated = query({
     let result;
 
     if (args.categoryId) {
-      result = await ctx.db
+      let query = ctx.db
         .query("products")
         .withIndex("by_category_status", (q) =>
           q.eq("categoryId", args.categoryId!).eq("status", "Active")
-        )
+        );
+      
+      if (args.productTypeId) {
+        query = query.filter((q) => q.eq(q.field("productTypeId"), args.productTypeId));
+      }
+      
+      result = await query
         .order(sortBy === "oldest" ? "asc" : "desc")
         .paginate(args.paginationOpts);
+
       if (await isMultiCategoryEnabled(ctx, "products")) {
         result = {
           ...result,
           page: (await mergeProductsByCategoryAssignments(ctx, args.categoryId, result.page, args.paginationOpts.numItems))
-            .filter((product) => product.status === "Active"),
+            .filter((product) => product.status === "Active" && (!args.productTypeId || product.productTypeId === args.productTypeId)),
         };
       }
     } else if (args.productTypeId) {
@@ -932,16 +939,24 @@ export const listPublishedWithOffset = query({
           return args.categoryId ? builder.eq("categoryId", args.categoryId) : builder;
         });
       products = await searchQuery.take(fetchLimit);
+      if (args.productTypeId) {
+        products = products.filter((p) => p.productTypeId === args.productTypeId);
+      }
     } else if (args.categoryId) {
-      products = await ctx.db
+      let query = ctx.db
         .query("products")
         .withIndex("by_category_status", (q) =>
           q.eq("categoryId", args.categoryId!).eq("status", "Active")
-        )
-        .take(fetchLimit);
+        );
+      
+      if (args.productTypeId) {
+        query = query.filter((q) => q.eq(q.field("productTypeId"), args.productTypeId));
+      }
+      
+      products = await query.take(fetchLimit);
       if (await isMultiCategoryEnabled(ctx, "products")) {
         products = await mergeProductsByCategoryAssignments(ctx, args.categoryId, products, fetchLimit);
-        products = products.filter((product) => product.status === "Active");
+        products = products.filter((product) => product.status === "Active" && (!args.productTypeId || product.productTypeId === args.productTypeId));
       }
     } else if (args.productTypeId) {
       products = await ctx.db
@@ -1161,15 +1176,20 @@ export const countPublished = query({
 
     let products;
     if (args.categoryId) {
-      products = await ctx.db
+      let query = ctx.db
         .query("products")
         .withIndex("by_category_status", (q) =>
           q.eq("categoryId", args.categoryId!).eq("status", "Active")
-        )
-        .collect();
+        );
+      
+      if (args.productTypeId) {
+        query = query.filter((q) => q.eq(q.field("productTypeId"), args.productTypeId));
+      }
+      
+      products = await query.collect();
       if (await isMultiCategoryEnabled(ctx, "products")) {
         products = await mergeProductsByCategoryAssignments(ctx, args.categoryId, products, 1000);
-        products = products.filter((product) => product.status === "Active");
+        products = products.filter((product) => product.status === "Active" && (!args.productTypeId || product.productTypeId === args.productTypeId));
       }
     } else if (args.productTypeId) {
       products = await ctx.db

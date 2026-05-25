@@ -482,6 +482,8 @@ function ProductsContent(props: ProductsPageProps) {
     nextCategoryId?: Id<"productCategories"> | null;
     nextPriceRange?: PriceRange | null;
     nextAttributes?: Record<string, string[]>;
+    primary?: 'category' | 'priceRange' | 'attribute' | 'type';
+    clickedGroupId?: string;
   }) => {
     const targetCategoryId = options.nextCategoryId !== undefined ? options.nextCategoryId : activeCategory;
     const targetPriceRange = options.nextPriceRange !== undefined ? options.nextPriceRange : selectedPriceRange;
@@ -517,10 +519,12 @@ function ProductsContent(props: ProductsPageProps) {
       return;
     }
 
-    // 2. Khi bật: Phân giải SEO Catch-all URLs thông minh
+    // 2. Khi bật: Phân giải SEO Catch-all URLs thông minh theo primary filter và fallback đôn filter
     const baseSlug = productType ? productType.slug : 'products';
-    const selectedCategoryDoc = targetCategoryId ? categoryOptions.find(c => c._id === targetCategoryId) : null;
-    const activePriceRange = targetPriceRange;
+
+    // Dữ liệu filter active mới
+    const hasCategory = !!targetCategoryId;
+    const hasPriceRange = !!targetPriceRange;
 
     // Phân tích các attribute terms đang hoạt động
     const activeAttrs: { groupId: string; groupSlug: string; termId: string; termSlug: string }[] = [];
@@ -542,14 +546,55 @@ function ProductsContent(props: ProductsPageProps) {
     }
 
     // Nhóm activeAttrs theo groupSlug
-    const activeGroupsMap = new Map<string, { groupSlug: string; termSlugs: string[] }>();
+    const activeGroupsMap = new Map<string, { groupId: string; groupSlug: string; termSlugs: string[] }>();
     activeAttrs.forEach(attr => {
       if (!activeGroupsMap.has(attr.groupSlug)) {
-        activeGroupsMap.set(attr.groupSlug, { groupSlug: attr.groupSlug, termSlugs: [] });
+        activeGroupsMap.set(attr.groupSlug, { groupId: attr.groupId, groupSlug: attr.groupSlug, termSlugs: [] });
       }
       activeGroupsMap.get(attr.groupSlug)!.termSlugs.push(attr.termSlug);
     });
     const activeGroups = Array.from(activeGroupsMap.values());
+    const hasAttributes = activeGroups.length > 0;
+
+    // Xác định primary path
+    let primaryPath: 'category' | 'priceRange' | 'attribute' | 'type' = 'type';
+    if (options.primary) {
+      if (options.primary === 'category' && hasCategory) {
+        primaryPath = 'category';
+      } else if (options.primary === 'priceRange' && hasPriceRange) {
+        primaryPath = 'priceRange';
+      } else if (options.primary === 'attribute' && hasAttributes) {
+        primaryPath = 'attribute';
+      }
+    } else {
+      // Trường hợp xóa filter hoặc thay đổi gián tiếp (đôn filter)
+      const currentPrimary: 'category' | 'priceRange' | 'attribute' | 'type' = props.categoryId 
+        ? 'category' 
+        : (props.priceRangeFilter ? 'priceRange' : (props.attributeFilter ? 'attribute' : 'type'));
+
+      if (currentPrimary === 'category' && hasCategory) {
+        primaryPath = 'category';
+      } else if (currentPrimary === 'priceRange' && hasPriceRange) {
+        primaryPath = 'priceRange';
+      } else if (currentPrimary === 'attribute' && hasAttributes) {
+        // Đảm bảo group làm primary trước đó vẫn còn term hoạt động
+        const currentGroupId = props.attributeFilter?.groupId;
+        const isCurrentGroupActive = currentGroupId && targetAttributes[currentGroupId]?.length > 0;
+        if (isCurrentGroupActive) {
+          primaryPath = 'attribute';
+        } else {
+          // Đôn filter khác
+          if (hasCategory) primaryPath = 'category';
+          else if (hasPriceRange) primaryPath = 'priceRange';
+          else if (hasAttributes) primaryPath = 'attribute';
+        }
+      } else {
+        // Đôn filter theo thứ tự fallback: category -> price -> attribute -> type
+        if (hasCategory) primaryPath = 'category';
+        else if (hasPriceRange) primaryPath = 'priceRange';
+        else if (hasAttributes) primaryPath = 'attribute';
+      }
+    }
 
     let path = `/${baseSlug}`;
     const params = new URLSearchParams();
@@ -560,47 +605,77 @@ function ProductsContent(props: ProductsPageProps) {
     const sortVal = searchParams.get('sort');
     if (sortVal) params.set('sort', sortVal);
 
-    if (selectedCategoryDoc) {
-      // Ưu tiên 1: Danh mục làm SEO URL chính
-      path = `/${baseSlug}/${selectedCategoryDoc.slug}`;
-      
-      // Nấc giá thành query param
-      if (activePriceRange) {
-        params.set('priceRange', activePriceRange.slug);
+    if (!productType) {
+      // Nếu chưa có product type cụ thể (fallback /products), không dựng URL đẹp
+      path = `/products`;
+      if (hasCategory) {
+        const category = categoryOptions.find(c => c._id === targetCategoryId);
+        if (category) params.set('category', category.slug);
       }
-      // Các thuộc tính lọc thành query params
+      if (hasPriceRange) {
+        params.set('priceRange', targetPriceRange!.slug);
+      }
       activeGroups.forEach(g => {
         params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
       });
-    } else if (activePriceRange) {
-      // Ưu tiên 2: Nấc giá làm SEO URL chính (nếu không chọn danh mục)
-      path = `/${baseSlug}/${activePriceRange.slug}`;
-      
-      // Các thuộc tính lọc thành query params
-      activeGroups.forEach(g => {
-        params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
-      });
-    } else if (activeGroups.length === 1) {
-      // Ưu tiên 3: Tất cả các term thuộc nhóm duy nhất này lên SEO URL chính (nối dấu phẩy)
-      path = `/${baseSlug}/${activeGroups[0].groupSlug}/${activeGroups[0].termSlugs.join(',')}`;
-    } else if (activeGroups.length > 1) {
-      // Ưu tiên 4: Nhóm đầu tiên làm primary trên SEO URL chính (nối dấu phẩy), các nhóm khác thành query params
-      const primaryGroup = activeGroups[0];
-      path = `/${baseSlug}/${primaryGroup.groupSlug}/${primaryGroup.termSlugs.join(',')}`;
+    } else {
+      // Dựng URL đẹp theo primary path
+      if (primaryPath === 'category' && hasCategory) {
+        const category = categoryOptions.find(c => c._id === targetCategoryId);
+        if (category) {
+          path = `/${baseSlug}/${category.slug}`;
+        }
+        if (hasPriceRange) {
+          params.set('priceRange', targetPriceRange!.slug);
+        }
+        activeGroups.forEach(g => {
+          params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
+        });
+      } else if (primaryPath === 'priceRange' && hasPriceRange) {
+        path = `/${baseSlug}/${targetPriceRange!.slug}`;
+        if (hasCategory) {
+          const category = categoryOptions.find(c => c._id === targetCategoryId);
+          if (category) params.set('category', category.slug);
+        }
+        activeGroups.forEach(g => {
+          params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
+        });
+      } else if (primaryPath === 'attribute' && hasAttributes) {
+        // Tìm group làm primary path
+        let primaryGroup = activeGroups[0];
+        if (options.primary === 'attribute' && options.clickedGroupId) {
+          const clicked = activeGroups.find(g => g.groupId === options.clickedGroupId);
+          if (clicked) primaryGroup = clicked;
+        } else if (props.attributeFilter && props.attributeFilter.groupId) {
+          const filterGroupId = props.attributeFilter.groupId;
+          const current = activeGroups.find(g => g.groupId === filterGroupId);
+          if (current) primaryGroup = current;
+        }
 
-      for (let i = 1; i < activeGroups.length; i++) {
-        const otherGroup = activeGroups[i];
-        params.set(`attr_${otherGroup.groupSlug}`, otherGroup.termSlugs.join(','));
+        path = `/${baseSlug}/${primaryGroup.groupSlug}/${primaryGroup.termSlugs.join(',')}`;
+
+        if (hasCategory) {
+          const category = categoryOptions.find(c => c._id === targetCategoryId);
+          if (category) params.set('category', category.slug);
+        }
+        if (hasPriceRange) {
+          params.set('priceRange', targetPriceRange!.slug);
+        }
+        activeGroups.forEach(g => {
+          if (g.groupId !== primaryGroup.groupId) {
+            params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
+          }
+        });
       }
     }
 
     const queryStr = params.toString();
     const finalUrl = queryStr ? `${path}?${queryStr}` : path;
     router.push(finalUrl, { scroll: false });
-  }, [enableProductTypes, productType, activeCategory, selectedPriceRange, selectedAttributes, categoryOptions, filterableGroups, searchParams, routeMode, router]);
+  }, [enableProductTypes, productType, activeCategory, selectedPriceRange, selectedAttributes, categoryOptions, filterableGroups, searchParams, routeMode, router, props.categoryId, props.priceRangeFilter, props.attributeFilter]);
 
   const handleCategoryChange = useCallback((categoryId: Id<"productCategories"> | null) => {
-    navigateWithFilters({ nextCategoryId: categoryId });
+    navigateWithFilters({ nextCategoryId: categoryId, primary: 'category' });
   }, [navigateWithFilters]);
 
   const handleAttributeChange = useCallback((groupSlug: string, termSlug: any, checked: boolean) => {
@@ -613,7 +688,6 @@ function ProductsContent(props: ProductsPageProps) {
     if (Array.isArray(termSlug)) {
       nextTermSlugs = termSlug;
     } else if (termSlug === '') {
-      // Clear all terms for this group
       nextTermSlugs = [];
     } else if (group.filterType === 'single') {
       nextTermSlugs = checked ? [termSlug] : [];
@@ -632,11 +706,11 @@ function ProductsContent(props: ProductsPageProps) {
       [groupId]: nextTermSlugs
     };
 
-    navigateWithFilters({ nextAttributes });
+    navigateWithFilters({ nextAttributes, primary: 'attribute', clickedGroupId: groupId });
   }, [filterableGroups, selectedAttributes, navigateWithFilters]);
 
   const handlePriceRangeChange = useCallback((priceRange: PriceRange | null) => {
-    navigateWithFilters({ nextPriceRange: priceRange });
+    navigateWithFilters({ nextPriceRange: priceRange, primary: 'priceRange' });
   }, [navigateWithFilters]);
 
   const handleProductTypeChange = useCallback((typeSlug: string | null) => {
