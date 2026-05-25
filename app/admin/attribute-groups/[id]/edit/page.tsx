@@ -17,6 +17,8 @@ import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, us
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AttributeGroupPreview } from '../../_components/AttributeGroupPreview';
+import { useUnsavedGuard } from '../../../home-components/_shared/hooks/useUnsavedGuard';
+import { HomeComponentStickyFooter } from '../../../home-components/_shared/components/HomeComponentStickyFooter';
 
 
 export default function AttributeGroupEditPage({ params }: { params: Promise<{ id: string }> }) {
@@ -52,6 +54,19 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
   const [iconName, setIconName] = useState('Wine');
   const [iconColor, setIconColor] = useState('#ea580c');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const hasChanges = groupData ? (
+    name !== groupData.name ||
+    slug !== groupData.slug ||
+    code !== groupData.code ||
+    filterType !== groupData.filterType ||
+    inputType !== groupData.inputType ||
+    isFilterable !== (groupData.isFilterable ?? true) ||
+    iconName !== (groupData.iconPath ?? 'Wine') ||
+    iconColor !== (groupData.displayConfig?.iconColor ?? groupData.displayConfig?.color ?? '#ea580c')
+  ) : false;
+
+  useUnsavedGuard(hasChanges);
 
   useEffect(() => {
     if (groupData) {
@@ -240,19 +255,38 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
                 </div>
               </CardContent>
               
-              <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 rounded-b-lg flex justify-end gap-3">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  onClick={() =>{  router.push('/admin/attribute-groups'); }}
-                >
-                  Hủy bỏ
-                </Button>
-                <Button type="submit" variant="accent" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}
-                  Lưu thay đổi
-                </Button>
-              </div>
+              <HomeComponentStickyFooter
+                isSubmitting={isSubmitting}
+                hasChanges={hasChanges}
+                submitLabel="Lưu thay đổi"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      onClick={() => { router.push('/admin/attribute-groups'); }} 
+                      disabled={isSubmitting}
+                    >
+                      Hủy bỏ
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      disabled={hasChanges === false || isSubmitting}
+                      variant="accent"
+                      className={cn(
+                        hasChanges === false && !isSubmitting
+                          ? 'bg-slate-300 hover:bg-slate-300 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-800 dark:text-slate-400'
+                          : undefined
+                      )}
+                    >
+                      {isSubmitting ? 'Đang lưu...' : hasChanges === false ? 'Đã lưu' : 'Lưu thay đổi'}
+                    </Button>
+                  </div>
+                </div>
+              </HomeComponentStickyFooter>
             </form>
           </Card>
         </div>
