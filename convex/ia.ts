@@ -295,7 +295,7 @@ export const resolveProductLandingContext = query({
         let targetCategory = null;
         for (const m of mappings) {
           const cat = await ctx.db.get(m.categoryId);
-          if (cat && cat.slug === subSlug) {
+          if (cat && cat.active && cat.slug === subSlug) {
             targetCategory = cat;
             break;
           }
@@ -386,13 +386,26 @@ export const resolveProductLandingContext = query({
         
         if (group && group.isFilterable) {
           const requestedSlugs = termSlug.split(",");
+          const uniqueRequested = Array.from(new Set(requestedSlugs));
+          if (
+            requestedSlugs.length !== uniqueRequested.length ||
+            uniqueRequested.length === 0 ||
+            uniqueRequested.some((slug) => !slug)
+          ) {
+            return null;
+          }
+          if (uniqueRequested.length > 1 && group.filterType !== "multiple") {
+            return null;
+          }
+          if (group.filterType === "range") {
+            return null;
+          }
           const allTerms = await ctx.db
             .query("attributeTerms")
             .withIndex("by_group", (q) => q.eq("groupId", group._id))
             .collect();
           
-          const matchedTerms = allTerms.filter(t => requestedSlugs.includes(t.slug) && t.active);
-          const uniqueRequested = Array.from(new Set(requestedSlugs));
+          const matchedTerms = allTerms.filter(t => uniqueRequested.includes(t.slug) && t.active);
           
           if (matchedTerms.length === uniqueRequested.length && matchedTerms.length > 0) {
             return {
@@ -430,13 +443,26 @@ export const resolveProductLandingContext = query({
           const isAssigned = mapping.some((m) => m.groupId === group._id);
           if (isAssigned) {
             const requestedSlugs = termSlug.split(",");
+            const uniqueRequested = Array.from(new Set(requestedSlugs));
+            if (
+              requestedSlugs.length !== uniqueRequested.length ||
+              uniqueRequested.length === 0 ||
+              uniqueRequested.some((slug) => !slug)
+            ) {
+              return null;
+            }
+            if (uniqueRequested.length > 1 && group.filterType !== "multiple") {
+              return null;
+            }
+            if (group.filterType === "range") {
+              return null;
+            }
             const allTerms = await ctx.db
               .query("attributeTerms")
               .withIndex("by_group", (q) => q.eq("groupId", group._id))
               .collect();
             
-            const matchedTerms = allTerms.filter(t => requestedSlugs.includes(t.slug) && t.active);
-            const uniqueRequested = Array.from(new Set(requestedSlugs));
+            const matchedTerms = allTerms.filter(t => uniqueRequested.includes(t.slug) && t.active);
             
             if (matchedTerms.length === uniqueRequested.length && matchedTerms.length > 0) {
               return {

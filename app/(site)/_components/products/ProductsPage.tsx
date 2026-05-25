@@ -278,28 +278,6 @@ function ProductsContent(props: ProductsPageProps) {
     return categories.filter((category) => nonEmptySet.has(category._id));
   }, [categories, listConfig.hideEmptyCategories, nonEmptyCategoryIds]);
 
-  const categoryOptions = useMemo(
-    () => visibleCategories ?? categories ?? [],
-    [visibleCategories, categories]
-  );
-
-  const categorySlugFromPath = useMemo(() => {
-    if (routeMode !== 'unified') {return null;}
-    const segment = pathname.split('/').filter(Boolean)[0];
-    if (!segment || segment === 'products') {return null;}
-    return segment;
-  }, [pathname, routeMode]);
-
-  const categoryFromUrl = useMemo(() => {
-    if (props.categoryId) return props.categoryId;
-    const catSlug = categorySlugFromPath ?? searchParams.get('category');
-    if (!catSlug || categoryOptions.length === 0) {return null;}
-    const matchedCategory = categoryOptions.find((c) => c.slug === catSlug);
-    return matchedCategory?._id ?? null;
-  }, [props.categoryId, categorySlugFromPath, searchParams, categoryOptions]);
-
-  const activeCategory = categoryFromUrl;
-
   const showCategorySubtitleSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'showCategorySubtitle' });
   const enableCategoryFilterFooterContentSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableCategoryFilterFooterContent' });
   const enableProductTypesSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableProductTypes' });
@@ -309,15 +287,65 @@ function ProductsContent(props: ProductsPageProps) {
   const enableProductTypes = enableProductTypesSetting?.value === true;
 
   const productType = useQuery(api.productTypes.getById, props.productTypeId ? { id: props.productTypeId } : 'skip');
+  const assignedCategories = useQuery(
+    api.productTypes.listAssignedCategories,
+    enableProductTypes && props.productTypeId ? { typeId: props.productTypeId } : 'skip'
+  );
+  const assignedGroups = useQuery(
+    api.productTypes.listAssignedGroups,
+    enableProductTypes && props.productTypeId ? { typeId: props.productTypeId } : 'skip'
+  );
+
+  const categoryOptions = useMemo(() => {
+    const baseCategories = visibleCategories ?? categories ?? [];
+    if (!enableProductTypes || !props.productTypeId) {
+      return baseCategories;
+    }
+    if (!assignedCategories) {
+      return [];
+    }
+    const assignedSet = new Set(assignedCategories.map((category) => category._id));
+    return baseCategories.filter((category) => assignedSet.has(category._id));
+  }, [assignedCategories, categories, enableProductTypes, props.productTypeId, visibleCategories]);
+
+  const categorySlugFromPath = useMemo(() => {
+    if (routeMode !== 'unified') {return null;}
+    const segment = pathname.split('/').filter(Boolean)[0];
+    if (!segment || segment === 'products') {return null;}
+    return segment;
+  }, [pathname, routeMode]);
+
+  const isTaxonomyContext = enableProductTypes && Boolean(props.productTypeId || props.priceRangeFilter || props.attributeFilter);
+
+  const categoryFromUrl = useMemo(() => {
+    if (props.categoryId) return props.categoryId;
+    const catSlug = isTaxonomyContext ? searchParams.get('category') : (categorySlugFromPath ?? searchParams.get('category'));
+    if (!catSlug || categoryOptions.length === 0) {return null;}
+    const matchedCategory = categoryOptions.find((c) => c.slug === catSlug);
+    return matchedCategory?._id ?? null;
+  }, [props.categoryId, isTaxonomyContext, searchParams, categorySlugFromPath, categoryOptions]);
+
+  const activeCategory = categoryFromUrl;
 
   const rawFilterableGroups = useQuery(api.attributeGroups.listFilterable, enableProductTypes ? {} : 'skip');
   const filterableGroups = useMemo(() => {
     if (!rawFilterableGroups) return undefined;
-    if (props.attributeFilter) {
-      return rawFilterableGroups.filter(g => g._id === props.attributeFilter?.groupId);
+    if (!enableProductTypes || !props.productTypeId) {
+      return rawFilterableGroups;
     }
-    return rawFilterableGroups;
-  }, [rawFilterableGroups, props.attributeFilter]);
+    if (!assignedGroups) {
+      return [];
+    }
+    const assignedSet = new Set(assignedGroups.map((group) => group._id));
+    return rawFilterableGroups.filter((group) => assignedSet.has(group._id));
+  }, [assignedGroups, enableProductTypes, props.productTypeId, rawFilterableGroups]);
+  const displayFilterableGroups = useMemo(() => {
+    if (!filterableGroups) return undefined;
+    if (props.attributeFilter) {
+      return filterableGroups.filter(g => g._id === props.attributeFilter?.groupId);
+    }
+    return filterableGroups;
+  }, [filterableGroups, props.attributeFilter]);
   const productTypesData = useQuery(api.productTypes.listAll, enableProductTypes ? {} : 'skip');
   const productTypes = useMemo(() => productTypesData?.filter((t) => t.active) ?? [], [productTypesData]);
 
@@ -1078,7 +1106,7 @@ function ProductsContent(props: ProductsPageProps) {
           activeCategoryDoc={activeCategoryDoc}
           showCategorySubtitle={showCategorySubtitle}
           enableCategoryFilterFooterContent={enableCategoryFilterFooterContent}
-          filterableGroups={filterableGroups}
+          filterableGroups={displayFilterableGroups}
           selectedAttributes={selectedAttributes}
           onAttributeChange={handleAttributeChange}
           productType={productType}
@@ -1133,7 +1161,7 @@ function ProductsContent(props: ProductsPageProps) {
           activeCategoryDoc={activeCategoryDoc}
           showCategorySubtitle={showCategorySubtitle}
           enableCategoryFilterFooterContent={enableCategoryFilterFooterContent}
-          filterableGroups={filterableGroups}
+          filterableGroups={displayFilterableGroups}
           selectedAttributes={selectedAttributes}
           onAttributeChange={handleAttributeChange}
           productType={productType}
@@ -1175,7 +1203,7 @@ function ProductsContent(props: ProductsPageProps) {
           sortBy={sortBy}
           onSortChange={setSortBy}
           tokens={tokens}
-          filterableGroups={filterableGroups}
+          filterableGroups={displayFilterableGroups}
           selectedAttributes={selectedAttributes}
           onAttributeChange={handleAttributeChange}
           productType={productType}
