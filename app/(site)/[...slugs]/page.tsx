@@ -29,16 +29,17 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slugs } = await params;
+  const decodedSlugs = slugs.map(s => decodeURIComponent(s));
   const client = getConvexClient();
   const [site, seo, contact, social, resolvedContext] = await Promise.all([
     getSiteSettings(),
     getSEOSettings(),
     getContactSettings(),
     getSocialSettings(),
-    client.query(api.ia.resolveProductLandingContext, { slugs }),
+    client.query(api.ia.resolveProductLandingContext, { slugs: decodedSlugs }),
   ]);
 
-  const fallbackPath = `/${slugs.join('/')}`;
+  const fallbackPath = `/${decodedSlugs.join('/')}`;
 
   if (!resolvedContext) {
     return buildSeoMetadata({
@@ -227,11 +228,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function UnifiedCatchAllPage({ params }: Props) {
   const { slugs } = await params;
+  const decodedSlugs = slugs.map(s => decodeURIComponent(s));
   const client = getConvexClient();
   const [site, seo, resolvedContext] = await Promise.all([
     getSiteSettings(),
     getSEOSettings(),
-    client.query(api.ia.resolveProductLandingContext, { slugs }),
+    client.query(api.ia.resolveProductLandingContext, { slugs: decodedSlugs }),
   ]);
 
   if (!resolvedContext) {
@@ -299,7 +301,7 @@ export default async function UnifiedCatchAllPage({ params }: Props) {
       recordSlug: resolvedContext.recordSlug,
     });
 
-    if (`/${slugs.join('/')}` !== canonicalPath) {
+    if (`/${decodedSlugs.join('/')}` !== canonicalPath) {
       permanentRedirect(canonicalPath);
     }
 
