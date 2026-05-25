@@ -47,6 +47,12 @@ function useEnabledProductFields(): Set<string> {
   }, [fields]);
 }
 
+function useProductImagePlaceholder() {
+  const productImagePlaceholderSetting = useQuery(api.settings.getValue, { key: 'product_image_placeholder', defaultValue: '' });
+  return typeof productImagePlaceholderSetting === 'string' ? productImagePlaceholderSetting : '';
+}
+
+
 function ProductsListSkeleton() {
   const brandColors = useBrandColors();
   const imageAspectRatio = useProductImageAspectRatioSetting();
@@ -232,6 +238,8 @@ function ProductsContent(props: ProductsPageProps) {
   const saleModeSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'saleMode' });
   const routeModeSetting = useQuery(api.settings.getValue, { key: 'ia_route_mode', defaultValue: 'unified' });
   const routeMode = useMemo(() => normalizeRouteMode(routeModeSetting), [routeModeSetting]);
+  const productImagePlaceholderSetting = useQuery(api.settings.getValue, { key: 'product_image_placeholder', defaultValue: '' });
+  const productImagePlaceholder = typeof productImagePlaceholderSetting === 'string' ? productImagePlaceholderSetting : '';
 
   const saleMode = useMemo<ProductsSaleMode>(() => {
     const value = saleModeSetting?.value;
@@ -1493,6 +1501,7 @@ function ProductCardActions({ product, tokens, showStock, showAddToCartButton, s
 }
 
 function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string }) {
+  const productImagePlaceholder = useProductImagePlaceholder();
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
       {products.map((product) => (
@@ -1511,8 +1520,8 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
             className="overflow-hidden relative"
             style={{ ...imageAspectRatioStyle, backgroundColor: tokens.filterChipBg }}
           >
-            {product.image ? (
-                <Image mode="thumb" src={product.image} alt={product.name} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-110 transition-transform duration-500" />
+            {product.image || productImagePlaceholder ? (
+                <Image mode="thumb" src={product.image || productImagePlaceholder} alt={product.name} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-110 transition-transform duration-500" />
             ) : (
               <div className="w-full h-full flex items-center justify-center"><Package size={48} style={{ color: tokens.neutralTextLight }} /></div>
             )}
@@ -1574,6 +1583,7 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
 }
 
 function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge: _showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string }) {
+  const productImagePlaceholder = useProductImagePlaceholder();
   return (
     <div className="space-y-4">
       {products.map((product) => (
@@ -1592,8 +1602,8 @@ function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, 
             className="w-32 md:w-40 shrink-0 overflow-hidden rounded-lg relative"
             style={{ ...imageAspectRatioStyle, backgroundColor: tokens.filterChipBg }}
           >
-            {product.image ? (
-                <Image mode="thumb" src={product.image} alt={product.name} fill sizes="160px" className="object-cover group-hover:scale-110 transition-transform duration-500" />
+            {product.image || productImagePlaceholder ? (
+                <Image mode="thumb" src={product.image || productImagePlaceholder} alt={product.name} fill sizes="160px" className="object-cover group-hover:scale-110 transition-transform duration-500" />
             ) : (
               <div className="w-full h-full flex items-center justify-center"><Package size={32} style={{ color: tokens.neutralTextLight }} /></div>
             )}
@@ -2410,6 +2420,7 @@ function MobileProductsFilters({
 
 function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap: _categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, attributeFilter, hasActiveFilters, onClearFilters, radiusClass }: LayoutProps) {
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const productImagePlaceholder = useProductImagePlaceholder();
 
   const filteredCategories = useMemo(() => {
     if (!categories) return [];
@@ -2700,8 +2711,8 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     className="overflow-hidden relative"
                     style={{ ...imageAspectRatioStyle, backgroundColor: tokens.filterChipBg }}
                   >
-                    {product.image ? (
-                      <Image mode="thumb" src={product.image} alt={product.name} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                    {product.image || productImagePlaceholder ? (
+                      <Image mode="thumb" src={product.image || productImagePlaceholder} alt={product.name} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-110 transition-transform duration-500" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center"><Package size={32} style={{ color: tokens.neutralTextLight }} /></div>
                     )}
