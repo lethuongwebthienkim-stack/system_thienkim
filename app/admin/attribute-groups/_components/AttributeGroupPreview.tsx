@@ -11,7 +11,6 @@ interface AttributeGroupPreviewProps {
   inputType: string;
   iconName?: string;
   iconColor?: string;
-  rangeConfig?: Partial<RangeConfig>;
   terms?: {
     _id: string;
     name: string;
@@ -43,8 +42,6 @@ const normalizeText = (value: string) => value.toLowerCase()
   .replaceAll(/[\u0300-\u036F]/g, '')
   .replaceAll(/[đĐ]/g, 'd');
 
-const clampNumber = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
-
 export const getSmartRangeConfig = (name: string, terms: { name: string }[] = []): RangeConfig => {
   const source = normalizeText(`${name} ${terms.map(term => term.name).join(' ')}`);
   if (source.match(/gia|price|tien|cost|amount/)) {
@@ -69,24 +66,6 @@ export const getSmartRangeConfig = (name: string, terms: { name: string }[] = []
   return GENERIC_RANGE_CONFIG;
 };
 
-export const normalizeRangeConfig = (config?: Partial<RangeConfig>, fallback: RangeConfig = GENERIC_RANGE_CONFIG): RangeConfig => {
-  const min = Number.isFinite(config?.min) ? Number(config?.min) : fallback.min;
-  const maxCandidate = Number.isFinite(config?.max) ? Number(config?.max) : fallback.max;
-  const max = maxCandidate > min ? maxCandidate : min + Math.max(fallback.step, 1);
-  const stepCandidate = Number.isFinite(config?.step) ? Number(config?.step) : fallback.step;
-  const step = stepCandidate > 0 ? stepCandidate : 1;
-  const defaultMin = clampNumber(Number.isFinite(config?.defaultMin) ? Number(config?.defaultMin) : fallback.defaultMin, min, max);
-  const defaultMax = clampNumber(Number.isFinite(config?.defaultMax) ? Number(config?.defaultMax) : fallback.defaultMax, min, max);
-  return {
-    min,
-    max,
-    step,
-    unit: typeof config?.unit === 'string' ? config.unit : fallback.unit,
-    defaultMin: Math.min(defaultMin, defaultMax),
-    defaultMax: Math.max(defaultMin, defaultMax),
-  };
-};
-
 const formatRangeValue = (value: number, unit: string) => {
   const formatted = Number.isInteger(value) ? value.toLocaleString('vi-VN') : value.toLocaleString('vi-VN', { maximumFractionDigits: 2 });
   if (!unit) { return formatted; }
@@ -99,7 +78,6 @@ export function AttributeGroupPreview({
   inputType,
   iconName = 'Wine',
   iconColor = '#ea580c',
-  rangeConfig,
   terms = []
 }: AttributeGroupPreviewProps) {
   // Lấy Icon component động
@@ -109,8 +87,7 @@ export function AttributeGroupPreview({
   const [selectedTerms, setSelectedTerms] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const smartRangeConfig = getSmartRangeConfig(name, terms);
-  const resolvedRangeConfig = normalizeRangeConfig(rangeConfig, smartRangeConfig);
+  const resolvedRangeConfig = getSmartRangeConfig(name, terms);
   const rangeGap = resolvedRangeConfig.step;
   const [minVal, setMinVal] = useState(resolvedRangeConfig.defaultMin);
   const [maxVal, setMaxVal] = useState(resolvedRangeConfig.defaultMax);
