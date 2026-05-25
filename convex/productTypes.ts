@@ -1,9 +1,8 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { resolveUniqueSlug } from "./lib/iaSlugs";
-import { isMultiCategoryEnabled } from "./lib/multiCategory";
-import { MutationCtx } from "./_generated/server";
-import { Id } from "./_generated/dataModel";
+import type { MutationCtx } from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 
 const priceRangeSchema = v.object({
   label: v.string(),
@@ -29,59 +28,25 @@ async function syncProductCategoryTypes(
   typeId: Id<"productTypes">,
   categoryIds: Id<"productCategories">[]
 ) {
-  const isMulti = await isMultiCategoryEnabled(ctx, "products");
-  
-  if (isMulti) {
-    // 1-N: 1 danh mục thuộc tối đa 1 loại.
-    // Xóa tất cả các liên kết cũ của typeId này
-    const existingForType = await ctx.db
-      .query("productCategoryTypes")
-      .withIndex("by_type", (q) => q.eq("typeId", typeId))
-      .collect();
-    for (const item of existingForType) {
+  const existing = await ctx.db
+    .query("productCategoryTypes")
+    .withIndex("by_type", (q) => q.eq("typeId", typeId))
+    .collect();
+
+  const nextSet = new Set(categoryIds);
+  for (const item of existing) {
+    if (!nextSet.has(item.categoryId)) {
       await ctx.db.delete(item._id);
     }
-    
-    // Với mỗi categoryId mới, xóa liên kết của nó với bất kỳ typeId nào khác
-    for (const catId of categoryIds) {
-      const existingForCat = await ctx.db
-        .query("productCategoryTypes")
-        .withIndex("by_category", (q) => q.eq("categoryId", catId))
-        .collect();
-      for (const item of existingForCat) {
-        await ctx.db.delete(item._id);
-      }
-      
-      // Chèn liên kết mới
+  }
+
+  const existingCatIds = new Set(existing.map(item => item.categoryId));
+  for (const catId of categoryIds) {
+    if (!existingCatIds.has(catId)) {
       await ctx.db.insert("productCategoryTypes", {
         categoryId: catId,
         typeId,
       });
-    }
-  } else {
-    // N-N: 1 danh mục thuộc nhiều loại, 1 loại thuộc nhiều danh mục.
-    const existing = await ctx.db
-      .query("productCategoryTypes")
-      .withIndex("by_type", (q) => q.eq("typeId", typeId))
-      .collect();
-    
-    const nextSet = new Set(categoryIds);
-    // Xóa liên kết cũ không còn nằm trong danh sách mới
-    for (const item of existing) {
-      if (!nextSet.has(item.categoryId)) {
-        await ctx.db.delete(item._id);
-      }
-    }
-    
-    // Chèn liên kết mới chưa tồn tại
-    const existingCatIds = new Set(existing.map(item => item.categoryId));
-    for (const catId of categoryIds) {
-      if (!existingCatIds.has(catId)) {
-        await ctx.db.insert("productCategoryTypes", {
-          categoryId: catId,
-          typeId,
-        });
-      }
     }
   }
 }
@@ -385,6 +350,23 @@ export const listAssignedCategories = query({
     }
     return categories;
   },
+});
+
+export const listAssignedTypesForCategory = query({
+  args: { categoryId: v.id("productCategories") },
+  handler: async (ctx, args) => {
+    const mappings = await ctx.db
+      .query("productCategoryTypes")
+      .withIndex("by_category", (q) => q.eq("categoryId", args.categoryId))
+      .collect();
+    const types: Doc<"productTypes">[] = [];
+    for (const m of mappings) {
+      const type = await ctx.db.get(m.typeId);
+      if (type) types.push(type);
+    }
+    return types.sort((a, b) => a.order - b.order);
+  },
+  returns: v.array(productTypeDoc),
 });
 
 export const getFormConfig = query({

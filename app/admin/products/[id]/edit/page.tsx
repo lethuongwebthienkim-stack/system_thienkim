@@ -191,10 +191,20 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
   }, [settingsData]);
 
   const productTypesData = useQuery(api.productTypes.listAll, enableProductTypes ? {} : 'skip');
+  const categoryProductTypesData = useQuery(
+    api.productTypes.listAssignedTypesForCategory,
+    enableProductTypes && categoryId ? { categoryId: categoryId as Id<"productCategories"> } : 'skip'
+  );
   const assignedTermIdsData = useQuery(api.attributeTerms.getAssignedTermIds, { productId: id as Id<"products"> });
   const [productTypeId, setProductTypeId] = useState('');
   const [attributeTermIds, setAttributeTermIds] = useState<Id<"attributeTerms">[]>([]);
   const formConfig = useQuery(api.productTypes.getFormConfig, productTypeId ? { typeId: productTypeId as Id<"productTypes"> } : 'skip');
+  const availableProductTypes = useMemo(() => {
+    if (categoryId && categoryProductTypesData && categoryProductTypesData.length > 0) {
+      return categoryProductTypesData;
+    }
+    return productTypesData ?? [];
+  }, [categoryId, categoryProductTypesData, productTypesData]);
 
   const digitalEnabled = productTypeMode !== 'physical';
 
@@ -335,6 +345,24 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
       setSaveStatus('saved');
     }
   }, [hasChanges, saveStatus]);
+
+  useEffect(() => {
+    if (!enableProductTypes || !categoryId || !categoryProductTypesData || categoryProductTypesData.length === 0) {
+      return;
+    }
+    if (categoryProductTypesData.length === 1) {
+      const nextTypeId = categoryProductTypesData[0]._id;
+      if (productTypeId !== nextTypeId) {
+        setProductTypeId(nextTypeId);
+        setAttributeTermIds([]);
+      }
+      return;
+    }
+    if (productTypeId && !categoryProductTypesData.some(type => type._id === productTypeId)) {
+      setProductTypeId('');
+      setAttributeTermIds([]);
+    }
+  }, [enableProductTypes, categoryId, categoryProductTypesData, productTypeId]);
 
   const handleApplyAiProduct = (item: AiEntityImportPayload) => {
     const nextName = item.name?.trim() || item.title?.trim() || '';
@@ -1600,10 +1628,15 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                     className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
                   >
                     <option value="">Chọn kiểu sản phẩm...</option>
-                    {productTypesData?.map((type) => (
+                    {availableProductTypes.map((type) => (
                       <option key={type._id} value={type._id}>{type.name}</option>
                     ))}
                   </select>
+                  {categoryId && categoryProductTypesData && categoryProductTypesData.length > 0 && (
+                    <p className="text-xs text-slate-500">
+                      Đang gợi ý theo danh mục đã chọn. Nếu danh mục chỉ có một kiểu, hệ thống tự chọn để hiện đúng thuộc tính.
+                    </p>
+                  )}
                 </div>
                 {formConfig && formConfig.groups.map(group => (
                   <div key={group._id} className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
