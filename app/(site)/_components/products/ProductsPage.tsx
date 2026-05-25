@@ -1836,6 +1836,7 @@ function AttributeFilterGroupWidget({
   const [sliderMax, setSliderMax] = useState(maxLimit);
   const [activeInput, setActiveInput] = useState<'min' | 'max'>('min');
   const sliderRef = useRef<HTMLDivElement>(null);
+  const lastAppliedSlugsRef = useRef<string[] | null>(null);
 
   const handleSliderInteraction = useCallback((clientX: number) => {
     if (!sliderRef.current) return;
@@ -1871,6 +1872,16 @@ function AttributeFilterGroupWidget({
 
   useEffect(() => {
     if (filterType === 'range' && numericTerms.length > 0) {
+      // Kiểm tra xem sự thay đổi URL có trùng khớp với lần apply gần nhất của chính slider này không
+      const isSelfChange = lastAppliedSlugsRef.current && 
+        lastAppliedSlugsRef.current.length === currentSelectedTermIds.length &&
+        lastAppliedSlugsRef.current.every(slug => currentSelectedTermIds.includes(slug));
+
+      if (isSelfChange) {
+        // Nếu là do chính slider thay đổi URL thì giữ nguyên vị trí, tránh bị văng giật cục
+        return;
+      }
+
       if (currentSelectedTermIds.length > 0) {
         const selectedValues = numericTerms
           .filter((item: any) => currentSelectedTermIds.includes(item.term.slug))
@@ -1901,12 +1912,14 @@ function AttributeFilterGroupWidget({
   const applyRangeFilter = () => {
     if (sliderMin === minLimit && sliderMax === maxLimit) {
       // Clear filter
+      lastAppliedSlugsRef.current = [];
       onAttributeChange?.(group.slug, [], false);
     } else {
       const matchedTermSlugs = numericTerms
         .filter((item: any) => item.value >= sliderMin && item.value <= sliderMax)
         .map((item: any) => item.term.slug);
       
+      lastAppliedSlugsRef.current = matchedTermSlugs;
       onAttributeChange?.(group.slug, matchedTermSlugs, true);
     }
   };
