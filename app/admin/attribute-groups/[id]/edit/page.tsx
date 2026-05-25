@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { Loader2, GripVertical } from 'lucide-react';
+import { Loader2, GripVertical, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
 import { Button, Card, CardContent, Input, Label, cn } from '../../../components/ui';
@@ -303,7 +303,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      <AttributeTermsManager groupId={id as Id<"attributeGroups">} terms={terms} />
+      <AttributeTermsManager groupId={id as Id<"attributeGroups">} terms={terms} groupSlug={slug} />
     </div>
   );
 }
@@ -316,9 +316,10 @@ interface SortableTermRowProps {
     order: number;
   };
   onRemove: (id: Id<"attributeTerms">) => void;
+  groupSlug: string;
 }
 
-function SortableTermRow({ term, onRemove }: SortableTermRowProps) {
+function SortableTermRow({ term, onRemove, groupSlug }: SortableTermRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: term._id });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
@@ -345,14 +346,22 @@ function SortableTermRow({ term, onRemove }: SortableTermRowProps) {
           <div className="text-xs text-slate-500 font-mono">{term.slug}</div>
         </div>
       </div>
-      <div className="flex gap-4 items-center">
-        <Button variant="ghost" size="sm" className="text-red-500" onClick={() => onRemove(term._id)}>Xóa</Button>
+      <div className="flex gap-2 items-center">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
+          onClick={() => window.open(`/products?attr_${groupSlug}=${term._id}`, '_blank')}
+        >
+          <ExternalLink size={12} /> Mở ngoài site
+        </Button>
+        <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-600" onClick={() => onRemove(term._id)}>Xóa</Button>
       </div>
     </div>
   );
 }
 
-function AttributeTermsManager({ groupId, terms }: { groupId: Id<"attributeGroups">; terms?: any[] }) {
+function AttributeTermsManager({ groupId, terms, groupSlug }: { groupId: Id<"attributeGroups">; terms?: any[]; groupSlug: string }) {
   const createTerm = useMutation(api.attributeTerms.create);
   const removeTerm = useMutation(api.attributeTerms.remove);
   const reorderTerms = useMutation(api.attributeTerms.reorder);
@@ -454,7 +463,7 @@ function AttributeTermsManager({ groupId, terms }: { groupId: Id<"attributeGroup
                 <p className="text-slate-500 text-sm italic">Chưa có giá trị nào.</p>
               ) : (
                 terms.map(term => (
-                  <SortableTermRow key={term._id} term={term} onRemove={handleRemove} />
+                  <SortableTermRow key={term._id} term={term} onRemove={handleRemove} groupSlug={groupSlug} />
                 ))
               )}
             </div>

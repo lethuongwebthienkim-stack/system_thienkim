@@ -7,6 +7,7 @@ import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
 import { ChevronDown, Edit, FolderTree, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAttributeIconComponent } from './_lib/iconRegistry';
 import { Badge, Button, Card, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui';
 import { BulkActionBar, ColumnToggle, generatePaginationItems, SelectCheckbox, SortableHeader, useSortableData } from '../components/TableUtilities';
 import { ModuleGuard } from '../components/ModuleGuard';
@@ -270,7 +271,11 @@ function AttributeGroupsContent() {
                 {resolvedVisibleColumns.includes('name') && (
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      <FolderTree size={16} className="text-orange-500" />
+                      {(() => {
+                        const IconComponent = getAttributeIconComponent(cat.iconPath);
+                        const iconColor = cat.displayConfig?.iconColor || cat.displayConfig?.color || '#ea580c';
+                        return <IconComponent size={16} style={{ color: iconColor }} />;
+                      })()}
                       {cat.name}
                     </div>
                   </TableCell>
