@@ -346,11 +346,12 @@ export const resolveProductLandingContext = query({
           .unique();
         
         if (group && group.isFilterable) {
+          const requestedSlugs = termSlug.split(",");
           const term = await ctx.db
             .query("attributeTerms")
             .withIndex("by_group", (q) => q.eq("groupId", group._id))
             .collect()
-            .then((terms) => terms.find((t) => t.slug === termSlug));
+            .then((terms) => terms.find((t) => requestedSlugs.includes(t.slug)));
           
           if (term && term.active) {
             return {
@@ -360,7 +361,7 @@ export const resolveProductLandingContext = query({
               groupSlug: group.slug,
               groupName: group.name,
               termId: term._id,
-              termSlug: term.slug,
+              termSlug: termSlug,
               termName: term.name,
             };
           }
@@ -387,11 +388,12 @@ export const resolveProductLandingContext = query({
           
           const isAssigned = mapping.some((m) => m.groupId === group._id);
           if (isAssigned) {
+            const requestedSlugs = termSlug.split(",");
             const term = await ctx.db
               .query("attributeTerms")
               .withIndex("by_group", (q) => q.eq("groupId", group._id))
               .collect()
-              .then((terms) => terms.find((t) => t.slug === termSlug));
+              .then((terms) => terms.find((t) => requestedSlugs.includes(t.slug)));
             
             if (term && term.active) {
               return {
@@ -402,7 +404,7 @@ export const resolveProductLandingContext = query({
                 groupSlug: group.slug,
                 groupName: group.name,
                 termId: term._id,
-                termSlug: term.slug,
+                termSlug: termSlug,
                 termName: term.name,
               };
             }

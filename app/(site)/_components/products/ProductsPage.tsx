@@ -335,7 +335,7 @@ function ProductsContent(props: ProductsPageProps) {
     
     // Tải từ props.attributeFilter nếu có (props.attributeFilter.termSlug)
     if (props.attributeFilter) {
-      filters[props.attributeFilter.groupId] = [props.attributeFilter.termSlug];
+      filters[props.attributeFilter.groupId] = props.attributeFilter.termSlug.split(',');
     }
 
     filterableGroups.forEach(group => {
@@ -530,6 +530,16 @@ function ProductsContent(props: ProductsPageProps) {
       });
     }
 
+    // Nhóm activeAttrs theo groupSlug
+    const activeGroupsMap = new Map<string, { groupSlug: string; termSlugs: string[] }>();
+    activeAttrs.forEach(attr => {
+      if (!activeGroupsMap.has(attr.groupSlug)) {
+        activeGroupsMap.set(attr.groupSlug, { groupSlug: attr.groupSlug, termSlugs: [] });
+      }
+      activeGroupsMap.get(attr.groupSlug)!.termSlugs.push(attr.termSlug);
+    });
+    const activeGroups = Array.from(activeGroupsMap.values());
+
     let path = `/${baseSlug}`;
     const params = new URLSearchParams();
 
@@ -548,53 +558,29 @@ function ProductsContent(props: ProductsPageProps) {
         params.set('priceRange', activePriceRange.slug);
       }
       // Các thuộc tính lọc thành query params
-      const groupAttrs = new Map<string, string[]>();
-      activeAttrs.forEach(attr => {
-        if (!groupAttrs.has(attr.groupSlug)) {
-          groupAttrs.set(attr.groupSlug, []);
-        }
-        groupAttrs.get(attr.groupSlug)!.push(attr.termSlug);
-      });
-      groupAttrs.forEach((termSlugs, groupSlug) => {
-        params.set(`attr_${groupSlug}`, termSlugs.join(','));
+      activeGroups.forEach(g => {
+        params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
       });
     } else if (activePriceRange) {
       // Ưu tiên 2: Nấc giá làm SEO URL chính (nếu không chọn danh mục)
       path = `/${baseSlug}/${activePriceRange.slug}`;
       
       // Các thuộc tính lọc thành query params
-      const groupAttrs = new Map<string, string[]>();
-      activeAttrs.forEach(attr => {
-        if (!groupAttrs.has(attr.groupSlug)) {
-          groupAttrs.set(attr.groupSlug, []);
-        }
-        groupAttrs.get(attr.groupSlug)!.push(attr.termSlug);
+      activeGroups.forEach(g => {
+        params.set(`attr_${g.groupSlug}`, g.termSlugs.join(','));
       });
-      groupAttrs.forEach((termSlugs, groupSlug) => {
-        params.set(`attr_${groupSlug}`, termSlugs.join(','));
-      });
-    } else if (activeAttrs.length === 1) {
-      // Ưu tiên 3: Đúng 1 thuộc tính duy nhất làm SEO URL chính
-      path = `/${baseSlug}/${activeAttrs[0].groupSlug}/${activeAttrs[0].termSlug}`;
-    } else if (activeAttrs.length > 1) {
-      // Chọn thuộc tính đầu tiên làm primary, các thuộc tính còn lại đưa xuống query params
-      const primary = activeAttrs[0];
-      path = `/${baseSlug}/${primary.groupSlug}/${primary.termSlug}`;
+    } else if (activeGroups.length === 1) {
+      // Ưu tiên 3: Tất cả các term thuộc nhóm duy nhất này lên SEO URL chính (nối dấu phẩy)
+      path = `/${baseSlug}/${activeGroups[0].groupSlug}/${activeGroups[0].termSlugs.join(',')}`;
+    } else if (activeGroups.length > 1) {
+      // Ưu tiên 4: Nhóm đầu tiên làm primary trên SEO URL chính (nối dấu phẩy), các nhóm khác thành query params
+      const primaryGroup = activeGroups[0];
+      path = `/${baseSlug}/${primaryGroup.groupSlug}/${primaryGroup.termSlugs.join(',')}`;
 
-      const groupAttrs = new Map<string, string[]>();
-      activeAttrs.forEach(attr => {
-        // Bỏ qua primary term trên query params
-        if (attr.groupSlug === primary.groupSlug && attr.termSlug === primary.termSlug) {
-          return;
-        }
-        if (!groupAttrs.has(attr.groupSlug)) {
-          groupAttrs.set(attr.groupSlug, []);
-        }
-        groupAttrs.get(attr.groupSlug)!.push(attr.termSlug);
-      });
-      groupAttrs.forEach((termSlugs, groupSlug) => {
-        params.set(`attr_${groupSlug}`, termSlugs.join(','));
-      });
+      for (let i = 1; i < activeGroups.length; i++) {
+        const otherGroup = activeGroups[i];
+        params.set(`attr_${otherGroup.groupSlug}`, otherGroup.termSlugs.join(','));
+      }
     }
 
     const queryStr = params.toString();
