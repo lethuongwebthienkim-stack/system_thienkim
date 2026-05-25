@@ -20,6 +20,7 @@ import {
   DialogTitle,
   Input,
   Label,
+  cn,
 } from '../../components/ui';
 import { IconPopoverPicker } from '../../home-components/_shared/components/IconPopoverPicker';
 import { HomeComponentStickyFooter } from '../../home-components/_shared/components/HomeComponentStickyFooter';
@@ -106,8 +107,10 @@ function AiAttributeTermsImportDialog({
 }) {
   const [open, setOpen] = useState(false);
   const [rawJson, setRawJson] = useState('');
-  const [errors, setErrors] = useState<string[]>([]);
   const [lastCopied, setLastCopied] = useState<'prompt' | 'sample' | null>(null);
+  const result = useMemo(() => parseTermsPayload(rawJson), [rawJson]);
+  const hasInput = rawJson.trim().length > 0;
+  const canApply = hasInput && result.terms.length > 0 && result.errors.length === 0;
 
   const sample = useMemo(() => JSON.stringify({
     terms: [
@@ -156,12 +159,11 @@ Chỉ trả về JSON đúng schema:
   };
 
   const handleApply = () => {
-    const result = parseTermsPayload(rawJson);
-    setErrors(result.errors);
-    if (result.errors.length > 0) {return;}
+    if (!canApply) {return;}
     onApply(result.terms);
     toast.success(`Đã nạp ${result.terms.length} giá trị thuộc tính`);
     setOpen(false);
+    setRawJson('');
   };
 
   return (
@@ -171,7 +173,7 @@ Chỉ trả về JSON đúng schema:
         Import AI
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="w-[94vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Import AI giá trị thuộc tính</DialogTitle>
             <DialogDescription>
@@ -191,7 +193,7 @@ Chỉ trả về JSON đúng schema:
               <textarea
                 readOnly
                 value={prompt}
-                className="h-72 w-full rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+                className="h-64 w-full rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
               />
             </div>
             <div className="space-y-2">
@@ -204,16 +206,41 @@ Chỉ trả về JSON đúng schema:
               </div>
               <textarea
                 value={rawJson}
-                onChange={(event) => {
-                  setRawJson(event.target.value);
-                  setErrors([]);
-                }}
+                onChange={(event) => setRawJson(event.target.value)}
                 placeholder={sample}
-                className="h-72 w-full rounded-md border border-slate-200 bg-white p-3 font-mono text-xs leading-relaxed text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                className="h-64 w-full rounded-md border border-slate-200 bg-white p-3 font-mono text-xs leading-relaxed text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
               />
-              {errors.length > 0 && (
-                <div className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700">
-                  {errors.map(error => <div key={error}>- {error}</div>)}
+              {hasInput && (
+                <div className={cn(
+                  'rounded-lg border p-3 text-sm',
+                  result.errors.length > 0
+                    ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300'
+                    : 'border-green-200 bg-green-50 text-green-700 dark:border-green-900/60 dark:bg-green-950/20 dark:text-green-300'
+                )}>
+                  {result.errors.length > 0 ? (
+                    <ul className="space-y-1">
+                      {result.errors.map(error => <li key={error}>- {error}</li>)}
+                    </ul>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <Check size={14} />
+                      JSON hợp lệ, preview {result.terms.length} giá trị bên dưới.
+                    </div>
+                  )}
+                </div>
+              )}
+              {canApply && (
+                <div className="rounded-lg border border-slate-200 p-3 dark:border-slate-700">
+                  <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Preview</div>
+                  <div className="mt-2 max-h-48 space-y-2 overflow-y-auto">
+                    {result.terms.map((term, index) => (
+                      <div key={term.slug} className="rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-900/60">
+                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{index + 1}. {term.name}</div>
+                        <div className="font-mono text-xs text-slate-500">{term.slug}</div>
+                        {term.description && <div className="mt-1 line-clamp-2 text-xs text-slate-500">{term.description}</div>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -221,7 +248,7 @@ Chỉ trả về JSON đúng schema:
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Đóng</Button>
-            <Button type="button" variant="accent" onClick={handleApply}>Áp dụng vào form</Button>
+            <Button type="button" variant="accent" disabled={!canApply} onClick={handleApply}>Áp dụng vào form</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
