@@ -9,7 +9,7 @@ import type { Id } from '@/convex/_generated/dataModel';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
-import { Button, Card, CardContent, Input, Label } from '../../../components/ui';
+import { Button, Card, CardContent, Input, Label, cn } from '../../../components/ui';
 import { useUnsavedGuard } from '@/app/admin/home-components/_shared/hooks/useUnsavedGuard';
 import { HomeComponentStickyFooter } from '@/app/admin/home-components/_shared/components/HomeComponentStickyFooter';
 
@@ -542,14 +542,61 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
         
-        <HomeComponentStickyFooter
-          isSubmitting={isSubmitting}
-          hasChanges={hasChanges}
-          onCancel={() => router.push('/admin/product-types')}
-          submitLabel="Lưu thay đổi"
-          active={active}
-          onActiveChange={setActive}
-        />
+        <HomeComponentStickyFooter isSubmitting={isSubmitting}>
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+              <Button type="button" variant="ghost" onClick={() => router.push('/admin/product-types')} disabled={isSubmitting}>
+                Hủy bỏ
+              </Button>
+              {slug && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => window.open(`/${slug}`, '_blank')}
+                  disabled={isSubmitting}
+                  className="gap-1 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                  Mở trang nhóm sản phẩm
+                </Button>
+              )}
+              <div className="flex items-center gap-2 ml-2 pl-3 border-l border-slate-200 dark:border-slate-700">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Trạng thái</span>
+                <div
+                  className={cn(
+                    'cursor-pointer inline-flex items-center justify-center rounded-full w-10 h-5 transition-colors',
+                    active ? 'bg-green-500' : 'bg-slate-300 dark:bg-slate-600',
+                  )}
+                  onClick={() => setActive(!active)}
+                >
+                  <div className={cn(
+                    'w-4 h-4 bg-white rounded-full transition-transform shadow',
+                    active ? 'translate-x-2' : '-translate-x-2',
+                  )} />
+                </div>
+                <span className={cn(
+                  'text-xs font-medium',
+                  active ? 'text-green-600 dark:text-green-400' : 'text-slate-400 dark:text-slate-500',
+                )}>
+                  {active ? 'Bật' : 'Tắt'}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                disabled={hasChanges === false || isSubmitting}
+                variant="accent"
+                className={cn(
+                  hasChanges === false && !isSubmitting
+                    ? 'bg-slate-300 hover:bg-slate-300 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-800 dark:text-slate-400'
+                    : undefined
+                )}
+              >
+                {isSubmitting ? 'Đang lưu...' : hasChanges === false ? 'Đã lưu' : 'Lưu thay đổi'}
+              </Button>
+            </div>
+          </div>
+        </HomeComponentStickyFooter>
       </form>
     </div>
   );
