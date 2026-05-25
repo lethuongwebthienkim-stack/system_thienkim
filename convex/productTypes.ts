@@ -369,6 +369,35 @@ export const listAssignedTypesForCategory = query({
   returns: v.array(productTypeDoc),
 });
 
+export const listAssignedTypesForCategories = query({
+  args: { categoryIds: v.array(v.id("productCategories")) },
+  handler: async (ctx, args) => {
+    const rows: { categoryId: Id<"productCategories">; types: Doc<"productTypes">[] }[] = [];
+
+    for (const categoryId of args.categoryIds) {
+      const mappings = await ctx.db
+        .query("productCategoryTypes")
+        .withIndex("by_category", (q) => q.eq("categoryId", categoryId))
+        .collect();
+      const types: Doc<"productTypes">[] = [];
+      for (const mapping of mappings) {
+        const type = await ctx.db.get(mapping.typeId);
+        if (type) types.push(type);
+      }
+      rows.push({
+        categoryId,
+        types: types.sort((a, b) => a.order - b.order),
+      });
+    }
+
+    return rows;
+  },
+  returns: v.array(v.object({
+    categoryId: v.id("productCategories"),
+    types: v.array(productTypeDoc),
+  })),
+});
+
 export const getFormConfig = query({
   args: { typeId: v.optional(v.id("productTypes")) },
   handler: async (ctx, args) => {
