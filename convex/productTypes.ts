@@ -77,7 +77,6 @@ export const listAdminWithOffset = query({
   handler: async (ctx, args) => {
     const limit = Math.min(args.limit ?? 20, 100);
     const offset = args.offset ?? 0;
-    const fetchLimit = Math.min(offset + limit + 50, 1000);
 
     let types = await ctx.db.query("productTypes").take(1000);
     types = types.sort((a, b) => a.order - b.order);

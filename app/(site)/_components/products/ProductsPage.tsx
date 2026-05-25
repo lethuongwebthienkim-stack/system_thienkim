@@ -238,9 +238,6 @@ function ProductsContent(props: ProductsPageProps) {
   const saleModeSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'saleMode' });
   const routeModeSetting = useQuery(api.settings.getValue, { key: 'ia_route_mode', defaultValue: 'unified' });
   const routeMode = useMemo(() => normalizeRouteMode(routeModeSetting), [routeModeSetting]);
-  const productImagePlaceholderSetting = useQuery(api.settings.getValue, { key: 'product_image_placeholder', defaultValue: '' });
-  const productImagePlaceholder = typeof productImagePlaceholderSetting === 'string' ? productImagePlaceholderSetting : '';
-
   const saleMode = useMemo<ProductsSaleMode>(() => {
     const value = saleModeSetting?.value;
     if (value === 'contact' || value === 'affiliate') {
@@ -1805,7 +1802,7 @@ function AttributeFilterGroupWidget({
   const unit = useMemo(() => {
     if (group.terms && group.terms.length > 0) {
       const name = group.terms[0].name;
-      const clean = name.replace(/[\d\s\.\-]/g, '');
+      const clean = name.replace(/[\d\s.-]/g, '');
       return clean || '';
     }
     return '';
@@ -2203,7 +2200,6 @@ function MobileProductsFilters({
   enableProductTypes,
   productTypes,
   onProductTypeChange,
-  attributeFilter,
   hasActiveFilters: externalHasActiveFilters,
   onClearFilters,
   radiusClass,

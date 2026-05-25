@@ -144,6 +144,7 @@ export default function ProductTypeCreatePage() {
       setNewRangeMin('');
       setNewRangeMax('');
     } catch (err) {
+      console.error(err);
       toast.error('Không thể cập nhật danh sách nấc giá dùng chung');
     }
   };
@@ -161,6 +162,7 @@ export default function ProductTypeCreatePage() {
       setPriceRanges(prev => prev.filter(r => r.slug !== slug));
       toast.success('Đã xóa nấc giá khỏi danh sách dùng chung');
     } catch (err) {
+      console.error(err);
       toast.error('Không thể xóa nấc giá');
     }
   };

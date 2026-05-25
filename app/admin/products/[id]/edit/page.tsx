@@ -822,6 +822,7 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                   });
                   rangeTermIds.push(newTermId);
                 } catch (err) {
+                  console.error(err);
                   toast.error(`Không thể tạo giá trị thuộc tính "${termName}"`);
                   setIsSubmitting(false);
                   setSaveStatus('idle');
@@ -1877,7 +1878,7 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                           await updateAttributeGroup({
                             id: group._id,
                             displayConfig: {
-                              ...(group.displayConfig || {}),
+                              ...group.displayConfig,
                               units: updatedUnits
                             }
                           });
@@ -1887,6 +1888,7 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                           }));
                           toast.success(`Đã thêm đơn vị "${trimmedUnit}" thành công`);
                         } catch (err) {
+                          console.error(err);
                           toast.error("Không thể lưu đơn vị mới");
                         }
                       }

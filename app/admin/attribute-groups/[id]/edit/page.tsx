@@ -570,6 +570,7 @@ function AttributeTermsManager({ groupId, terms, groupSlug, assignedTypeSlug }: 
       await reorderTerms({ items: reordered.map((item, index) => ({ id: item._id, order: index })) });
       toast.success('Đã cập nhật thứ tự');
     } catch (error) {
+      console.error(error);
       toast.error('Không thể cập nhật thứ tự');
     }
   };

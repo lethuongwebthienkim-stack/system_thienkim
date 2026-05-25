@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { Settings, Palette, Loader2, FolderTree, BookOpen, HelpCircle, Sparkles, CheckCircle2, ArrowRight, Layers, AlertTriangle } from 'lucide-react';
+import { Settings, Palette, Loader2, FolderTree, BookOpen, Sparkles, CheckCircle2, ArrowRight, Layers, AlertTriangle } from 'lucide-react';
 import type { ModuleDefinition } from '@/lib/modules/define-module';
 import type { FieldConfig } from '@/types/module-config';
 import { useModuleConfig } from '@/lib/modules/hooks/useModuleConfig';
