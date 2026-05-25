@@ -1,22 +1,238 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
-import { Loader2 } from 'lucide-react';
+import { Bot, Check, Copy, Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
-import { Button, Card, CardContent, Input, Label } from '../../components/ui';
+import {
+  Button,
+  Card,
+  CardContent,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Label,
+} from '../../components/ui';
 import { IconPopoverPicker } from '../../home-components/_shared/components/IconPopoverPicker';
+import { HomeComponentStickyFooter } from '../../home-components/_shared/components/HomeComponentStickyFooter';
+import { useUnsavedGuard } from '../../home-components/_shared/hooks/useUnsavedGuard';
 import { ATTRIBUTE_ICON_OPTIONS } from '../_lib/iconRegistry';
 import { AttributeGroupPreview } from '../_components/AttributeGroupPreview';
 
+type PendingTerm = {
+  name: string;
+  slug: string;
+  description?: string;
+};
+
+const slugify = (value: string) => value.toLowerCase()
+  .normalize("NFD").replaceAll(/[\u0300-\u036F]/g, "")
+  .replaceAll(/[đĐ]/g, "d")
+  .replaceAll(/[^a-z0-9\s-]/g, '')
+  .trim()
+  .replaceAll(/\s+/g, '-')
+  .replaceAll(/-+/g, '-');
+
+const cleanJsonInput = (raw: string) => raw
+  .trim()
+  .replace(/^```(?:json)?/i, '')
+  .replace(/```$/i, '')
+  .trim();
+
+const parseTermsPayload = (raw: string): { terms: PendingTerm[]; errors: string[] } => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleanJsonInput(raw));
+  } catch {
+    return { terms: [], errors: ['JSON chưa hợp lệ. Hãy dán đúng object có key "terms".'] };
+  }
+
+  const record = parsed as { terms?: unknown };
+  if (!Array.isArray(record.terms)) {
+    return { terms: [], errors: ['Thiếu mảng "terms".'] };
+  }
+
+  const errors: string[] = [];
+  const seenSlugs = new Set<string>();
+  const terms: PendingTerm[] = [];
+
+  record.terms.slice(0, 80).forEach((item, index) => {
+    const term = item as { name?: unknown; slug?: unknown; description?: unknown };
+    const name = typeof term.name === 'string' ? term.name.trim() : '';
+    const slug = typeof term.slug === 'string' && term.slug.trim() ? slugify(term.slug) : slugify(name);
+    const description = typeof term.description === 'string' ? term.description.trim() : '';
+
+    if (!name) {
+      errors.push(`Item #${index + 1} thiếu name.`);
+      return;
+    }
+    if (!slug) {
+      errors.push(`Item #${index + 1} không tạo được slug.`);
+      return;
+    }
+    if (seenSlugs.has(slug)) {
+      errors.push(`Slug bị trùng trong payload: ${slug}`);
+      return;
+    }
+    seenSlugs.add(slug);
+    terms.push({ name, slug, description: description || undefined });
+  });
+
+  if (terms.length === 0 && errors.length === 0) {
+    errors.push('Mảng terms đang rỗng.');
+  }
+
+  return { terms, errors };
+};
+
+function AiAttributeTermsImportDialog({
+  groupName,
+  filterType,
+  inputType,
+  onApply,
+}: {
+  groupName: string;
+  filterType: string;
+  inputType: string;
+  onApply: (terms: PendingTerm[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [rawJson, setRawJson] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
+  const [lastCopied, setLastCopied] = useState<'prompt' | 'sample' | null>(null);
+
+  const sample = useMemo(() => JSON.stringify({
+    terms: [
+      { name: 'Pinot Noir', slug: 'pinot-noir', description: 'Giống nho đỏ thanh lịch, thường có hương trái đỏ và cấu trúc nhẹ đến vừa.' },
+      { name: 'Chardonnay', slug: 'chardonnay', description: 'Giống nho trắng phổ biến, linh hoạt từ phong cách tươi sáng đến béo ngậy.' },
+      { name: 'Tempranillo', slug: 'tempranillo', description: 'Giống nho đỏ đặc trưng Tây Ban Nha, hợp vang có hương trái chín và gia vị.' },
+    ],
+  }, null, 2), []);
+
+  const prompt = useMemo(() => {
+    const resolvedName = groupName.trim() || 'Nhóm thuộc tính sản phẩm';
+    return `Bạn là chuyên gia taxonomy ecommerce. Hãy tạo danh sách giá trị thuộc tính cho website bán hàng.
+
+Nhóm thuộc tính hiện tại:
+- Tên nhóm: ${resolvedName}
+- Kiểu lọc: ${filterType}
+- Kiểu hiển thị: ${filterType === 'range' ? 'range slider' : inputType}
+
+Yêu cầu rất quan trọng:
+- Chỉ tạo các item thực sự thuộc nhóm "${resolvedName}", không trộn sang nhóm khác.
+- Nếu nhóm là "Giống nho" thì chỉ trả về giống nho như Pinot Noir, Chardonnay, Tempranillo; không trả về quốc gia, loại rượu, dung tích hay khoảng giá.
+- Nếu nhóm là "Quốc gia" thì chỉ trả về quốc gia/vùng xuất xứ; không trả về giống nho.
+- Nếu nhóm là "Dung tích" hoặc kiểu lọc range, name nên có số và đơn vị rõ như "750ml", "1500ml"; không bịa range marketing.
+- Nếu nhóm là "Khoảng giá" thì chỉ trả về các nấc giá có ý nghĩa mua hàng, ví dụ "Dưới 500k", "Từ 500k đến 1 triệu".
+- Không dùng emoji, không thêm text giải thích ngoài JSON.
+- Slug phải lowercase-kebab-case, không dấu, không ký tự đặc biệt.
+- Description ngắn 1 câu, dùng được trong UI/SEO nhẹ, không bịa chứng nhận hay số liệu.
+- Số lượng hợp lý: 8-20 item, ưu tiên phổ biến và dễ hiểu.
+
+Chỉ trả về JSON đúng schema:
+{
+  "terms": [
+    {
+      "name": "Tên giá trị",
+      "slug": "ten-gia-tri",
+      "description": "Mô tả ngắn optional"
+    }
+  ]
+}`;
+  }, [filterType, groupName, inputType]);
+
+  const copyText = async (value: string, type: 'prompt' | 'sample') => {
+    await navigator.clipboard.writeText(value);
+    setLastCopied(type);
+    toast.success(type === 'prompt' ? 'Đã copy prompt AI' : 'Đã copy JSON mẫu');
+  };
+
+  const handleApply = () => {
+    const result = parseTermsPayload(rawJson);
+    setErrors(result.errors);
+    if (result.errors.length > 0) {return;}
+    onApply(result.terms);
+    toast.success(`Đã nạp ${result.terms.length} giá trị thuộc tính`);
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <Button type="button" variant="outline" onClick={() => setOpen(true)} className="gap-2">
+        <Bot size={16} />
+        Import AI giá trị
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Import AI giá trị thuộc tính</DialogTitle>
+            <DialogDescription>
+              Copy prompt để AI tạo JSON, dán kết quả vào ô dưới rồi áp dụng vào danh sách giá trị chờ tạo.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Prompt cẩn thận</Label>
+                <Button type="button" variant="ghost" size="sm" onClick={() => copyText(prompt, 'prompt')} className="gap-1">
+                  {lastCopied === 'prompt' ? <Check size={14} /> : <Copy size={14} />}
+                  Copy
+                </Button>
+              </div>
+              <textarea
+                readOnly
+                value={prompt}
+                className="h-72 w-full rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-relaxed text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>JSON AI trả về</Label>
+                <Button type="button" variant="ghost" size="sm" onClick={() => copyText(sample, 'sample')} className="gap-1">
+                  {lastCopied === 'sample' ? <Check size={14} /> : <Copy size={14} />}
+                  JSON mẫu
+                </Button>
+              </div>
+              <textarea
+                value={rawJson}
+                onChange={(event) => {
+                  setRawJson(event.target.value);
+                  setErrors([]);
+                }}
+                placeholder={sample}
+                className="h-72 w-full rounded-md border border-slate-200 bg-white p-3 font-mono text-xs leading-relaxed text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+              />
+              {errors.length > 0 && (
+                <div className="rounded-md border border-red-200 bg-red-50 p-2 text-xs text-red-700">
+                  {errors.map(error => <div key={error}>- {error}</div>)}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Đóng</Button>
+            <Button type="button" variant="accent" onClick={handleApply}>Áp dụng vào form</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 export default function AttributeGroupCreatePage() {
   const router = useRouter();
   const createGroup = useMutation(api.attributeGroups.create);
+  const createTerm = useMutation(api.attributeTerms.create);
 
   // Query site brand colors
   const primarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_primary' });
@@ -40,17 +256,34 @@ export default function AttributeGroupCreatePage() {
   const [isFilterable, setIsFilterable] = useState(true);
   const [iconName, setIconName] = useState('Wine');
   const [iconColor, setIconColor] = useState('#ea580c');
+  const [pendingTerms, setPendingTerms] = useState<PendingTerm[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const hasChanges = Boolean(
+    name.trim() ||
+    code.trim() ||
+    slug.trim() ||
+    filterType !== 'single' ||
+    inputType !== 'select' ||
+    isFilterable !== true ||
+    iconName !== 'Wine' ||
+    iconColor !== '#ea580c' ||
+    pendingTerms.length > 0
+  );
+
+  useUnsavedGuard(hasChanges);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setName(val);
-    const generatedSlug = val.toLowerCase()
-      .normalize("NFD").replaceAll(/[\u0300-\u036F]/g, "")
-      .replaceAll(/[đĐ]/g, "d")
-      .replaceAll(/[^a-z0-9\s]/g, '')
-      .replaceAll(/\s+/g, '-');
-    setSlug(generatedSlug);
+    setSlug(slugify(val));
+  };
+
+  const handleApplyAiTerms = (terms: PendingTerm[]) => {
+    setPendingTerms(prev => {
+      const map = new Map(prev.map(term => [term.slug, term]));
+      terms.forEach(term => map.set(term.slug, term));
+      return Array.from(map.values());
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,7 +292,7 @@ export default function AttributeGroupCreatePage() {
 
     setIsSubmitting(true);
     try {
-      await createGroup({
+      const groupId = await createGroup({
         name: name.trim(),
         code: code.trim(),
         slug: slug.trim(),
@@ -69,6 +302,17 @@ export default function AttributeGroupCreatePage() {
         iconPath: iconName,
         displayConfig: { iconColor, color: iconColor },
       });
+      for (let i = 0; i < pendingTerms.length; i++) {
+        const term = pendingTerms[i];
+        await createTerm({
+          groupId,
+          name: term.name,
+          slug: term.slug,
+          description: term.description,
+          active: true,
+          order: i,
+        });
+      }
       toast.success('Tạo nhóm thuộc tính thành công');
       router.push('/admin/attribute-groups');
     } catch (error) {
@@ -87,6 +331,12 @@ export default function AttributeGroupCreatePage() {
             Quay lại danh sách
           </Link>
         </div>
+        <AiAttributeTermsImportDialog
+          groupName={name}
+          filterType={filterType}
+          inputType={inputType}
+          onApply={handleApplyAiTerms}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -209,21 +459,77 @@ export default function AttributeGroupCreatePage() {
                     </Label>
                   </div>
                 </div>
+
+                <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <Label>Giá trị thuộc tính chờ tạo</Label>
+                      <p className="text-xs text-slate-500">Dùng Import AI để thêm nhanh các option như giống nho, quốc gia, dung tích...</p>
+                    </div>
+                    <AiAttributeTermsImportDialog
+                      groupName={name}
+                      filterType={filterType}
+                      inputType={inputType}
+                      onApply={handleApplyAiTerms}
+                    />
+                  </div>
+                  {pendingTerms.length === 0 ? (
+                    <div className="rounded-lg border border-dashed border-slate-200 p-3 text-sm text-slate-500 dark:border-slate-800">
+                      Chưa có giá trị nào. Bạn có thể tạo nhóm trước rồi thêm sau, hoặc import AI để tạo cùng lúc.
+                    </div>
+                  ) : (
+                    <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-slate-100 p-2 dark:border-slate-800">
+                      {pendingTerms.map((term, index) => (
+                        <div key={term.slug} className="flex items-start justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 dark:bg-slate-900/60">
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{index + 1}. {term.name}</div>
+                            <div className="font-mono text-xs text-slate-500">{term.slug}</div>
+                            {term.description && <div className="mt-1 line-clamp-2 text-xs text-slate-500">{term.description}</div>}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="text-red-500 hover:text-red-600"
+                            onClick={() => setPendingTerms(prev => prev.filter(item => item.slug !== term.slug))}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
               
-              <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 rounded-b-lg flex justify-end gap-3">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  onClick={() =>{  router.push('/admin/attribute-groups'); }}
-                >
-                  Hủy bỏ
-                </Button>
-                <Button type="submit" variant="accent" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}
-                  Tạo nhóm thuộc tính
-                </Button>
-              </div>
+              <HomeComponentStickyFooter
+                isSubmitting={isSubmitting}
+                hasChanges={hasChanges}
+                submitLabel="Tạo nhóm thuộc tính"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <Button 
+                    type="button" 
+                    variant="ghost" 
+                    onClick={() =>{  router.push('/admin/attribute-groups'); }}
+                    disabled={isSubmitting}
+                  >
+                    Hủy bỏ
+                  </Button>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <AiAttributeTermsImportDialog
+                      groupName={name}
+                      filterType={filterType}
+                      inputType={inputType}
+                      onApply={handleApplyAiTerms}
+                    />
+                    <Button type="submit" variant="accent" disabled={isSubmitting || !name.trim() || !slug.trim() || !code.trim()}>
+                      {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}
+                      Tạo nhóm thuộc tính
+                    </Button>
+                  </div>
+                </div>
+              </HomeComponentStickyFooter>
             </form>
           </Card>
         </div>
@@ -235,6 +541,7 @@ export default function AttributeGroupCreatePage() {
             inputType={inputType}
             iconName={iconName}
             iconColor={iconColor}
+            terms={pendingTerms.map((term, index) => ({ _id: term.slug, name: term.name, slug: term.slug, order: index }))}
           />
         </div>
       </div>
