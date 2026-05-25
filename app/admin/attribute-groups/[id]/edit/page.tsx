@@ -9,7 +9,7 @@ import type { Id } from '@/convex/_generated/dataModel';
 import { Loader2, GripVertical, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
-import { Button, Card, CardContent, Input, Label, cn } from '../../../components/ui';
+import { Badge, Button, Card, CardContent, Input, Label, cn } from '../../../components/ui';
 import { IconPopoverPicker } from '../../../home-components/_shared/components/IconPopoverPicker';
 import { ATTRIBUTE_ICON_OPTIONS } from '../../_lib/iconRegistry';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -27,7 +27,8 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
 
   const groupData = useQuery(api.attributeGroups.getById, { id: id as Id<"attributeGroups"> });
   const updateGroup = useMutation(api.attributeGroups.update);
-  const assignedType = useQuery(api.attributeGroups.getFirstAssignedProductType, { groupId: id as Id<"attributeGroups"> });
+  const assignedTypes = useQuery(api.attributeGroups.listAssignedProductTypes, { groupId: id as Id<"attributeGroups"> });
+  const assignedType = assignedTypes?.find(type => type.active) ?? assignedTypes?.[0] ?? null;
 
   // Query site brand colors
   const primarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_primary' });
@@ -302,6 +303,41 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
                 </div>
               </HomeComponentStickyFooter>
             </form>
+          </Card>
+
+          <Card className="mt-6">
+            <CardContent className="p-6 space-y-3">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Loại sản phẩm đang dùng nhóm này</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Nhóm thuộc tính chỉ tạo route SEO khi được gán vào ít nhất một loại sản phẩm.
+                </p>
+              </div>
+
+              {assignedTypes === undefined ? (
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Loader2 size={14} className="animate-spin" />
+                  Đang tải loại sản phẩm...
+                </div>
+              ) : assignedTypes.length === 0 ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+                  Chưa được gán vào loại sản phẩm nào. Route SEO dạng <span className="font-mono">/loai-san-pham/{slug}</span> chưa sẵn sàng để mở ngoài site.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {assignedTypes.map(type => (
+                    <Link
+                      key={type._id}
+                      href={`/admin/product-types/${type._id}/edit`}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition-colors hover:border-orange-300 hover:text-orange-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300"
+                    >
+                      {type.name}
+                      {!type.active && <Badge variant="secondary" className="text-[10px]">Ẩn</Badge>}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CardContent>
           </Card>
         </div>
 

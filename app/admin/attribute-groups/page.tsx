@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { ChevronDown, Edit, FolderTree, Plus, Search, Trash2 } from 'lucide-react';
+import { ChevronDown, Edit, ExternalLink, FolderTree, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAttributeIconComponent } from './_lib/iconRegistry';
 import { Badge, Button, Card, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui';
@@ -91,8 +91,6 @@ function AttributeGroupsContent() {
       : 'skip'
   );
 
-  const isTableLoading = categoriesData === undefined || totalCountData === undefined || productsData === undefined;
-
   useEffect(() => {
     if (selectAllData?.hasMore) {
       toast.info('Đã chọn tối đa 5.000 nhóm thuộc tính phù hợp.');
@@ -104,12 +102,26 @@ function AttributeGroupsContent() {
       id: cat._id,
       count: 0,
     })) ?? [], [categoriesData]);
+  const categoryIds = useMemo(() => categories.map(cat => cat.id as Id<"attributeGroups">), [categories]);
+  const assignedTypesData = useQuery(
+    api.attributeGroups.listAssignedProductTypesForGroups,
+    categoryIds.length > 0 ? { groupIds: categoryIds } : 'skip'
+  );
+  const assignedTypesByGroup = useMemo(() => {
+    const map = new Map<string, NonNullable<typeof assignedTypesData>[number]['productTypes']>();
+    assignedTypesData?.forEach(row => {
+      map.set(row.groupId, row.productTypes);
+    });
+    return map;
+  }, [assignedTypesData]);
+  const isTableLoading = categoriesData === undefined || totalCountData === undefined || productsData === undefined || (categoryIds.length > 0 && assignedTypesData === undefined);
 
   const columns = [
     { key: 'select', label: 'Chọn' },
     { key: 'name', label: 'Tên nhóm thuộc tính', required: true },
     { key: 'slug', label: 'Slug' },
     { key: 'code', label: 'Mã' },
+    { key: 'productTypes', label: 'Loại sản phẩm' },
     { key: 'actions', label: 'Hành động', required: true }
   ];
   const resolvedVisibleColumns = visibleColumns.length > 0 ? visibleColumns : columns.map(c => c.key);
@@ -249,6 +261,7 @@ function AttributeGroupsContent() {
               {resolvedVisibleColumns.includes('name') && <SortableHeader label="Tên nhóm thuộc tính" sortKey="name" sortConfig={sortConfig} onSort={handleSort} />}
               {resolvedVisibleColumns.includes('slug') && <SortableHeader label="Slug" sortKey="slug" sortConfig={sortConfig} onSort={handleSort} />}
               {resolvedVisibleColumns.includes('code') && <SortableHeader label="Mã" sortKey="code" sortConfig={sortConfig} onSort={handleSort} className="text-center" />}
+              {resolvedVisibleColumns.includes('productTypes') && <TableHead>Loại sản phẩm</TableHead>}
               {resolvedVisibleColumns.includes('actions') && <TableHead className="text-right">Hành động</TableHead>}
             </TableRow>
           </TableHeader>
@@ -282,9 +295,44 @@ function AttributeGroupsContent() {
                 )}
                 {resolvedVisibleColumns.includes('slug') && <TableCell className="text-slate-500 font-mono text-sm">{cat.slug}</TableCell>}
                 {resolvedVisibleColumns.includes('code') && <TableCell className="text-center"><Badge variant="secondary">{cat.code}</Badge></TableCell>}
+                {resolvedVisibleColumns.includes('productTypes') && (
+                  <TableCell>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(assignedTypesByGroup.get(cat.id) ?? []).slice(0, 3).map(type => (
+                        <Link
+                          key={type._id}
+                          href={`/admin/product-types/${type._id}/edit`}
+                          className="inline-flex items-center rounded-full border border-slate-200 px-2 py-0.5 text-xs text-slate-600 hover:border-orange-300 hover:text-orange-700"
+                        >
+                          {type.name}
+                        </Link>
+                      ))}
+                      {(assignedTypesByGroup.get(cat.id)?.length ?? 0) > 3 && (
+                        <Badge variant="secondary">+{(assignedTypesByGroup.get(cat.id)?.length ?? 0) - 3}</Badge>
+                      )}
+                      {assignedTypesData !== undefined && (assignedTypesByGroup.get(cat.id)?.length ?? 0) === 0 && (
+                        <span className="text-xs text-slate-400">Chưa gán</span>
+                      )}
+                    </div>
+                  </TableCell>
+                )}
                 {resolvedVisibleColumns.includes('actions') && (
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      {(() => {
+                        const firstType = assignedTypesByGroup.get(cat.id)?.find(type => type.active) ?? assignedTypesByGroup.get(cat.id)?.[0];
+                        const href = firstType ? `/${firstType.slug}/${cat.slug}` : `/products/${cat.slug}`;
+                        return (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title={firstType ? 'Mở nhóm thuộc tính ngoài site' : 'Mở trang sản phẩm với filter group'}
+                            onClick={() => window.open(href, '_blank')}
+                          >
+                            <ExternalLink size={16}/>
+                          </Button>
+                        );
+                      })()}
                       <Link href={`/admin/attribute-groups/${cat.id}/edit`}><Button variant="ghost" size="icon"><Edit size={16}/></Button></Link>
                       <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={ async () => handleDelete(cat.id as Id<"attributeGroups">)}><Trash2 size={16}/></Button>
                     </div>

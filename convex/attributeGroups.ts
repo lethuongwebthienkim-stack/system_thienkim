@@ -288,3 +288,65 @@ export const getFirstAssignedProductType = query({
     v.null()
   ),
 });
+
+const assignedProductTypeDoc = v.object({
+  _id: v.id("productTypes"),
+  active: v.boolean(),
+  name: v.string(),
+  slug: v.string(),
+});
+
+export const listAssignedProductTypes = query({
+  args: { groupId: v.id("attributeGroups") },
+  handler: async (ctx, args) => {
+    const mappings = await ctx.db
+      .query("productTypeAttributeGroups")
+      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
+      .collect();
+
+    const types = await Promise.all(mappings.map((mapping) => ctx.db.get(mapping.typeId)));
+    return types
+      .filter((type): type is NonNullable<typeof type> => Boolean(type))
+      .map((type) => ({
+        _id: type._id,
+        active: type.active,
+        name: type.name,
+        slug: type.slug,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  },
+  returns: v.array(assignedProductTypeDoc),
+});
+
+export const listAssignedProductTypesForGroups = query({
+  args: { groupIds: v.array(v.id("attributeGroups")) },
+  handler: async (ctx, args) => {
+    const groupIdSet = new Set(args.groupIds);
+    const rows = await Promise.all(
+      args.groupIds.map(async (groupId) => {
+        const mappings = await ctx.db
+          .query("productTypeAttributeGroups")
+          .withIndex("by_group", (q) => q.eq("groupId", groupId))
+          .collect();
+        const types = await Promise.all(mappings.map((mapping) => ctx.db.get(mapping.typeId)));
+        return {
+          groupId,
+          productTypes: types
+            .filter((type): type is NonNullable<typeof type> => Boolean(type))
+            .map((type) => ({
+              _id: type._id,
+              active: type.active,
+              name: type.name,
+              slug: type.slug,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
+        };
+      })
+    );
+    return rows.filter((row) => groupIdSet.has(row.groupId));
+  },
+  returns: v.array(v.object({
+    groupId: v.id("attributeGroups"),
+    productTypes: v.array(assignedProductTypeDoc),
+  })),
+});

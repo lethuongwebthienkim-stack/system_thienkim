@@ -90,8 +90,6 @@ function ProductTypesContent() {
       : 'skip'
   );
 
-  const isTableLoading = categoriesData === undefined || totalCountData === undefined || productsData === undefined;
-
   useEffect(() => {
     if (selectAllData?.hasMore) {
       toast.info('Đã chọn tối đa 5.000 kiểu phù hợp.');
@@ -113,12 +111,26 @@ function ProductTypesContent() {
       id: cat._id,
       count: productCountMap[cat._id] || 0,
     })) ?? [], [categoriesData, productCountMap]);
+  const categoryIds = useMemo(() => categories.map(cat => cat.id as Id<"productTypes">), [categories]);
+  const assignedGroupCountsData = useQuery(
+    api.productTypes.listAssignedGroupCounts,
+    categoryIds.length > 0 ? { typeIds: categoryIds } : 'skip'
+  );
+  const assignedGroupCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    assignedGroupCountsData?.forEach(row => {
+      map.set(row.typeId, row.count);
+    });
+    return map;
+  }, [assignedGroupCountsData]);
+  const isTableLoading = categoriesData === undefined || totalCountData === undefined || productsData === undefined || (categoryIds.length > 0 && assignedGroupCountsData === undefined);
 
   const columns = [
     { key: 'select', label: 'Chọn' },
     { key: 'name', label: 'Tên kiểu', required: true },
     { key: 'slug', label: 'Slug' },
     { key: 'count', label: 'Số sản phẩm' },
+    { key: 'attributeCount', label: 'Số thuộc tính lọc' },
     { key: 'status', label: 'Trạng thái' },
     { key: 'actions', label: 'Hành động', required: true }
   ];
@@ -263,6 +275,7 @@ function ProductTypesContent() {
               {resolvedVisibleColumns.includes('name') && <SortableHeader label="Tên kiểu" sortKey="name" sortConfig={sortConfig} onSort={handleSort} />}
               {resolvedVisibleColumns.includes('slug') && <SortableHeader label="Slug" sortKey="slug" sortConfig={sortConfig} onSort={handleSort} />}
               {resolvedVisibleColumns.includes('count') && <SortableHeader label="Số sản phẩm" sortKey="count" sortConfig={sortConfig} onSort={handleSort} className="text-center" />}
+              {resolvedVisibleColumns.includes('attributeCount') && <TableHead className="text-center">Số thuộc tính lọc</TableHead>}
               {resolvedVisibleColumns.includes('status') && <SortableHeader label="Trạng thái" sortKey="status" sortConfig={sortConfig} onSort={handleSort} />}
               {resolvedVisibleColumns.includes('actions') && <TableHead className="text-right">Hành động</TableHead>}
             </TableRow>
@@ -293,6 +306,11 @@ function ProductTypesContent() {
                 )}
                 {resolvedVisibleColumns.includes('slug') && <TableCell className="text-slate-500 font-mono text-sm">{cat.slug}</TableCell>}
                 {resolvedVisibleColumns.includes('count') && <TableCell className="text-center"><Badge variant="secondary">{cat.count}</Badge></TableCell>}
+                {resolvedVisibleColumns.includes('attributeCount') && (
+                  <TableCell className="text-center">
+                    <Badge variant="secondary">{assignedGroupCountMap.get(cat.id) ?? 0}</Badge>
+                  </TableCell>
+                )}
                 {resolvedVisibleColumns.includes('status') && (
                   <TableCell>
                     <Badge variant={cat.active ? 'success' : 'secondary'}>{cat.active ? 'Hoạt động' : 'Ẩn'}</Badge>

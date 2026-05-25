@@ -339,6 +339,26 @@ export const listAssignedGroups = query({
   },
 });
 
+export const listAssignedGroupCounts = query({
+  args: { typeIds: v.array(v.id("productTypes")) },
+  handler: async (ctx, args) => {
+    const rows = await Promise.all(
+      args.typeIds.map(async (typeId) => {
+        const mappings = await ctx.db
+          .query("productTypeAttributeGroups")
+          .withIndex("by_type", (q) => q.eq("typeId", typeId))
+          .collect();
+        return { typeId, count: mappings.length };
+      })
+    );
+    return rows;
+  },
+  returns: v.array(v.object({
+    typeId: v.id("productTypes"),
+    count: v.number(),
+  })),
+});
+
 export const listAssignedCategories = query({
   args: { typeId: v.id("productTypes") },
   handler: async (ctx, args) => {
