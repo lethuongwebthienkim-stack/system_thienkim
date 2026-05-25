@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getAttributeIconComponent } from '../_lib/iconRegistry';
-import { Card, CardContent, Button } from '../../components/ui';
+import { Card, CardContent, Button, cn } from '../../components/ui';
 import { ChevronDown, Check } from 'lucide-react';
 
 interface AttributeGroupPreviewProps {
@@ -11,6 +11,12 @@ interface AttributeGroupPreviewProps {
   inputType: string;
   iconName?: string;
   iconColor?: string;
+  terms?: {
+    _id: string;
+    name: string;
+    slug: string;
+    order: number;
+  }[];
 }
 
 export function AttributeGroupPreview({
@@ -18,7 +24,8 @@ export function AttributeGroupPreview({
   filterType,
   inputType,
   iconName = 'Wine',
-  iconColor = '#ea580c'
+  iconColor = '#ea580c',
+  terms = []
 }: AttributeGroupPreviewProps) {
   // Lấy Icon component động
   const IconComponent = getAttributeIconComponent(iconName);
@@ -27,7 +34,7 @@ export function AttributeGroupPreview({
   const [selectedTerms, setSelectedTerms] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Reset selected terms when switching filter type
+  // Reset selected terms khi đổi kiểu
   useEffect(() => {
     setSelectedTerms([]);
     setIsDropdownOpen(false);
@@ -35,7 +42,41 @@ export function AttributeGroupPreview({
 
   const displayGroupName = name.trim() || 'Tên nhóm thuộc tính';
 
-  // Mockup data cho từng loại
+  // Hàm map/sinh màu hex thông minh từ tên
+  const getColorCode = (termName: string) => {
+    const lower = termName.toLowerCase().trim();
+    if (lower.startsWith('#')) return termName;
+    const colorMap: Record<string, string> = {
+      'đỏ': '#ef4444',
+      'đỏ ruby': '#991b1b',
+      'xanh': '#3b82f6',
+      'xanh lá': '#22c55e',
+      'vàng': '#eab308',
+      'cam': '#f97316',
+      'tím': '#a855f7',
+      'hồng': '#ec4899',
+      'đen': '#0f172a',
+      'trắng': '#ffffff',
+      'xám': '#64748b',
+      'nâu': '#78350f',
+    };
+    for (const [key, val] of Object.entries(colorMap)) {
+      if (lower.includes(key)) return val;
+    }
+    // Fallback: sinh màu từ hash tên
+    let hash = 0;
+    for (let i = 0; i < termName.length; i++) {
+      hash = termName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    let color = '#';
+    for (let i = 0; i < 3; i++) {
+      const value = (hash >> (i * 8)) & 0xFF;
+      color += ('00' + value.toString(16)).slice(-2);
+    }
+    return color;
+  };
+
+  // Mockup data mặc định khi chưa có values thực tế
   const mockOptions = {
     select: [
       { id: '1', label: 'Tất cả', value: 'all' },
@@ -62,6 +103,27 @@ export function AttributeGroupPreview({
     ]
   };
 
+  const hasRealTerms = terms.length > 0;
+
+  // Lấy danh sách options thực tế hoặc mockup
+  const getResolvedOptions = () => {
+    if (hasRealTerms) {
+      if (inputType === 'select') {
+        return [
+          { id: 'all', label: 'Tất cả', value: 'all' },
+          ...terms.map(t => ({ id: t._id, label: t.name, value: t.slug }))
+        ];
+      } else if (inputType === 'color') {
+        return terms.map(t => ({ id: t._id, label: t.name, color: getColorCode(t.name) }));
+      } else {
+        return terms.map(t => ({ id: t._id, label: t.name, value: t.slug }));
+      }
+    }
+    return mockOptions[inputType as keyof typeof mockOptions] || [];
+  };
+
+  const resolvedOptions = getResolvedOptions();
+
   const handleSelectTerm = (id: string) => {
     if (filterType === 'multiple') {
       setSelectedTerms(prev => 
@@ -74,10 +136,12 @@ export function AttributeGroupPreview({
 
   const getDropdownLabel = () => {
     if (selectedTerms.length === 0) return 'Chọn giá trị...';
-    const found = mockOptions.select.filter(item => selectedTerms.includes(item.id));
+    const found = resolvedOptions.filter(item => selectedTerms.includes(item.id));
     if (found.length === 0) return 'Chọn giá trị...';
-    return found.map(f => f.label).join(', ');
+    return found.map(f => 'label' in f ? f.label : '').filter(Boolean).join(', ');
   };
+
+  const isWhiteColor = iconColor.toLowerCase() === '#ffffff';
 
   return (
     <Card className="border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden h-full">
@@ -95,7 +159,12 @@ export function AttributeGroupPreview({
           
           {/* Header nhóm thuộc tính */}
           <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800/50">
-            <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+            <div className={cn(
+              "p-1.5 rounded-lg border transition-all",
+              isWhiteColor 
+                ? "bg-slate-950 text-white border-slate-800 shadow-inner" 
+                : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800"
+            )}>
               <IconComponent size={18} style={{ color: iconColor }} />
             </div>
             <div className="flex-1 min-w-0">
@@ -122,7 +191,8 @@ export function AttributeGroupPreview({
 
                 {isDropdownOpen && (
                   <div className="absolute left-0 right-0 mt-1 z-20 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg p-1 space-y-0.5">
-                    {mockOptions.select.map(opt => {
+                    {resolvedOptions.map(opt => {
+                      if (!('label' in opt)) return null;
                       const isSelected = selectedTerms.includes(opt.id);
                       return (
                         <button
@@ -151,7 +221,8 @@ export function AttributeGroupPreview({
             {/* Kiểu BUTTONS */}
             {inputType === 'buttons' && (
               <div className="flex flex-wrap gap-2">
-                {mockOptions.buttons.map(opt => {
+                {resolvedOptions.map(opt => {
+                  if (!('label' in opt)) return null;
                   const isSelected = selectedTerms.includes(opt.id);
                   return (
                     <button
@@ -174,23 +245,25 @@ export function AttributeGroupPreview({
             {/* Kiểu COLOR */}
             {inputType === 'color' && (
               <div className="flex flex-wrap gap-3">
-                {mockOptions.color.map(opt => {
+                {resolvedOptions.map(opt => {
+                  if (!('color' in opt)) return null;
                   const isSelected = selectedTerms.includes(opt.id);
+                  const isWhiteCircle = opt.color.toLowerCase() === '#ffffff';
                   return (
                     <button
                       key={opt.id}
                       type="button"
                       onClick={() => handleSelectTerm(opt.id)}
-                      title={opt.label}
+                      title={'label' in opt ? opt.label : ''}
                       className={`w-8 h-8 rounded-full border flex items-center justify-center transition-all ${
                         isSelected
                           ? 'border-orange-500 scale-110 ring-2 ring-orange-500/40 shadow-sm'
-                          : 'border-slate-200 dark:border-slate-800 hover:scale-105'
+                          : cn('border-slate-200 dark:border-slate-800 hover:scale-105', isWhiteCircle && 'border-slate-300 dark:border-slate-700')
                       }`}
                       style={{ backgroundColor: opt.color }}
                     >
                       {isSelected && (
-                        <Check size={14} className={opt.color === '#eab308' ? 'text-slate-900' : 'text-white'} />
+                        <Check size={14} className={opt.color === '#eab308' || isWhiteCircle ? 'text-slate-900' : 'text-white'} />
                       )}
                     </button>
                   );
@@ -201,7 +274,8 @@ export function AttributeGroupPreview({
             {/* Kiểu RADIO */}
             {inputType === 'radio' && (
               <div className="space-y-2">
-                {mockOptions.radio.map(opt => {
+                {resolvedOptions.map(opt => {
+                  if (!('label' in opt)) return null;
                   const isSelected = selectedTerms.includes(opt.id);
                   return (
                     <button
@@ -210,7 +284,6 @@ export function AttributeGroupPreview({
                       onClick={() => handleSelectTerm(opt.id)}
                       className="w-full flex items-center gap-3 py-1.5 text-xs text-left text-slate-700 dark:text-slate-300 group hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
                     >
-                      {/* Giả lập nút radio/checkbox */}
                       <div className={`w-4 h-4 flex items-center justify-center transition-all ${
                         filterType === 'multiple' 
                           ? 'rounded border' 
@@ -239,7 +312,11 @@ export function AttributeGroupPreview({
 
         {/* Note chú thích bên dưới */}
         <div className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/50 rounded-lg p-3 max-w-sm mx-auto w-full italic">
-          💡 **Mẹo:** Bạn có thể nhấp chuột trực tiếp vào các nút hoặc dropdown xem trước ở trên để trải nghiệm thử cách admin/khách hàng tương tác với bộ lọc.
+          {hasRealTerms ? (
+            <span>⚡ **Dữ liệu thật:** Preview đang hiển thị đúng {terms.length} giá trị thuộc tính đã lưu của bạn!</span>
+          ) : (
+            <span>💡 **Mẹo:** Bạn có thể nhấp chuột trực tiếp vào các nút hoặc dropdown xem trước ở trên để trải nghiệm thử cách admin/khách hàng tương tác với bộ lọc.</span>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMutation } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,16 +13,24 @@ import { IconPopoverPicker } from '../../home-components/_shared/components/Icon
 import { ATTRIBUTE_ICON_OPTIONS } from '../_lib/iconRegistry';
 import { AttributeGroupPreview } from '../_components/AttributeGroupPreview';
 
-const COLOR_PRESETS = [
-  { label: 'Đen', value: '#000000', class: 'bg-black border-black text-white' },
-  { label: 'Trắng', value: '#ffffff', class: 'bg-white border-slate-200 text-slate-800' },
-  { label: 'Màu chính', value: '#ea580c', class: 'bg-orange-600 border-orange-600 text-white' },
-  { label: 'Màu phụ', value: '#475569', class: 'bg-slate-600 border-slate-600 text-white' }
-];
 
 export default function AttributeGroupCreatePage() {
   const router = useRouter();
   const createGroup = useMutation(api.attributeGroups.create);
+
+  // Query site brand colors
+  const primarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_primary' });
+  const secondarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_secondary' });
+  
+  const brandPrimary = (primarySetting?.value as string) || '#ea580c';
+  const brandSecondary = (secondarySetting?.value as string) || '#475569';
+
+  const colorPresets = [
+    { label: 'Đen', value: '#000000', class: 'bg-black border-black text-white' },
+    { label: 'Trắng', value: '#ffffff', class: 'bg-white border-slate-200 text-slate-800' },
+    { label: 'Màu chính', value: brandPrimary, class: 'text-white', style: { backgroundColor: brandPrimary, borderColor: brandPrimary } },
+    { label: 'Màu phụ', value: brandSecondary, class: 'text-white', style: { backgroundColor: brandSecondary, borderColor: brandSecondary } }
+  ];
 
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -156,11 +164,12 @@ export default function AttributeGroupCreatePage() {
                 <div className="space-y-2">
                   <Label>Màu sắc icon</Label>
                   <div className="flex gap-2 mb-2 flex-wrap">
-                    {COLOR_PRESETS.map((p) => (
+                    {colorPresets.map((p) => (
                       <button
                         key={p.value}
                         type="button"
                         onClick={() => setIconColor(p.value)}
+                        style={p.style}
                         className={`px-3 py-1.5 rounded text-xs font-medium border transition-all ${p.class} ${iconColor === p.value ? 'ring-2 ring-orange-500 scale-105 shadow-md' : 'opacity-80 hover:opacity-100'}`}
                       >
                         {p.label}

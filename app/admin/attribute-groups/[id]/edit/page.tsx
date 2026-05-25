@@ -18,12 +18,6 @@ import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, v
 import { CSS } from '@dnd-kit/utilities';
 import { AttributeGroupPreview } from '../../_components/AttributeGroupPreview';
 
-const COLOR_PRESETS = [
-  { label: 'Đen', value: '#000000', class: 'bg-black border-black text-white' },
-  { label: 'Trắng', value: '#ffffff', class: 'bg-white border-slate-200 text-slate-800' },
-  { label: 'Màu chính', value: '#ea580c', class: 'bg-orange-600 border-orange-600 text-white' },
-  { label: 'Màu phụ', value: '#475569', class: 'bg-slate-600 border-slate-600 text-white' }
-];
 
 export default function AttributeGroupEditPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -31,6 +25,23 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
 
   const groupData = useQuery(api.attributeGroups.getById, { id: id as Id<"attributeGroups"> });
   const updateGroup = useMutation(api.attributeGroups.update);
+
+  // Query site brand colors
+  const primarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_primary' });
+  const secondarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_secondary' });
+  
+  // Query terms thực tế của nhóm thuộc tính
+  const terms = useQuery(api.attributeTerms.listByGroup, { groupId: id as Id<"attributeGroups"> });
+
+  const brandPrimary = (primarySetting?.value as string) || '#ea580c';
+  const brandSecondary = (secondarySetting?.value as string) || '#475569';
+
+  const colorPresets = [
+    { label: 'Đen', value: '#000000', class: 'bg-black border-black text-white' },
+    { label: 'Trắng', value: '#ffffff', class: 'bg-white border-slate-200 text-slate-800' },
+    { label: 'Màu chính', value: brandPrimary, class: 'text-white', style: { backgroundColor: brandPrimary, borderColor: brandPrimary } },
+    { label: 'Màu phụ', value: brandSecondary, class: 'text-white', style: { backgroundColor: brandSecondary, borderColor: brandSecondary } }
+  ];
 
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
@@ -182,11 +193,12 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
                 <div className="space-y-2">
                   <Label>Màu sắc icon</Label>
                   <div className="flex gap-2 mb-2 flex-wrap">
-                    {COLOR_PRESETS.map((p) => (
+                    {colorPresets.map((p) => (
                       <button
                         key={p.value}
                         type="button"
                         onClick={() => setIconColor(p.value)}
+                        style={p.style}
                         className={`px-3 py-1.5 rounded text-xs font-medium border transition-all ${p.class} ${iconColor === p.value ? 'ring-2 ring-orange-500 scale-105 shadow-md' : 'opacity-80 hover:opacity-100'}`}
                       >
                         {p.label}
@@ -250,11 +262,12 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
             inputType={inputType}
             iconName={iconName}
             iconColor={iconColor}
+            terms={terms}
           />
         </div>
       </div>
 
-      <AttributeTermsManager groupId={id as Id<"attributeGroups">} />
+      <AttributeTermsManager groupId={id as Id<"attributeGroups">} terms={terms} />
     </div>
   );
 }
@@ -303,8 +316,7 @@ function SortableTermRow({ term, onRemove }: SortableTermRowProps) {
   );
 }
 
-function AttributeTermsManager({ groupId }: { groupId: Id<"attributeGroups"> }) {
-  const terms = useQuery(api.attributeTerms.listByGroup, { groupId });
+function AttributeTermsManager({ groupId, terms }: { groupId: Id<"attributeGroups">; terms?: any[] }) {
   const createTerm = useMutation(api.attributeTerms.create);
   const removeTerm = useMutation(api.attributeTerms.remove);
   const reorderTerms = useMutation(api.attributeTerms.reorder);
@@ -317,6 +329,17 @@ function AttributeTermsManager({ groupId }: { groupId: Id<"attributeGroups"> }) 
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+
+  const handleTermNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setName(val);
+    const generatedSlug = val.toLowerCase()
+      .normalize("NFD").replaceAll(/[\u0300-\u036F]/g, "")
+      .replaceAll(/[đĐ]/g, "d")
+      .replaceAll(/[^a-z0-9\s]/g, '')
+      .replaceAll(/\s+/g, '-');
+    setSlug(generatedSlug);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -377,7 +400,7 @@ function AttributeTermsManager({ groupId }: { groupId: Id<"attributeGroups"> }) 
         <form onSubmit={handleCreate} className="flex gap-4 items-end mb-6">
           <div className="space-y-1 flex-1">
             <Label className="text-xs">Tên giá trị</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="VD: Đỏ, XL..." />
+            <Input value={name} onChange={handleTermNameChange} required placeholder="VD: Đỏ, XL..." />
           </div>
           <div className="space-y-1 flex-1">
             <Label className="text-xs">Slug</Label>
