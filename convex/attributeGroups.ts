@@ -268,3 +268,23 @@ export const listFilterable = query({
     })
   ),
 });
+
+export const getFirstAssignedProductType = query({
+  args: { groupId: v.id("attributeGroups") },
+  handler: async (ctx, args) => {
+    const mapping = await ctx.db
+      .query("productTypeAttributeGroups")
+      .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
+      .first();
+    if (!mapping) return null;
+    const type = await ctx.db.get(mapping.typeId);
+    return type ? { slug: type.slug, name: type.name } : null;
+  },
+  returns: v.union(
+    v.object({
+      slug: v.string(),
+      name: v.string(),
+    }),
+    v.null()
+  ),
+});

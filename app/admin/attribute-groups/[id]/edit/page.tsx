@@ -27,6 +27,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
 
   const groupData = useQuery(api.attributeGroups.getById, { id: id as Id<"attributeGroups"> });
   const updateGroup = useMutation(api.attributeGroups.update);
+  const assignedType = useQuery(api.attributeGroups.getFirstAssignedProductType, { groupId: id as Id<"attributeGroups"> });
 
   // Query site brand colors
   const primarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_primary' });
@@ -303,7 +304,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
         </div>
       </div>
 
-      <AttributeTermsManager groupId={id as Id<"attributeGroups">} terms={terms} groupSlug={slug} />
+      <AttributeTermsManager groupId={id as Id<"attributeGroups">} terms={terms} groupSlug={slug} assignedTypeSlug={assignedType?.slug || null} />
     </div>
   );
 }
@@ -317,9 +318,10 @@ interface SortableTermRowProps {
   };
   onRemove: (id: Id<"attributeTerms">) => void;
   groupSlug: string;
+  assignedTypeSlug: string | null;
 }
 
-function SortableTermRow({ term, onRemove, groupSlug }: SortableTermRowProps) {
+function SortableTermRow({ term, onRemove, groupSlug, assignedTypeSlug }: SortableTermRowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: term._id });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
@@ -351,7 +353,12 @@ function SortableTermRow({ term, onRemove, groupSlug }: SortableTermRowProps) {
           variant="ghost" 
           size="sm" 
           className="text-orange-600 hover:text-orange-700 flex items-center gap-1"
-          onClick={() => window.open(`/products?attr_${groupSlug}=${term._id}`, '_blank')}
+          onClick={() => {
+            const url = assignedTypeSlug 
+              ? `/${assignedTypeSlug}/${groupSlug}/${term.slug}` 
+              : `/products?attr_${groupSlug}=${term._id}`;
+            window.open(url, '_blank');
+          }}
         >
           <ExternalLink size={12} /> Mở ngoài site
         </Button>
@@ -361,7 +368,7 @@ function SortableTermRow({ term, onRemove, groupSlug }: SortableTermRowProps) {
   );
 }
 
-function AttributeTermsManager({ groupId, terms, groupSlug }: { groupId: Id<"attributeGroups">; terms?: any[]; groupSlug: string }) {
+function AttributeTermsManager({ groupId, terms, groupSlug, assignedTypeSlug }: { groupId: Id<"attributeGroups">; terms?: any[]; groupSlug: string; assignedTypeSlug: string | null }) {
   const createTerm = useMutation(api.attributeTerms.create);
   const removeTerm = useMutation(api.attributeTerms.remove);
   const reorderTerms = useMutation(api.attributeTerms.reorder);
@@ -463,7 +470,7 @@ function AttributeTermsManager({ groupId, terms, groupSlug }: { groupId: Id<"att
                 <p className="text-slate-500 text-sm italic">Chưa có giá trị nào.</p>
               ) : (
                 terms.map(term => (
-                  <SortableTermRow key={term._id} term={term} onRemove={handleRemove} groupSlug={groupSlug} />
+                  <SortableTermRow key={term._id} term={term} onRemove={handleRemove} groupSlug={groupSlug} assignedTypeSlug={assignedTypeSlug} />
                 ))
               )}
             </div>

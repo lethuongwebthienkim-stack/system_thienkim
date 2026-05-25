@@ -603,13 +603,21 @@ function ProductsContent(props: ProductsPageProps) {
     if (!group) return;
 
     const groupId = group._id;
-    const currentTermIds = selectedAttributes[groupId] || [];
-    let nextTermIds = [...currentTermIds];
+    let nextTermIds: string[] = [];
 
-    if (checked) {
-      if (!nextTermIds.includes(termId)) nextTermIds.push(termId);
+    if (termId === '') {
+      // Clear all terms for this group
+      nextTermIds = [];
+    } else if (group.filterType === 'single') {
+      nextTermIds = checked ? [termId] : [];
     } else {
-      nextTermIds = nextTermIds.filter(id => id !== termId);
+      const currentTermIds = selectedAttributes[groupId] || [];
+      nextTermIds = [...currentTermIds];
+      if (checked) {
+        if (!nextTermIds.includes(termId)) nextTermIds.push(termId);
+      } else {
+        nextTermIds = nextTermIds.filter(id => id !== termId);
+      }
     }
 
     const nextAttributes = {
@@ -1517,6 +1525,124 @@ function EmptyState({ tokens, onReset }: { tokens: ProductsListColors; onReset: 
   );
 }
 
+// Helper to render attribute filters based on inputType and filterType
+function renderAttributeFilterGroup(
+  group: any,
+  selectedAttributes: Record<string, string[]> | undefined,
+  onAttributeChange: ((groupSlug: string, termId: string, checked: boolean) => void) | undefined,
+  tokens: ProductsListColors
+) {
+  const inputType = group.inputType || 'radio';
+  const filterType = group.filterType || 'single';
+
+  if (inputType === 'select') {
+    return (
+      <div className="relative">
+        <select
+          value={filterType === 'single' ? (selectedAttributes?.[group._id]?.[0] ?? '') : ''}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (!val) {
+              onAttributeChange?.(group.slug, '', false);
+              return;
+            }
+            if (filterType === 'single') {
+              onAttributeChange?.(group.slug, val, true);
+            } else {
+              const isChecked = selectedAttributes?.[group._id]?.includes(val) ?? false;
+              onAttributeChange?.(group.slug, val, !isChecked);
+            }
+          }}
+          className="h-10 w-full pl-3 pr-8 rounded-lg border text-sm outline-none appearance-none truncate bg-white dark:bg-slate-800"
+          style={{
+            borderColor: tokens.inputBorder,
+            color: tokens.inputText,
+          }}
+        >
+          <option value="">{filterType === 'single' ? `Chọn ${group.name}` : `Thêm ${group.name}...`}</option>
+          {group.terms.map((term: any) => (
+            <option key={term._id} value={term._id}>
+              {term.name} {(filterType === 'multiple' && selectedAttributes?.[group._id]?.includes(term._id)) ? '✓' : ''}
+            </option>
+          ))}
+        </select>
+        <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: tokens.inputIcon }} />
+        
+        {filterType === 'multiple' && selectedAttributes?.[group._id] && selectedAttributes[group._id].length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {selectedAttributes[group._id].map((termId: string) => {
+              const term = group.terms.find((t: any) => t._id === termId);
+              if (!term) return null;
+              return (
+                <span
+                  key={termId}
+                  onClick={() => onAttributeChange?.(group.slug, termId, false)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs cursor-pointer border hover:opacity-80"
+                  style={{
+                    backgroundColor: tokens.filterChipBg,
+                    color: tokens.filterChipText,
+                    borderColor: tokens.filterChipBorder,
+                  }}
+                >
+                  {term.name}
+                  <X size={10} />
+                </span>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (inputType === 'buttons') {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {group.terms.map((term: any) => {
+          const isChecked = selectedAttributes?.[group._id]?.includes(term._id) ?? false;
+          return (
+            <button
+              key={term._id}
+              onClick={() => onAttributeChange?.(group.slug, term._id, !isChecked)}
+              className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors border"
+              style={isChecked
+                ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
+                : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
+              }
+            >
+              {term.name}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Fallback to Radio or Checkbox based on filterType
+  return (
+    <div className="space-y-2">
+      {group.terms.map((term: any) => {
+        const isChecked = selectedAttributes?.[group._id]?.includes(term._id) ?? false;
+        const isRadio = filterType === 'single' || inputType === 'radio';
+        return (
+          <label key={term._id} className="flex items-center gap-2 cursor-pointer group">
+            <input
+              type={isRadio ? 'radio' : 'checkbox'}
+              name={isRadio ? `group_${group._id}` : undefined}
+              checked={isChecked}
+              onChange={(e) => onAttributeChange?.(group.slug, term._id, e.target.checked)}
+              className={`w-4 h-4 border-gray-300 text-black focus:ring-black cursor-pointer ${isRadio ? '' : 'rounded'}`}
+            />
+            <span className="text-sm transition-colors group-hover:opacity-80" style={{ color: tokens.bodyText }}>
+              {term.name}
+            </span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
 // ========== CATALOG LAYOUT ==========
 
 interface LayoutProps {
@@ -1756,21 +1882,8 @@ function MobileProductsFilters({
           {filterableGroups?.map(group => (
             <div key={group._id} className="space-y-3">
               <h3 className="font-semibold" style={{ color: tokens.bodyText }}>{group.name}</h3>
-              <div className="space-y-3 pl-1">
-                {group.terms.map((term: any) => {
-                  const isChecked = selectedAttributes?.[group._id]?.includes(term._id) ?? false;
-                  return (
-                    <label key={term._id} className="flex items-center gap-3 cursor-pointer">
-                      <input
-                        type={group.filterType === 'checkbox' ? 'checkbox' : 'checkbox'}
-                        checked={isChecked}
-                        onChange={(e) => onAttributeChange?.(group.slug, term._id, e.target.checked)}
-                        className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black"
-                      />
-                      <span className="text-base" style={{ color: tokens.bodyText }}>{term.name}</span>
-                    </label>
-                  );
-                })}
+              <div className="pl-1">
+                {renderAttributeFilterGroup(group, selectedAttributes, onAttributeChange, tokens)}
               </div>
             </div>
           ))}
@@ -1956,23 +2069,8 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
             {filterableGroups?.map(group => (
               <div key={group._id} className="rounded-xl border p-4" style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="font-semibold mb-3" style={{ color: tokens.bodyText }}>{group.name}</h3>
-                <div className="space-y-2">
-                  {group.terms.map((term: any) => {
-                    const isChecked = selectedAttributes?.[group._id]?.includes(term._id) ?? false;
-                    return (
-                      <label key={term._id} className="flex items-center gap-2 cursor-pointer group">
-                        <input
-                          type={group.filterType === 'checkbox' ? 'checkbox' : 'checkbox'}
-                          checked={isChecked}
-                          onChange={(e) => onAttributeChange?.(group.slug, term._id, e.target.checked)}
-                          className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
-                        />
-                        <span className="text-sm transition-colors group-hover:opacity-80" style={{ color: tokens.bodyText }}>
-                          {term.name}
-                        </span>
-                      </label>
-                    );
-                  })}
+                <div>
+                  {renderAttributeFilterGroup(group, selectedAttributes, onAttributeChange, tokens)}
                 </div>
               </div>
             ))}
