@@ -134,6 +134,7 @@ export default function AttributeGroupCreatePage() {
                   >
                     <option value="single">Một lựa chọn (Single)</option>
                     <option value="multiple">Nhiều lựa chọn (Multiple)</option>
+                    <option value="range">Khoảng giá trị (Range)</option>
                   </select>
                 </div>
 
@@ -146,7 +147,6 @@ export default function AttributeGroupCreatePage() {
                   >
                     <option value="select">Dropdown (Select)</option>
                     <option value="buttons">Các nút bấm (Buttons)</option>
-                    <option value="color">Màu sắc (Color/Hình ảnh)</option>
                     <option value="radio">Nút tròn (Radio)</option>
                   </select>
                 </div>
