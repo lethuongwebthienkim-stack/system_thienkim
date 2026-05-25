@@ -501,6 +501,26 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
       setAttributeTermIds(validIds as any);
     }
 
+    // Gán các thuộc tính lọc Range từ AI
+    if (enableProductTypes && item.attributeRangeValues && formConfig && formConfig.groups) {
+      const nextRangeInputs = { ...rangeInputs };
+      formConfig.groups.forEach((group: any) => {
+        if (group.filterType === 'range') {
+          const aiValue = item.attributeRangeValues![group.name];
+          if (aiValue) {
+            const match = aiValue.match(/^([\d.]+)\s*(.*)$/);
+            if (match) {
+              nextRangeInputs[group._id] = {
+                value: match[1].trim(),
+                unit: match[2].trim() || '%'
+              };
+            }
+          }
+        }
+      });
+      setRangeInputs(nextRangeInputs);
+    }
+
     // Gán combo từ AI
     if (enableCombosSetting && item.combos && item.combos.length > 0) {
       setCombos(item.combos);

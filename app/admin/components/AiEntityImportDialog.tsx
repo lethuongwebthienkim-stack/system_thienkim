@@ -39,6 +39,7 @@ export type AiEntityImportPayload = {
   authorName?: string;
   combos?: any[];
   attributeTermIds?: string[];
+  attributeRangeValues?: Record<string, string>;
 };
 
 type ParseResult = {
@@ -290,7 +291,8 @@ const buildSchema = (
   }
 
   if (kind === 'product' && includeAttributes) {
-    lines.push(`    "attributeTermIds": "mảng các string ID của các thuộc tính được chọn (ví dụ: [\\"term_id_1\\", \\"term_id_2\\"])"`);
+    lines.push(`    "attributeTermIds": "mảng các string ID của các thuộc tính lựa chọn (Standard) được chọn (ví dụ: [\\"term_id_1\\", \\"term_id_2\\"])"`);
+    lines.push(`    "attributeRangeValues": "đối tượng chứa các giá trị thuộc tính khoảng (Range) dạng { \\"Tên nhóm thuộc tính\\": \\"Giá trị + Đơn vị\\" } (ví dụ: { \\"Dung tích\\": \\"750ml\\", \\"%1abv\\": \\"13.5%\\" })"`);
   }
 
   return `{
@@ -339,8 +341,16 @@ const buildSample = (
   }
 
   if (includeAttributes && formConfig && formConfig.groups && formConfig.groups.length > 0) {
-    const sampleIds = formConfig.groups.slice(0, 2).map((g: any) => g.terms[0]?._id).filter(Boolean);
-    baseProduct.attributeTermIds = sampleIds.length > 0 ? sampleIds : ["sample_term_id_1", "sample_term_id_2"];
+    const standardIds = formConfig.groups.filter((g: any) => g.filterType !== 'range').slice(0, 2).map((g: any) => g.terms[0]?._id).filter(Boolean);
+    baseProduct.attributeTermIds = standardIds.length > 0 ? standardIds : ["sample_term_id_1", "sample_term_id_2"];
+
+    const rangeGroups = formConfig.groups.filter((g: any) => g.filterType === 'range');
+    if (rangeGroups.length > 0) {
+      baseProduct.attributeRangeValues = {};
+      rangeGroups.forEach((rg: any) => {
+        baseProduct.attributeRangeValues[rg.name] = rg.name.toLowerCase().includes('dung tích') ? "750ml" : "13.5%";
+      });
+    }
   }
 
   return JSON.stringify({ product: baseProduct }, null, 2);
@@ -369,16 +379,65 @@ Riêng về Combo bán kèm (standard combo):
 
   let attributesPrompt = '';
   if (includeAttributes && formConfig && formConfig.groups && formConfig.groups.length > 0) {
-    const attributeDescriptions = formConfig.groups.map((group: any) => {
-      const termList = group.terms.map((t: any) => `"${t.name}" (ID: "${t._id}")`).join(', ');
-      return `- Nhóm thuộc tính "${group.name}": Chỉ được chọn các giá trị sau: ${termList}`;
-    }).join('\n');
+    const standardGroups = formConfig.groups.filter((g: any) => g.filterType !== 'range');
+    const rangeGroups = formConfig.groups.filter((g: any) => g.filterType === 'range');
+
+    let standardPrompt = '';
+    if (standardGroups.length > 0) {
+      standardPrompt = `Các nhóm thuộc tính lựa chọn (Standard) - Hãy chọn các giá trị phù hợp nhất và điền mảng ID vào "attributeTermIds":\n` +
+        standardGroups.map((group: any) => {
+          const termList = group.terms.map((t: any) => `"${t.name}" (ID: "${t._id}")`).join(', ');
+          return `- Nhóm "${group.name}": Các giá trị có sẵn gồm: ${termList}`;
+        }).join('\n');
+    }
+
+    let rangePrompt = '';
+    if (rangeGroups.length > 0) {
+      const parseLocalTermValue = (termName: string) => {
+        const match = termName.match(/^([\d.]+)\s*(.*)$/);
+        return match ? match[2].trim() : '';
+      };
+      
+      rangePrompt = `Các nhóm thuộc tính khoảng số (Range) - Hãy điền trực tiếp giá trị kèm đơn vị vào đối tượng "attributeRangeValues":\n` +
+        rangeGroups.map((group: any) => {
+          const unitsSet = new Set<string>();
+          group.terms.forEach((t: any) => {
+            const u = parseLocalTermValue(t.name);
+            if (u) {
+              unitsSet.add(u);
+            }
+          });
+          const listUnits = Array.from(unitsSet);
+          const counts: Record<string, number> = {};
+          group.terms.forEach((t: any) => {
+            const u = parseLocalTermValue(t.name);
+            if (u) {
+              counts[u] = (counts[u] || 0) + 1;
+            }
+          });
+          let dominantUnit = '';
+          let maxCount = 0;
+          Object.entries(counts).forEach(([u, count]) => {
+            if (count > maxCount) {
+              maxCount = count;
+              dominantUnit = u;
+            }
+          });
+          
+          const unitStr = listUnits.length > 0 ? listUnits.join(', ') : 'Chưa có đơn vị nào';
+          const sampleVal = group.name.toLowerCase().includes('dung tích') ? '750' : '13.5';
+          const defaultUnit = dominantUnit || (group.name.toLowerCase().includes('dung tích') ? 'ml' : '%');
+          return `- Nhóm "${group.name}": Các đơn vị đã có trong hệ thống là: ${unitStr} (Khuyên dùng: "${defaultUnit}"). Hãy điền giá trị dạng số + đơn vị (ví dụ: "${sampleVal}${defaultUnit}"). AI có thể tự đề xuất đơn vị mới hợp lý nếu hệ thống chưa có.`;
+        }).join('\n');
+    }
 
     attributesPrompt = `
 Riêng về Thuộc tính phân loại & bộ lọc:
-- Hãy phân tích sản phẩm này để chọn ra các thuộc tính lọc phù hợp nhất từ danh sách thuộc tính có sẵn dưới đây:
-${attributeDescriptions}
-- Đặt danh sách các ID của những thuộc tính (terms) được chọn vào mảng "attributeTermIds" trong JSON đầu ra. Mỗi nhóm thuộc tính chỉ chọn tối đa 1 giá trị tương thích nhất với sản phẩm (nếu phù hợp, hoặc để trống nếu nhóm đó không liên quan).`;
+- Hãy phân tích sản phẩm này để chọn ra các thuộc tính lọc phù hợp nhất.
+${standardPrompt ? '\n' + standardPrompt : ''}
+${rangePrompt ? '\n' + rangePrompt : ''}
+- Đối với nhóm lựa chọn (Standard), đặt danh sách các ID của những thuộc tính được chọn vào mảng "attributeTermIds". Mỗi nhóm chỉ chọn tối đa 1 giá trị tương thích nhất với sản phẩm (nếu phù hợp, hoặc để trống nếu nhóm đó không liên quan).
+- Đối với nhóm khoảng (Range), điền giá trị dạng số kèm đơn vị vào đối tượng "attributeRangeValues" với key là tên nhóm thuộc tính (ví dụ: { "Dung tích": "750ml", "%1abv": "13.5%" }).`;
   }
 
   return `Bạn là senior Vietnamese SEO & conversion copywriter cho website thương mại/dịch vụ/blog.
@@ -498,6 +557,18 @@ const parseAiEntity = (raw: string, kind: AiEntityImportKind): ParseResult => {
       .map((id: unknown) => id as string);
   }
 
+  // parse attributeRangeValues
+  let attributeRangeValues: Record<string, string> | undefined = undefined;
+  if (kind === 'product' && record.attributeRangeValues && typeof record.attributeRangeValues === 'object' && !Array.isArray(record.attributeRangeValues)) {
+    attributeRangeValues = {};
+    const rawRanges = record.attributeRangeValues as Record<string, unknown>;
+    Object.entries(rawRanges).forEach(([k, v]) => {
+      if (typeof v === 'string' || typeof v === 'number') {
+        attributeRangeValues![k] = String(v).trim();
+      }
+    });
+  }
+
   const item: AiEntityImportPayload = {
     authorName: trimText(record.authorName, 120),
     content: trimText(record.content, 20_000),
@@ -519,6 +590,7 @@ const parseAiEntity = (raw: string, kind: AiEntityImportKind): ParseResult => {
     title: kind !== 'product' ? title : undefined,
     combos,
     attributeTermIds,
+    attributeRangeValues,
   };
 
   return { errors, item: errors.length > 0 ? null : item };
