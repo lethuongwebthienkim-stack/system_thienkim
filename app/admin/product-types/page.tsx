@@ -296,24 +296,24 @@ function ProductTypesContent() {
             });
           }} />
         </div>
-        <Table>
-          <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white dark:[&_th]:bg-slate-900">
-            <TableRow>
-              <TableHead className="w-[40px] text-center">Kéo</TableHead>
-              {resolvedVisibleColumns.includes('select') && (
-                <TableHead className="w-[40px]">
-                  <SelectCheckbox checked={isPageSelected} onChange={toggleSelectAll} indeterminate={isPageIndeterminate} />
-                </TableHead>
-              )}
-              {resolvedVisibleColumns.includes('name') && <SortableHeader label="Tên kiểu" sortKey="name" sortConfig={sortConfig} onSort={handleSort} />}
-              {resolvedVisibleColumns.includes('slug') && <SortableHeader label="Slug" sortKey="slug" sortConfig={sortConfig} onSort={handleSort} />}
-              {resolvedVisibleColumns.includes('count') && <SortableHeader label="Số sản phẩm" sortKey="count" sortConfig={sortConfig} onSort={handleSort} className="text-center" />}
-              {resolvedVisibleColumns.includes('attributeCount') && <TableHead className="text-center">Số thuộc tính lọc</TableHead>}
-              {resolvedVisibleColumns.includes('status') && <SortableHeader label="Trạng thái" sortKey="status" sortConfig={sortConfig} onSort={handleSort} />}
-              {resolvedVisibleColumns.includes('actions') && <TableHead className="text-right">Hành động</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <Table>
+            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white dark:[&_th]:bg-slate-900">
+              <TableRow>
+                <TableHead className="w-[40px] text-center">Kéo</TableHead>
+                {resolvedVisibleColumns.includes('select') && (
+                  <TableHead className="w-[40px]">
+                    <SelectCheckbox checked={isPageSelected} onChange={toggleSelectAll} indeterminate={isPageIndeterminate} />
+                  </TableHead>
+                )}
+                {resolvedVisibleColumns.includes('name') && <SortableHeader label="Tên kiểu" sortKey="name" sortConfig={sortConfig} onSort={handleSort} />}
+                {resolvedVisibleColumns.includes('slug') && <SortableHeader label="Slug" sortKey="slug" sortConfig={sortConfig} onSort={handleSort} />}
+                {resolvedVisibleColumns.includes('count') && <SortableHeader label="Số sản phẩm" sortKey="count" sortConfig={sortConfig} onSort={handleSort} className="text-center" />}
+                {resolvedVisibleColumns.includes('attributeCount') && <TableHead className="text-center">Số thuộc tính lọc</TableHead>}
+                {resolvedVisibleColumns.includes('status') && <SortableHeader label="Trạng thái" sortKey="status" sortConfig={sortConfig} onSort={handleSort} />}
+                {resolvedVisibleColumns.includes('actions') && <TableHead className="text-right">Hành động</TableHead>}
+              </TableRow>
+            </TableHeader>
             <SortableContext items={paginatedData.map(cat => cat.id)} strategy={verticalListSortingStrategy}>
               <TableBody>
                 {isTableLoading ? (
@@ -328,41 +328,41 @@ function ProductTypesContent() {
                   <>
                     {paginatedData.map(cat => (
                       <SortableProductTypeRow key={cat.id} id={cat.id} selected={selectedIds.includes(cat.id)}>
-                <TableCell className="w-[40px] text-center">
-                  <GripVertical size={16} className="mx-auto cursor-grab text-slate-400 active:cursor-grabbing" />
-                </TableCell>
-                {resolvedVisibleColumns.includes('select') && (
-                  <TableCell><SelectCheckbox checked={selectedIds.includes(cat.id)} onChange={() =>{  toggleSelectItem(cat.id); }} /></TableCell>
-                )}
-                {resolvedVisibleColumns.includes('name') && (
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <FolderTree size={16} className="text-orange-500" />
-                      {cat.name}
-                    </div>
-                  </TableCell>
-                )}
-                {resolvedVisibleColumns.includes('slug') && <TableCell className="text-slate-500 font-mono text-sm">{cat.slug}</TableCell>}
-                {resolvedVisibleColumns.includes('count') && <TableCell className="text-center"><Badge variant="secondary">{cat.count}</Badge></TableCell>}
-                {resolvedVisibleColumns.includes('attributeCount') && (
-                  <TableCell className="text-center">
-                    <Badge variant="secondary">{assignedGroupCountMap.get(cat.id) ?? 0}</Badge>
-                  </TableCell>
-                )}
-                {resolvedVisibleColumns.includes('status') && (
-                  <TableCell>
-                    <Badge variant={cat.active ? 'success' : 'secondary'}>{cat.active ? 'Hoạt động' : 'Ẩn'}</Badge>
-                  </TableCell>
-                )}
-                {resolvedVisibleColumns.includes('actions') && (
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700" title="Xem trên web" onClick={() =>{  openFrontend(cat.slug); }}><ExternalLink size={16}/></Button>
-                      <Link href={`/admin/product-types/${cat.id}/edit`}><Button variant="ghost" size="icon"><Edit size={16}/></Button></Link>
-                      <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={ async () => handleDelete(cat.id as Id<"productTypes">)}><Trash2 size={16}/></Button>
-                    </div>
-                  </TableCell>
-                )}
+                        <TableCell className="w-[40px] text-center">
+                          <GripVertical size={16} className="mx-auto cursor-grab text-slate-400 active:cursor-grabbing" />
+                        </TableCell>
+                        {resolvedVisibleColumns.includes('select') && (
+                          <TableCell><SelectCheckbox checked={selectedIds.includes(cat.id)} onChange={() =>{  toggleSelectItem(cat.id); }} /></TableCell>
+                        )}
+                        {resolvedVisibleColumns.includes('name') && (
+                          <TableCell className="font-medium">
+                            <div className="flex items-center gap-2">
+                              <FolderTree size={16} className="text-orange-500" />
+                              {cat.name}
+                            </div>
+                          </TableCell>
+                        )}
+                        {resolvedVisibleColumns.includes('slug') && <TableCell className="text-slate-500 font-mono text-sm">{cat.slug}</TableCell>}
+                        {resolvedVisibleColumns.includes('count') && <TableCell className="text-center"><Badge variant="secondary">{cat.count}</Badge></TableCell>}
+                        {resolvedVisibleColumns.includes('attributeCount') && (
+                          <TableCell className="text-center">
+                            <Badge variant="secondary">{assignedGroupCountMap.get(cat.id) ?? 0}</Badge>
+                          </TableCell>
+                        )}
+                        {resolvedVisibleColumns.includes('status') && (
+                          <TableCell>
+                            <Badge variant={cat.active ? 'success' : 'secondary'}>{cat.active ? 'Hoạt động' : 'Ẩn'}</Badge>
+                          </TableCell>
+                        )}
+                        {resolvedVisibleColumns.includes('actions') && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700" title="Xem trên web" onClick={() =>{  openFrontend(cat.slug); }}><ExternalLink size={16}/></Button>
+                              <Link href={`/admin/product-types/${cat.id}/edit`}><Button variant="ghost" size="icon"><Edit size={16}/></Button></Link>
+                              <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={ async () => handleDelete(cat.id as Id<"productTypes">)}><Trash2 size={16}/></Button>
+                            </div>
+                          </TableCell>
+                        )}
                       </SortableProductTypeRow>
                     ))}
                   </>
@@ -376,8 +376,8 @@ function ProductTypesContent() {
                 )}
               </TableBody>
             </SortableContext>
-          </DndContext>
-        </Table>
+          </Table>
+        </DndContext>
         {totalCount > 0 && !isTableLoading && (
           <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="order-2 flex w-full items-center justify-between text-sm text-slate-500 sm:order-1 sm:w-auto sm:justify-start sm:gap-6">
