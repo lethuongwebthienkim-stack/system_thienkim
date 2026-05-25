@@ -476,62 +476,7 @@ function ProductsContent(props: ProductsPageProps) {
     const targetPriceRange = options.nextPriceRange !== undefined ? options.nextPriceRange : selectedPriceRange;
     const targetAttributes = options.nextAttributes !== undefined ? options.nextAttributes : { ...selectedAttributes };
 
-    // 1. Nhánh xử lý khi bật Phân loại & Thuộc tính nhưng đang ở trang Tất cả sản phẩm chung (/products)
-    if (enableProductTypes && !productType) {
-      const params = new URLSearchParams(searchParams.toString());
-      params.delete('page');
-
-      // Cập nhật Category
-      if (targetCategoryId && categoryOptions.length > 0) {
-        const category = categoryOptions.find(c => c._id === targetCategoryId);
-        if (category) {
-          params.set('category', category.slug);
-        }
-      } else {
-        params.delete('category');
-      }
-
-      // Cập nhật Price Range
-      if (targetPriceRange) {
-        params.set('priceRange', targetPriceRange.slug);
-      } else {
-        params.delete('priceRange');
-      }
-
-      // Cập nhật Attributes
-      // Xóa tất cả attr_* cũ
-      Array.from(params.keys()).forEach(key => {
-        if (key.startsWith('attr_')) params.delete(key);
-      });
-      // Thêm attr_* mới
-      const groupAttrs = new Map<string, string[]>();
-      if (filterableGroups) {
-        filterableGroups.forEach(group => {
-          const termSlugs = targetAttributes[group._id] || [];
-          termSlugs.forEach((termSlug: string) => {
-            const term = group.terms.find((t: any) => t.slug === termSlug);
-            if (term) {
-              if (!groupAttrs.has(group.slug)) {
-                groupAttrs.set(group.slug, []);
-              }
-              groupAttrs.get(group.slug)!.push(term.slug);
-            }
-          });
-        });
-      }
-      groupAttrs.forEach((termSlugs, groupSlug) => {
-        params.set(`attr_${groupSlug}`, termSlugs.join(','));
-      });
-
-      const queryStr = params.toString();
-      const finalUrl = queryStr
-        ? `${buildModuleListPath('products')}?${queryStr}`
-        : buildModuleListPath('products');
-      router.push(finalUrl, { scroll: false });
-      return;
-    }
-
-    // 2. Feature Toggle bảo vệ: Nếu tắt tính năng Phân loại & Thuộc tính, phục hồi 100% cơ chế URL danh mục truyền thống
+    // 1. Feature Toggle bảo vệ: Nếu tắt tính năng Phân loại & Thuộc tính, phục hồi 100% cơ chế URL danh mục truyền thống
     if (!enableProductTypes) {
       const params = new URLSearchParams(searchParams.toString());
       params.delete('page');
@@ -562,7 +507,7 @@ function ProductsContent(props: ProductsPageProps) {
     }
 
     // 2. Khi bật: Phân giải SEO Catch-all URLs thông minh
-    const typeSlug = productType?.slug ?? '';
+    const baseSlug = productType ? productType.slug : 'products';
     const selectedCategoryDoc = targetCategoryId ? categoryOptions.find(c => c._id === targetCategoryId) : null;
     const activePriceRange = targetPriceRange;
 
@@ -585,7 +530,7 @@ function ProductsContent(props: ProductsPageProps) {
       });
     }
 
-    let path = `/${typeSlug}`;
+    let path = `/${baseSlug}`;
     const params = new URLSearchParams();
 
     // Giữ nguyên các params hệ thống như search, sort (xóa page khi filter thay đổi)
@@ -596,7 +541,7 @@ function ProductsContent(props: ProductsPageProps) {
 
     if (selectedCategoryDoc) {
       // Ưu tiên 1: Danh mục làm SEO URL chính
-      path = `/${typeSlug}/${selectedCategoryDoc.slug}`;
+      path = `/${baseSlug}/${selectedCategoryDoc.slug}`;
       
       // Nấc giá thành query param
       if (activePriceRange) {
@@ -615,7 +560,7 @@ function ProductsContent(props: ProductsPageProps) {
       });
     } else if (activePriceRange) {
       // Ưu tiên 2: Nấc giá làm SEO URL chính (nếu không chọn danh mục)
-      path = `/${typeSlug}/${activePriceRange.slug}`;
+      path = `/${baseSlug}/${activePriceRange.slug}`;
       
       // Các thuộc tính lọc thành query params
       const groupAttrs = new Map<string, string[]>();
@@ -630,11 +575,11 @@ function ProductsContent(props: ProductsPageProps) {
       });
     } else if (activeAttrs.length === 1) {
       // Ưu tiên 3: Đúng 1 thuộc tính duy nhất làm SEO URL chính
-      path = `/${typeSlug}/${activeAttrs[0].groupSlug}/${activeAttrs[0].termSlug}`;
+      path = `/${baseSlug}/${activeAttrs[0].groupSlug}/${activeAttrs[0].termSlug}`;
     } else if (activeAttrs.length > 1) {
       // Chọn thuộc tính đầu tiên làm primary, các thuộc tính còn lại đưa xuống query params
       const primary = activeAttrs[0];
-      path = `/${typeSlug}/${primary.groupSlug}/${primary.termSlug}`;
+      path = `/${baseSlug}/${primary.groupSlug}/${primary.termSlug}`;
 
       const groupAttrs = new Map<string, string[]>();
       activeAttrs.forEach(attr => {

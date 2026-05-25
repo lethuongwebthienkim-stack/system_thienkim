@@ -248,6 +248,24 @@ export const resolveProductLandingContext = query({
     if (slugs.length === 2) {
       const [typeSlug, subSlug] = slugs as [string, string];
       
+      if (typeSlug === "products") {
+        const cat = await ctx.db
+          .query("productCategories")
+          .withIndex("by_slug", (q) => q.eq("slug", subSlug))
+          .unique();
+        
+        if (cat && cat.active) {
+          return {
+            type: "productTypeCategory" as const,
+            categoryId: cat._id,
+            productTypeSlug: "products",
+            categorySlug: cat.slug,
+            categoryName: cat.name,
+            categoryDescription: cat.description ?? "",
+          };
+        }
+      }
+
       const productType = await ctx.db
         .query("productTypes")
         .withIndex("by_slug", (q) => q.eq("slug", typeSlug))
@@ -321,6 +339,35 @@ export const resolveProductLandingContext = query({
     if (slugs.length === 3) {
       const [typeSlug, groupSlug, termSlug] = slugs as [string, string, string];
       
+      if (typeSlug === "products") {
+        const group = await ctx.db
+          .query("attributeGroups")
+          .withIndex("by_slug", (q) => q.eq("slug", groupSlug))
+          .unique();
+        
+        if (group && group.isFilterable) {
+          const term = await ctx.db
+            .query("attributeTerms")
+            .withIndex("by_group", (q) => q.eq("groupId", group._id))
+            .collect()
+            .then((terms) => terms.find((t) => t.slug === termSlug));
+          
+          if (term && term.active) {
+            return {
+              type: "productTypeAttribute" as const,
+              productTypeSlug: "products",
+              groupId: group._id,
+              groupSlug: group.slug,
+              groupName: group.name,
+              termId: term._id,
+              termSlug: term.slug,
+              termName: term.name,
+            };
+          }
+        }
+        return null;
+      }
+
       const productType = await ctx.db
         .query("productTypes")
         .withIndex("by_slug", (q) => q.eq("slug", typeSlug))
@@ -346,7 +393,7 @@ export const resolveProductLandingContext = query({
               .collect()
               .then((terms) => terms.find((t) => t.slug === termSlug));
             
-            if (term) {
+            if (term && term.active) {
               return {
                 type: "productTypeAttribute" as const,
                 productTypeId: productType._id,
@@ -393,7 +440,7 @@ export const resolveProductLandingContext = query({
     }),
     v.object({
       type: v.literal("productTypeCategory"),
-      productTypeId: v.id("productTypes"),
+      productTypeId: v.optional(v.id("productTypes")),
       categoryId: v.id("productCategories"),
       productTypeSlug: v.string(),
       categorySlug: v.string(),
@@ -413,7 +460,7 @@ export const resolveProductLandingContext = query({
     }),
     v.object({
       type: v.literal("productTypeAttribute"),
-      productTypeId: v.id("productTypes"),
+      productTypeId: v.optional(v.id("productTypes")),
       productTypeSlug: v.string(),
       groupId: v.id("attributeGroups"),
       groupSlug: v.string(),
