@@ -10,6 +10,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
 import { Button, Card, CardContent, Input, Label } from '../../components/ui';
+import { getAttributeIconComponent } from '../../attribute-groups/_lib/iconRegistry';
 
 const MODULE_KEY = 'productTypes';
 
@@ -270,6 +271,11 @@ export default function ProductTypeCreatePage() {
                           }}
                           className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
                         />
+                        {(() => {
+                          const IconComponent = getAttributeIconComponent(group.iconPath);
+                          const iconColor = group.displayConfig?.iconColor || group.displayConfig?.color || '#ea580c';
+                          return <IconComponent size={15} style={{ color: iconColor }} />;
+                        })()}
                         <span className="text-sm">{group.name}</span>
                       </label>
                     ))

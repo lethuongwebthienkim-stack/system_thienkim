@@ -5,13 +5,18 @@ import Link from 'next/link';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { ChevronDown, Edit, ExternalLink, FolderTree, Plus, Search, Trash2 } from 'lucide-react';
+import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
+import { ChevronDown, Edit, ExternalLink, FolderTree, GripVertical, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge, Button, Card, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui';
+import { Badge, Button, Card, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, cn } from '../components/ui';
 import { BulkActionBar, ColumnToggle, generatePaginationItems, SelectCheckbox, SortableHeader, useSortableData } from '../components/TableUtilities';
 import { ModuleGuard } from '../components/ModuleGuard';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { usePersistedPageSize } from '../components/usePersistedPageSize';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 export default function ProductTypesListPage() {
   return (
@@ -24,6 +29,7 @@ export default function ProductTypesListPage() {
 function ProductTypesContent() {
   const productsData = useQuery(api.products.listAll, { limit: 1000 });
   const deleteType = useMutation(api.productTypes.remove);
+  const reorderTypes = useMutation(api.productTypes.reorder);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -52,6 +58,10 @@ function ProductTypesContent() {
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
 
   const isSelectAllActive = selectionMode === 'all';
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -219,6 +229,28 @@ function ProductTypesContent() {
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) {return;}
+    const oldIndex = paginatedData.findIndex(item => item.id === active.id);
+    const newIndex = paginatedData.findIndex(item => item.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) {return;}
+
+    const reordered = arrayMove(paginatedData, oldIndex, newIndex);
+    try {
+      await reorderTypes({
+        items: reordered.map((item, index) => ({
+          id: item.id as Id<"productTypes">,
+          order: offset + index,
+        })),
+      });
+      setSortConfig({ direction: 'asc', key: null });
+      toast.success('Đã cập nhật vị trí kiểu sản phẩm');
+    } catch (error) {
+      toast.error(getAdminMutationErrorMessage(error, 'Không thể cập nhật vị trí kiểu sản phẩm'));
+    }
+  };
+
   const openFrontend = (slug: string) => {
     window.open(`/type/${slug}`, '_blank');
   };
@@ -267,6 +299,7 @@ function ProductTypesContent() {
         <Table>
           <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-white dark:[&_th]:bg-slate-900">
             <TableRow>
+              <TableHead className="w-[40px] text-center">Kéo</TableHead>
               {resolvedVisibleColumns.includes('select') && (
                 <TableHead className="w-[40px]">
                   <SelectCheckbox checked={isPageSelected} onChange={toggleSelectAll} indeterminate={isPageIndeterminate} />
@@ -280,19 +313,24 @@ function ProductTypesContent() {
               {resolvedVisibleColumns.includes('actions') && <TableHead className="text-right">Hành động</TableHead>}
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {isTableLoading ? (
-              Array.from({ length: resolvedPageSize }).map((_, index) => (
-                <TableRow key={`loading-${index}`}>
-                  <TableCell colSpan={tableColumnCount}>
-                    <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <>
-                {paginatedData.map(cat => (
-                  <TableRow key={cat.id} className={selectedIds.includes(cat.id) ? 'bg-orange-500/5' : ''}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={paginatedData.map(cat => cat.id)} strategy={verticalListSortingStrategy}>
+              <TableBody>
+                {isTableLoading ? (
+                  Array.from({ length: resolvedPageSize }).map((_, index) => (
+                    <TableRow key={`loading-${index}`}>
+                      <TableCell colSpan={tableColumnCount + 1}>
+                        <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <>
+                    {paginatedData.map(cat => (
+                      <SortableProductTypeRow key={cat.id} id={cat.id} selected={selectedIds.includes(cat.id)}>
+                <TableCell className="w-[40px] text-center">
+                  <GripVertical size={16} className="mx-auto cursor-grab text-slate-400 active:cursor-grabbing" />
+                </TableCell>
                 {resolvedVisibleColumns.includes('select') && (
                   <TableCell><SelectCheckbox checked={selectedIds.includes(cat.id)} onChange={() =>{  toggleSelectItem(cat.id); }} /></TableCell>
                 )}
@@ -325,18 +363,20 @@ function ProductTypesContent() {
                     </div>
                   </TableCell>
                 )}
+                      </SortableProductTypeRow>
+                    ))}
+                  </>
+                )}
+                {!isTableLoading && paginatedData.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={tableColumnCount + 1} className="text-center py-8 text-slate-500">
+                      {searchTerm ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có kiểu nào.'}
+                    </TableCell>
                   </TableRow>
-                ))}
-              </>
-            )}
-            {!isTableLoading && paginatedData.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={tableColumnCount} className="text-center py-8 text-slate-500">
-                  {searchTerm ? 'Không tìm thấy kết quả phù hợp' : 'Chưa có kiểu nào.'}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
+                )}
+              </TableBody>
+            </SortableContext>
+          </DndContext>
         </Table>
         {totalCount > 0 && !isTableLoading && (
           <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -434,5 +474,33 @@ function ProductTypesContent() {
         isLoading={isDeleteLoading}
       />
     </div>
+  );
+}
+
+function SortableProductTypeRow({
+  id,
+  selected,
+  children,
+}: {
+  id: string;
+  selected: boolean;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition };
+
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        selected ? 'bg-orange-500/5' : '',
+        isDragging ? 'bg-slate-50 opacity-80 dark:bg-slate-800' : ''
+      )}
+      {...attributes}
+      {...listeners}
+    >
+      {children}
+    </TableRow>
   );
 }

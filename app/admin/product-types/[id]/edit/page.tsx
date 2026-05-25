@@ -10,6 +10,7 @@ import { Loader2, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
 import { Button, Card, CardContent, Input, Label, cn } from '../../../components/ui';
+import { getAttributeIconComponent } from '../../../attribute-groups/_lib/iconRegistry';
 import { useUnsavedGuard } from '@/app/admin/home-components/_shared/hooks/useUnsavedGuard';
 import { HomeComponentStickyFooter } from '@/app/admin/home-components/_shared/components/HomeComponentStickyFooter';
 
@@ -377,6 +378,11 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
                           }}
                           className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
                         />
+                        {(() => {
+                          const IconComponent = getAttributeIconComponent(group.iconPath);
+                          const iconColor = group.displayConfig?.iconColor || group.displayConfig?.color || '#ea580c';
+                          return <IconComponent size={15} style={{ color: iconColor }} />;
+                        })()}
                         <span className="text-sm">{group.name}</span>
                       </label>
                     ))

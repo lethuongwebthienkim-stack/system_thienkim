@@ -89,7 +89,7 @@ async function syncProductCategoryTypes(
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
-    return ctx.db.query("productTypes").order("asc").collect();
+    return ctx.db.query("productTypes").collect().then(res => res.sort((a, b) => a.order - b.order));
   },
   returns: v.array(productTypeDoc),
 });
@@ -105,7 +105,8 @@ export const listAdminWithOffset = query({
     const offset = args.offset ?? 0;
     const fetchLimit = Math.min(offset + limit + 50, 1000);
 
-    let types = await ctx.db.query("productTypes").order("desc").take(fetchLimit);
+    let types = await ctx.db.query("productTypes").take(1000);
+    types = types.sort((a, b) => a.order - b.order);
 
     if (args.search?.trim()) {
       const searchLower = args.search.toLowerCase().trim();
@@ -174,7 +175,7 @@ export const create = mutation({
     
     let nextOrder = args.order;
     if (nextOrder === undefined) {
-      const lastType = await ctx.db.query("productTypes").order("desc").first();
+      const lastType = await ctx.db.query("productTypes").collect().then(res => res.sort((a, b) => b.order - a.order)[0]);
       nextOrder = lastType ? lastType.order + 1 : 0;
     }
     
@@ -259,6 +260,17 @@ export const update = mutation({
       await syncProductCategoryTypes(ctx, id, categoryIds);
     }
 
+    return null;
+  },
+  returns: v.null(),
+});
+
+export const reorder = mutation({
+  args: { items: v.array(v.object({ id: v.id("productTypes"), order: v.number() })) },
+  handler: async (ctx, args) => {
+    for (const item of args.items) {
+      await ctx.db.patch(item.id, { order: item.order });
+    }
     return null;
   },
   returns: v.null(),
