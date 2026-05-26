@@ -862,7 +862,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
           {node.children.length > 0 && <ChevronRight size={14} />}
         </Link>
         {node.children.length > 0 && isLevel4Open && (
-          <div className="absolute left-0 top-full pt-1 z-50">
+          <div className="absolute left-full top-0 ml-1 z-50">
             <div
               className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(300px,calc(100vw-2rem))] shadow-xl overflow-y-auto scrollbar-menu-thin')}
               style={{
@@ -1146,7 +1146,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                         </Link>
                                         {sub.children.length > 0 && isLevel3Active && (
                                           <div
-                                            className="absolute left-0 top-full pt-1 z-50"
+                                            className="absolute left-full top-0 ml-1 z-50"
                                             onMouseEnter={clearDeepMenuCloseIntent}
                                             onMouseLeave={scheduleDeepMenuClose}
                                           >
@@ -1727,7 +1727,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                       </Link>
                                       {sub.children.length > 0 && isLevel3Active && (
                                         <div
-                                          className="absolute left-0 top-full pt-1 z-50"
+                                          className="absolute left-full top-0 ml-1 z-50"
                                           onMouseEnter={clearDeepMenuCloseIntent}
                                           onMouseLeave={scheduleDeepMenuClose}
                                         >
@@ -1990,7 +1990,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                           </Link>
                                           {sub.children.length > 0 && isLevel3Active && (
                                             <div
-                                              className="absolute left-0 top-full pt-1 z-50"
+                                              className="absolute left-full top-0 ml-1 z-50"
                                               onMouseEnter={clearDeepMenuCloseIntent}
                                               onMouseLeave={scheduleDeepMenuClose}
                                             >
