@@ -825,7 +825,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                 style={{
                   backgroundColor: tokens.dropdownBg,
                   borderColor: tokens.dropdownBorder,
-                  maxHeight: 'min(60vh, 480px)',
+                  maxHeight: 'min(60vh, 290px)',
                 }}
               >
                 {renderDesktopFlyoutNodes(node.children, deepMode)}
@@ -868,7 +868,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
               style={{
                 backgroundColor: tokens.dropdownBg,
                 borderColor: tokens.dropdownBorder,
-                maxHeight: 'min(60vh, 480px)',
+                maxHeight: 'min(60vh, 290px)',
               }}
             >
               {node.children.map((child) => (
@@ -1155,7 +1155,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                               style={{
                                                 backgroundColor: tokens.dropdownBg,
                                                 borderColor: tokens.dropdownBorder,
-                                                maxHeight: 'min(60vh, 480px)',
+                                                maxHeight: 'min(60vh, 290px)',
                                               }}
                                             >
                                               {renderDesktopFlyoutNodes(sub.children, true)}
@@ -1177,7 +1177,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                             backgroundColor: tokens.dropdownBg,
                             borderColor: tokens.dropdownBorder,
                             maxWidth: getViewportSafeMaxWidth(),
-                            maxHeight: 'min(70vh, 480px)',
+                            maxHeight: 'min(70vh, 290px)',
                           }}
                         >
                           {item.children.map((child) => (
@@ -1210,7 +1210,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                     style={{ 
                                       backgroundColor: tokens.dropdownBg, 
                                       borderColor: tokens.dropdownBorder,
-                                      maxHeight: 'min(70vh, 450px)',
+                                      maxHeight: 'min(70vh, 290px)',
                                     }}
                                   >
                                     {child.children.map((sub) => (
@@ -1731,7 +1731,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                           onMouseEnter={clearDeepMenuCloseIntent}
                                           onMouseLeave={scheduleDeepMenuClose}
                                         >
-                                          <div className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(320px,calc(100vw-2rem))] shadow-lg overflow-y-auto scrollbar-menu-thin')} style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder, maxHeight: 'min(70vh, 480px)' }}>
+                                          <div className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(320px,calc(100vw-2rem))] shadow-lg overflow-y-auto scrollbar-menu-thin')} style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder, maxHeight: 'min(70vh, 290px)' }}>
                                             {renderDesktopFlyoutNodes(sub.children, true)}
                                           </div>
                                         </div>
@@ -1751,7 +1751,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                           backgroundColor: tokens.dropdownBg,
                           borderColor: tokens.dropdownBorder,
                           maxWidth: getViewportSafeMaxWidth(),
-                          maxHeight: 'min(70vh, 480px)',
+                          maxHeight: 'min(70vh, 290px)',
                         }}
                       >
                         {item.children.map((child) => (
@@ -1999,7 +1999,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                              style={{ 
                                                backgroundColor: tokens.dropdownBg, 
                                                borderColor: tokens.dropdownBorder,
-                                               maxHeight: 'min(70vh, 480px)',
+                                                maxHeight: 'min(70vh, 290px)',
                                              }}
                                            >
                                                 {renderDesktopFlyoutNodes(sub.children, true)}
@@ -2021,7 +2021,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                               backgroundColor: tokens.dropdownBg,
                               borderColor: tokens.dropdownBorder,
                               maxWidth: getViewportSafeMaxWidth(),
-                              maxHeight: 'min(70vh, 480px)',
+                              maxHeight: 'min(70vh, 290px)',
                             }}
                           >
                             {item.children.map((child) => (
