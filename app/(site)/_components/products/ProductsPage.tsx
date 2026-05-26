@@ -1629,7 +1629,9 @@ export function ProductAttributesBadges({
   onAttributeChange,
   selectedAttributes,
   productTypeId,
-  limit
+  limit,
+  itemClassName = "text-xs",
+  iconClassName = "h-[15px] w-[15px]"
 }: {
   productId: string;
   productAttributesMap?: Map<string, any[]>;
@@ -1639,6 +1641,8 @@ export function ProductAttributesBadges({
   selectedAttributes?: Record<string, string[]>;
   productTypeId?: string;
   limit?: number;
+  itemClassName?: string;
+  iconClassName?: string;
 }) {
   const router = useRouter();
   const enableProductTypesSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableProductTypes' });
@@ -1717,14 +1721,14 @@ export function ProductAttributesBadges({
         return (
           <div
             key={groupItem._id}
-            className="flex min-w-0 max-w-full items-start gap-1.5 text-xs font-medium leading-5 transition-colors duration-300"
+            className={`flex min-w-0 max-w-full items-start gap-1.5 font-medium leading-5 transition-colors duration-300 ${itemClassName}`}
             style={{
               color: isAnyTermChecked ? tokens.primary : undefined,
             } as React.CSSProperties}
             title={groupItem.group.name}
           >
             <span style={{ color: tokens.primary }} className="mt-0.5 flex shrink-0 items-center justify-center">
-              <IconComponent size={15} />
+              <IconComponent size={15} className={iconClassName} />
             </span>
             <div className="flex min-w-0 max-h-5 flex-1 flex-wrap overflow-hidden">
               {groupItem.terms.slice(0, 2).map((term) => {
@@ -1859,6 +1863,8 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
               selectedAttributes={selectedAttributes}
               productTypeId={product.productTypeId}
               limit={4}
+              itemClassName="text-xs md:text-[13.2px]"
+              iconClassName="h-[15px] w-[15px] md:h-[16.5px] md:w-[16.5px]"
             />
             <div className="min-h-[20px] mt-2">
               {showStock && product.stock <= 5 && product.stock > 0 && <p className="text-xs" style={{ color: tokens.stockLowText }}>Chỉ còn {product.stock} sản phẩm</p>}
@@ -1956,6 +1962,8 @@ function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, 
               selectedAttributes={selectedAttributes}
               productTypeId={product.productTypeId}
               limit={4}
+              itemClassName="text-xs md:text-[13.2px]"
+              iconClassName="h-[15px] w-[15px] md:h-[16.5px] md:w-[16.5px]"
             />
             <div className="flex items-center gap-4">
               {showPrice && (
@@ -3020,6 +3028,8 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                         selectedAttributes={selectedAttributes}
                         productTypeId={product.productTypeId}
                         limit={4}
+                        itemClassName="text-xs md:text-[13.2px]"
+                        iconClassName="h-[15px] w-[15px] md:h-[16.5px] md:w-[16.5px]"
                       />
                       <div className="min-h-[20px] mt-2">
                         {showStock && product.stock <= 5 && product.stock > 0 && <span className="text-xs block" style={{ color: tokens.stockLowText }}>Chỉ còn {product.stock} sản phẩm</span>}
