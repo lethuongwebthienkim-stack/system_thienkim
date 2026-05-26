@@ -19,6 +19,7 @@ const productTypeDoc = v.object({
   description: v.optional(v.string()),
   order: v.number(),
   active: v.boolean(),
+  attributeGroupIds: v.optional(v.array(v.id("attributeGroups"))),
   priceRanges: v.optional(v.array(priceRangeSchema)),
 });
 
@@ -63,7 +64,19 @@ async function syncProductCategoryTypes(
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
-    return ctx.db.query("productTypes").collect().then(res => res.sort((a, b) => a.order - b.order));
+    const types = await ctx.db.query("productTypes").collect();
+    const rows = [];
+    for (const type of types) {
+      const mappings = await ctx.db
+        .query("productTypeAttributeGroups")
+        .withIndex("by_type_order", (q) => q.eq("typeId", type._id))
+        .collect();
+      rows.push({
+        ...type,
+        attributeGroupIds: mappings.map((mapping) => mapping.groupId),
+      });
+    }
+    return rows.sort((a, b) => a.order - b.order);
   },
   returns: v.array(productTypeDoc),
 });

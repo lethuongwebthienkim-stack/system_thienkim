@@ -4,9 +4,13 @@ import React, { use, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { Loader2, Plus, Trash2, ExternalLink } from 'lucide-react';
+import { Loader2, Plus, Trash2, ExternalLink, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
 import { Button, Card, CardContent, Input, Label, cn } from '../../../components/ui';
@@ -21,6 +25,182 @@ interface PriceRange {
   slug: string;
   minPrice?: number;
   maxPrice?: number;
+}
+
+type AttributeGroupItem = {
+  _id: Id<"attributeGroups">;
+  name: string;
+  code: string;
+  iconPath?: string;
+  displayConfig?: {
+    iconColor?: string;
+    color?: string;
+  };
+};
+
+function SortableAssignedGroupRow({
+  group,
+  index,
+  onRemove,
+}: {
+  group: AttributeGroupItem;
+  index: number;
+  onRemove: (id: Id<"attributeGroups">) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: group._id });
+  const IconComponent = getAttributeIconComponent(group.iconPath);
+  const iconColor = group.displayConfig?.iconColor || group.displayConfig?.color || '#ea580c';
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        'grid grid-cols-[32px_28px_1fr_auto] items-center gap-2 rounded-lg border bg-white px-2.5 py-2 text-sm shadow-sm dark:bg-slate-950',
+        isDragging ? 'border-orange-300 shadow-md opacity-90' : 'border-slate-200 dark:border-slate-800',
+      )}
+    >
+      <button
+        type="button"
+        className="flex h-7 w-7 cursor-grab items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-orange-600 active:cursor-grabbing dark:hover:bg-slate-800"
+        {...attributes}
+        {...listeners}
+        aria-label={`Kéo thả ${group.name}`}
+      >
+        <GripVertical size={15} />
+      </button>
+      <input
+        type="checkbox"
+        checked
+        onChange={() => onRemove(group._id)}
+        className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+        aria-label={`Bỏ gán ${group.name}`}
+      />
+      <div className="min-w-0 flex items-center gap-2">
+        <IconComponent size={15} style={{ color: iconColor }} className="shrink-0" />
+        <div className="min-w-0">
+          <div className="truncate font-medium text-slate-800 dark:text-slate-100">{group.name}</div>
+          <div className="truncate font-mono text-[11px] text-slate-400">{group.code}</div>
+        </div>
+      </div>
+      <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-700 dark:bg-orange-950/30 dark:text-orange-300">
+        #{index + 1}
+      </span>
+    </div>
+  );
+}
+
+function AssignedAttributeGroupsManager({
+  groups,
+  selectedIds,
+  onChange,
+}: {
+  groups: AttributeGroupItem[] | undefined;
+  selectedIds: Id<"attributeGroups">[];
+  onChange: (ids: Id<"attributeGroups">[]) => void;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const groupMap = useMemo(() => new Map((groups ?? []).map((group) => [group._id, group])), [groups]);
+  const selectedGroups = selectedIds
+    .map((groupId) => groupMap.get(groupId))
+    .filter((group): group is AttributeGroupItem => Boolean(group));
+  const selectedSet = new Set(selectedIds);
+  const unselectedGroups = (groups ?? []).filter((group) => !selectedSet.has(group._id));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = selectedIds.findIndex((groupId) => groupId === active.id);
+    const newIndex = selectedIds.findIndex((groupId) => groupId === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+    onChange(arrayMove(selectedIds, oldIndex, newIndex));
+  };
+
+  if (groups === undefined) {
+    return <p className="text-sm text-slate-500 italic">Đang tải...</p>;
+  }
+
+  if (groups.length === 0) {
+    return <p className="text-sm text-slate-500 italic">Chưa có nhóm thuộc tính nào.</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Đã chọn & sắp xếp</p>
+          <span className="text-[11px] text-slate-400">{selectedGroups.length} nhóm</span>
+        </div>
+        {selectedGroups.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-center text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900/30">
+            Chọn nhóm thuộc tính ở bảng dưới để thêm vào kiểu này.
+          </div>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={selectedIds} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {selectedGroups.map((group, index) => (
+                  <SortableAssignedGroupRow
+                    key={group._id}
+                    group={group}
+                    index={index}
+                    onRemove={(groupId) => onChange(selectedIds.filter((id) => id !== groupId))}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+      </div>
+
+      <div className="space-y-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Chưa chọn</p>
+          <span className="text-[11px] text-slate-400">{unselectedGroups.length} nhóm</span>
+        </div>
+        <div className="max-h-52 space-y-2 overflow-y-auto pr-1">
+          {unselectedGroups.length === 0 ? (
+            <p className="rounded-lg bg-slate-50 p-3 text-xs text-slate-500 dark:bg-slate-900/30">Tất cả nhóm đã được gán.</p>
+          ) : (
+            unselectedGroups.map((group) => {
+              const IconComponent = getAttributeIconComponent(group.iconPath);
+              const iconColor = group.displayConfig?.iconColor || group.displayConfig?.color || '#ea580c';
+              return (
+                <label
+                  key={group._id}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-2.5 py-2 hover:border-orange-200 hover:text-orange-700 dark:border-slate-800 dark:bg-slate-900/30"
+                >
+                  <input
+                    type="checkbox"
+                    checked={false}
+                    onChange={() => onChange([...selectedIds, group._id])}
+                    className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                  />
+                  <IconComponent size={15} style={{ color: iconColor }} className="shrink-0" />
+                  <span className="min-w-0 flex-1 truncate text-sm">{group.name}</span>
+                  <span className="hidden font-mono text-[11px] text-slate-400 sm:inline">{group.code}</span>
+                </label>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function ProductTypeEditPage({ params }: { params: Promise<{ id: string }> }) {
@@ -141,7 +321,7 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
   useEffect(() => {
     if (!initialData) return;
 
-    const isGroupsChanged = JSON.stringify([...attributeGroupIds].sort()) !== JSON.stringify([...initialData.attributeGroupIds].sort());
+    const isGroupsChanged = JSON.stringify(attributeGroupIds) !== JSON.stringify(initialData.attributeGroupIds);
     const isCatsChanged = JSON.stringify([...categoryIds].sort()) !== JSON.stringify([...initialData.categoryIds].sort());
     const isRangesChanged = JSON.stringify([...priceRanges].sort((a,b) => a.slug.localeCompare(b.slug))) !== JSON.stringify([...initialData.priceRanges].sort((a,b) => a.slug.localeCompare(b.slug)));
 
@@ -360,35 +540,15 @@ export default function ProductTypeEditPage({ params }: { params: Promise<{ id: 
 
               <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <Label>Các nhóm thuộc tính (Được gán vào kiểu này)</Label>
-                <div className="border border-slate-200 dark:border-slate-700 rounded-md p-3 max-h-60 overflow-y-auto space-y-2 bg-slate-50 dark:bg-slate-900/30">
-                  {attributeGroups === undefined ? (
-                    <p className="text-sm text-slate-500 italic">Đang tải...</p>
-                  ) : attributeGroups.length === 0 ? (
-                    <p className="text-sm text-slate-500 italic">Chưa có nhóm thuộc tính nào.</p>
-                  ) : (
-                    attributeGroups.map(group => (
-                      <label key={group._id} className="flex items-center gap-2 cursor-pointer py-0.5 hover:text-orange-600">
-                        <input
-                          type="checkbox"
-                          checked={attributeGroupIds.includes(group._id)}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setAttributeGroupIds(prev => [...prev, group._id]);
-                            } else {
-                              setAttributeGroupIds(prev => prev.filter(id => id !== group._id));
-                            }
-                          }}
-                          className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
-                        />
-                        {(() => {
-                          const IconComponent = getAttributeIconComponent(group.iconPath);
-                          const iconColor = group.displayConfig?.iconColor || group.displayConfig?.color || '#ea580c';
-                          return <IconComponent size={15} style={{ color: iconColor }} />;
-                        })()}
-                        <span className="text-sm">{group.name}</span>
-                      </label>
-                    ))
-                  )}
+                <p className="text-xs text-slate-500">
+                  Kéo thả nhóm đã chọn để quyết định thứ tự hiển thị ngoài site. Trang /products và trang chi tiết sản phẩm sẽ ưu tiên hiển thị 4 bộ lọc đầu tiên trong danh sách này.
+                </p>
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/30">
+                  <AssignedAttributeGroupsManager
+                    groups={attributeGroups as AttributeGroupItem[] | undefined}
+                    selectedIds={attributeGroupIds}
+                    onChange={setAttributeGroupIds}
+                  />
                 </div>
               </div>
             </CardContent>

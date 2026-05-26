@@ -16,13 +16,14 @@ import { buildCategoryPath, buildDetailPath, buildModuleListPath, normalizeRoute
 import { QuickAddVariantModal } from '@/components/products/QuickAddVariantModal';
 import { ProductImageWithOverlay, useProductImageOverlayConfigs } from '@/components/shared/ProductImageWithOverlay';
 import type { WatermarkConfig, ProductFrameConfig } from '@/components/shared/ProductImageWithOverlay';
-import { ChevronDown, Heart, Package, Search, ShoppingCart, SlidersHorizontal, X, Check, MapPin, Tag, Grape, Soup } from 'lucide-react';
+import { ChevronDown, Heart, Package, Search, ShoppingCart, SlidersHorizontal, X, Check } from 'lucide-react';
 import type { Id } from '@/convex/_generated/dataModel';
 import { getPublicPriceLabel } from '@/lib/products/public-price';
 import { getProductImageAspectRatioCssValue, resolveProductImageAspectRatio } from '@/lib/products/image-aspect-ratio';
 import { RichContent } from '@/components/common/RichContent';
 import { toRichTextContent } from '@/lib/products/product-supplemental-content';
 import { RangeSlider } from '@/components/shared/RangeSlider';
+import { getAttributeIconComponent } from '@/app/admin/attribute-groups/_lib/iconRegistry';
 
 type ProductSortOption = 'newest' | 'oldest' | 'popular' | 'price_asc' | 'price_desc' | 'name';
 type ProductsListLayout = 'grid' | 'list' | 'catalog';
@@ -1614,23 +1615,6 @@ function ProductCardActions({ product, tokens, showStock, showAddToCartButton, s
   );
 }
 
-function getAttributeIcon(code: string) {
-  const c = code.toLowerCase();
-  if (c.includes('brand') || c.includes('thuong-hieu') || c.includes('nhà sản xuất') || c.includes('producer')) {
-    return <Tag size={12} className="shrink-0" />;
-  }
-  if (c.includes('country') || c.includes('quoc-gia') || c.includes('xuat-xu') || c.includes('origin')) {
-    return <MapPin size={12} className="shrink-0" />;
-  }
-  if (c.includes('grape') || c.includes('giong-nho') || c.includes('nho')) {
-    return <Grape size={12} className="shrink-0" />;
-  }
-  if (c.includes('flavor') || c.includes('huong-vi') || c.includes('vi') || c.includes('aroma') || c.includes('taste')) {
-    return <Soup size={12} className="shrink-0" />;
-  }
-  return <Tag size={12} className="shrink-0" />;
-}
-
 type AttributeBadgeTokens = {
   primary: string;
   cardBorder?: string;
@@ -1641,7 +1625,7 @@ export function ProductAttributesBadges({
   productId,
   productAttributesMap,
   tokens,
-  className = "flex flex-wrap gap-1.5 mt-1.5 mb-1 max-w-full",
+  className = "flex flex-col gap-1.5 w-full mt-2 mb-2",
   onAttributeChange,
   selectedAttributes,
   productTypeId,
@@ -1672,12 +1656,25 @@ export function ProductAttributesBadges({
     return map;
   }, [productTypesData]);
 
+  const productTypeAttributeOrderMap = useMemo(() => {
+    const map = new Map<string, Map<string, number>>();
+    if (!productTypesData) return map;
+    productTypesData.forEach((type) => {
+      const orderMap = new Map<string, number>();
+      type.attributeGroupIds?.forEach((groupId, index) => {
+        orderMap.set(groupId, index);
+      });
+      map.set(type._id, orderMap);
+    });
+    return map;
+  }, [productTypesData]);
+
   if (!enableProductTypes || !productAttributesMap) return null;
   const terms = productAttributesMap.get(productId);
   if (!terms || terms.length === 0) return null;
 
   // 1. Nhóm các term theo groupId để tránh trùng lặp badge cùng loại và gộp tên
-  const groupMap = new Map<string, { group: any; terms: Array<{ _id: string; name: string; slug: string }> }>();
+  const groupMap = new Map<string, { group: any; terms: Array<{ _id: string; name: string; slug: string; order?: number }> }>();
   for (const term of terms) {
     if (!term.group) continue;
     const groupId = term.group._id;
@@ -1688,35 +1685,28 @@ export function ProductAttributesBadges({
       });
     }
     const groupData = groupMap.get(groupId)!;
-    groupData.terms.push({ _id: term._id, name: term.name, slug: term.slug });
+    groupData.terms.push({ _id: term._id, name: term.name, slug: term.slug, order: term.order });
   }
 
   // 2. Chuyển đổi thành danh sách các nhóm đã gộp
   const mergedGroups = Array.from(groupMap.values()).map(g => ({
     _id: g.terms.map(t => t._id).join('-'),
     group: g.group,
-    terms: g.terms,
+    terms: g.terms.sort((a, b) => (a.order ?? 9999) - (b.order ?? 9999)),
   }));
 
-  // 3. Sắp xếp các nhóm theo thứ tự ưu tiên
-  const priorityCodes = ['brand', 'country', 'grape', 'flavor'];
+  // 3. Sắp xếp các nhóm theo thứ tự cấu hình của Loại sản phẩm
+  const configuredOrder = productTypeId ? productTypeAttributeOrderMap.get(productTypeId) : undefined;
   const sortedGroups = mergedGroups.sort((a, b) => {
-    const aCode = a.group.code.toLowerCase();
-    const bCode = b.group.code.toLowerCase();
-    const aIndex = priorityCodes.findIndex(p => aCode.includes(p));
-    const bIndex = priorityCodes.findIndex(p => bCode.includes(p));
-
-    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-    if (aIndex !== -1) return -1;
-    if (bIndex !== -1) return 1;
-    return a.group.order - b.group.order;
+    const aOrder = configuredOrder?.get(a.group._id) ?? a.group.order ?? 9999;
+    const bOrder = configuredOrder?.get(b.group._id) ?? b.group.order ?? 9999;
+    return aOrder - bOrder;
   });
 
   return (
     <div className={className}>
       {(limit ? sortedGroups.slice(0, limit) : sortedGroups).map((groupItem, index) => {
-        const icon = getAttributeIcon(groupItem.group.code);
-        const isHiddenOnMobile = index >= 2;
+        const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
         const groupId = groupItem.group._id;
 
         const isAnyTermChecked = groupItem.terms.some(term => {
@@ -1727,19 +1717,17 @@ export function ProductAttributesBadges({
         return (
           <div
             key={groupItem._id}
-            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border transition-all duration-300 shadow-[0_1px_2px_rgba(0,0,0,0.02)] ${
-              isHiddenOnMobile ? 'hidden sm:inline-flex' : 'inline-flex'
-            } max-w-full hover:border-[var(--badge-hover-border)]`}
+            className="flex min-w-0 max-w-full items-start gap-1.5 text-xs font-medium leading-5 transition-colors duration-300"
             style={{
-              borderColor: isAnyTermChecked ? tokens.primary : (tokens.cardBorder ?? tokens.border ?? `${tokens.primary}33`),
-              backgroundColor: isAnyTermChecked ? `${tokens.primary}12` : undefined,
-              '--badge-hover-border': isAnyTermChecked ? tokens.primary : `${tokens.primary}50`,
+              color: isAnyTermChecked ? tokens.primary : undefined,
             } as React.CSSProperties}
             title={groupItem.group.name}
           >
-            <span style={{ color: tokens.primary }} className="shrink-0 flex items-center justify-center">{icon}</span>
-            <div className="flex items-center gap-1 truncate max-w-full">
-              {groupItem.terms.map((term, i) => {
+            <span style={{ color: tokens.primary }} className="mt-0.5 flex shrink-0 items-center justify-center">
+              <IconComponent size={15} />
+            </span>
+            <div className="flex min-w-0 max-h-5 flex-1 flex-wrap overflow-hidden">
+              {groupItem.terms.slice(0, 2).map((term) => {
                 const currentTermSlugs = selectedAttributes?.[groupId] || [];
                 const isChecked = currentTermSlugs.includes(term.slug);
 
@@ -1764,7 +1752,7 @@ export function ProductAttributesBadges({
 
                       onAttributeChange?.(groupItem.group.slug, term.slug, !isChecked);
                     }}
-                    className={`cursor-pointer transition-colors hover:underline truncate max-w-full ${
+                    className={`min-w-0 max-w-full cursor-pointer truncate transition-colors before:content-[',_'] first:before:content-none hover:underline ${
                       isChecked
                         ? 'font-semibold'
                         : 'font-normal text-slate-600 dark:text-slate-400'
@@ -1773,7 +1761,6 @@ export function ProductAttributesBadges({
                     title={`Lọc theo ${groupItem.group.name.toLowerCase()}: ${term.name}`}
                   >
                     {term.name}
-                    {i < groupItem.terms.length - 1 ? ',' : ''}
                   </span>
                 );
               })}
@@ -1964,7 +1951,7 @@ function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, 
               productId={product._id}
               productAttributesMap={productAttributesMap}
               tokens={tokens}
-              className="flex flex-wrap gap-1.5 mb-3 max-w-full"
+              className="flex flex-col gap-1.5 w-full mb-3"
               onAttributeChange={onAttributeChange}
               selectedAttributes={selectedAttributes}
               productTypeId={product.productTypeId}
@@ -3032,6 +3019,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                         onAttributeChange={onAttributeChange}
                         selectedAttributes={selectedAttributes}
                         productTypeId={product.productTypeId}
+                        limit={4}
                       />
                       <div className="min-h-[20px] mt-2">
                         {showStock && product.stock <= 5 && product.stock > 0 && <span className="text-xs block" style={{ color: tokens.stockLowText }}>Chỉ còn {product.stock} sản phẩm</span>}

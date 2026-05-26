@@ -159,12 +159,15 @@ export const getTermsForProducts = query({
               slug: term.slug,
               iconType: term.iconType,
               iconValue: term.iconValue,
+              order: term.order,
               group: {
                 _id: group._id,
                 name: group.name,
                 slug: group.slug,
                 code: group.code,
                 filterType: group.filterType,
+                iconPath: group.iconPath,
+                order: group.order,
               },
             });
           }
@@ -187,12 +190,15 @@ export const getTermsForProducts = query({
           slug: v.string(),
           iconType: v.optional(v.string()),
           iconValue: v.optional(v.string()),
+          order: v.number(),
           group: v.object({
             _id: v.id("attributeGroups"),
             name: v.string(),
             slug: v.string(),
             code: v.string(),
             filterType: v.optional(v.string()),
+            iconPath: v.optional(v.string()),
+            order: v.number(),
           }),
         })
       ),

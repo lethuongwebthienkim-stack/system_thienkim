@@ -2221,7 +2221,7 @@ function ClassicStyle({
                   productId={product._id}
                   productAttributesMap={productAttributesMap}
                   tokens={tokens}
-                  className="flex flex-wrap gap-2 mt-2 mb-2 max-w-full"
+                  className="grid grid-cols-2 gap-2 md:grid-cols-3 w-full mt-2 mb-2"
                   productTypeId={productTypeId}
                 />
               </div>
