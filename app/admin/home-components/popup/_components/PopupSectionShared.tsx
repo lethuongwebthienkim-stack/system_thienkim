@@ -105,8 +105,8 @@ const getOverlayPaddingClass = (config: PopupConfig) => {
 };
 
 function PopupActions({ config, brandColor, onClose, onDismissToday, forceStack = false }: { config: PopupConfig; brandColor: string; onClose: () => void; onDismissToday: () => void; forceStack?: boolean }) {
-  const hasPrimaryLink = config.primaryButtonLink.trim().length > 0;
-  const hasSecondaryLink = config.secondaryButtonLink.trim().length > 0;
+  const hasPrimaryLink = config.primaryButtonLink.trim().length > 0 && config.primaryButtonLink !== '#';
+  const hasSecondaryLink = config.secondaryButtonLink.trim().length > 0 && config.secondaryButtonLink !== '#';
   const hasPrimaryText = config.primaryButtonText.trim().length > 0;
   const hasSecondaryText = config.secondaryButtonText.trim().length > 0;
   const tokens = getPopupColorTokens(brandColor, config.colorIntensity);
