@@ -1672,7 +1672,7 @@ export function ProductAttributesBadges({
     return map;
   }, [productTypesData]);
 
-  if (!productAttributesMap) return null;
+  if (!enableProductTypes || !productAttributesMap) return null;
   const terms = productAttributesMap.get(productId);
   if (!terms || terms.length === 0) return null;
 

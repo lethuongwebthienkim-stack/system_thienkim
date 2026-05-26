@@ -619,17 +619,20 @@ export default function ProductDetailPage({ params }: PageProps) {
       : 'skip'
   );
   
+  const enableProductTypesSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableProductTypes' });
+  const enableProductTypes = enableProductTypesSetting?.value === true;
+
   const productTermsSource = useQuery(
     api.attributeTerms.getTermsForProducts,
-    product?._id ? { productIds: [product._id] } : 'skip'
+    enableProductTypes && product?._id ? { productIds: [product._id] } : 'skip'
   );
   const productTerms = productTermsSource?.[0]?.terms ?? [];
   const productAttributesMap = useMemo(() => {
-    if (!product?._id || productTerms.length === 0) return new Map();
+    if (!enableProductTypes || !product?._id || productTerms.length === 0) return new Map();
     const map = new Map<string, any[]>();
     map.set(product._id, productTerms);
     return map;
-  }, [product?._id, productTerms]);
+  }, [enableProductTypes, product?._id, productTerms]);
 
   const comments = useMemo(() => commentsPage?.page ?? [], [commentsPage?.page]);
   const saleMode = useMemo<ProductsSaleMode>(() => {
