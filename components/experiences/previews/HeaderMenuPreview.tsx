@@ -527,7 +527,14 @@ export function HeaderMenuPreview({
         {node.children.length > 0 && <ChevronRight size={14} />}
       </a>
       {node.children.length > 0 && (
-        <div className={cn('absolute top-0 rounded-lg border py-2 min-w-[200px] z-50 hidden group-hover/menu-node:block', depth === 0 ? 'left-full ml-1' : 'right-full mr-1')} style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+        <div 
+          className={cn('absolute top-0 rounded-lg border py-2 min-w-[200px] z-50 hidden group-hover/menu-node:block overflow-y-auto scrollbar-menu-thin', depth === 0 ? 'left-full ml-1' : 'right-full mr-1')} 
+          style={{ 
+            backgroundColor: tokens.dropdownBg, 
+            borderColor: tokens.dropdownBorder,
+            maxHeight: 'min(70vh, 480px)',
+          }}
+        >
           {renderDesktopFlyoutNodes(node.children, depth + 1)}
         </div>
       )}
@@ -725,7 +732,7 @@ export function HeaderMenuPreview({
                                             {sub.label}
                                           </div>
                                           {sub.children.length > 0 && (
-                                            <div className="space-y-1 pl-2 max-h-[240px] overflow-y-auto scrollbar-thin">
+                                            <div className="space-y-1 pl-2 max-h-[240px] overflow-y-auto scrollbar-menu-thin">
                                               {sub.children.map(leaf => (
                                                 <a 
                                                   key={leaf._id} 
@@ -756,7 +763,7 @@ export function HeaderMenuPreview({
                                         </a>
                                         {sub.children.length > 0 && (
                                           <div className="absolute left-full top-0 ml-2 hidden group-hover/menu-node:block">
-                                            <div className="rounded-xl border py-2 min-w-[220px] shadow-lg" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+                                            <div className="rounded-xl border py-2 min-w-[220px] shadow-lg overflow-y-auto scrollbar-menu-thin" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder, maxHeight: 'min(70vh, 480px)' }}>
                                               {renderDesktopFlyoutNodes(sub.children)}
                                             </div>
                                           </div>
@@ -781,8 +788,12 @@ export function HeaderMenuPreview({
                           </div>
                         ) : (
                           <div
-                            className={cn(r.dropdown, 'border py-2 min-w-[200px]')}
-                            style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}
+                            className={cn(r.dropdown, 'border py-2 min-w-[200px] overflow-y-auto scrollbar-menu-thin')}
+                            style={{ 
+                              backgroundColor: tokens.dropdownBg, 
+                              borderColor: tokens.dropdownBorder,
+                              maxHeight: 'min(70vh, 480px)',
+                            }}
                           >
                             {item.children.map((child) => (
                               <div key={child._id} className="relative group/menu-node">
@@ -798,7 +809,7 @@ export function HeaderMenuPreview({
                                 </a>
                                 {child.children.length > 0 && (
                                   <div className="absolute left-full top-0 pl-1 hidden group-hover/menu-node:block">
-                                    <div className="rounded-lg border py-2 min-w-[180px]" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+                                    <div className="rounded-lg border py-2 min-w-[180px] overflow-y-auto scrollbar-menu-thin" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder, maxHeight: 'min(70vh, 450px)' }}>
                                       {renderDesktopFlyoutNodes(child.children)}
                                     </div>
                                   </div>
@@ -1201,7 +1212,7 @@ export function HeaderMenuPreview({
                                     </a>
                                     {sub.children.length > 0 && (
                                       <div className="absolute left-full top-0 ml-2 hidden group-hover/menu-node:block">
-                                        <div className="rounded-xl border py-2 min-w-[220px] shadow-lg" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+                                        <div className="rounded-xl border py-2 min-w-[220px] shadow-lg overflow-y-auto scrollbar-menu-thin" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder, maxHeight: 'min(70vh, 480px)' }}>
                                           {renderDesktopFlyoutNodes(sub.children)}
                                         </div>
                                       </div>
@@ -1225,8 +1236,12 @@ export function HeaderMenuPreview({
                       </div>
                     ) : (
                       <div
-                        className="rounded-lg border py-2 min-w-[200px]"
-                        style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}
+                        className="rounded-lg border py-2 min-w-[200px] overflow-y-auto scrollbar-menu-thin"
+                        style={{ 
+                          backgroundColor: tokens.dropdownBg, 
+                          borderColor: tokens.dropdownBorder,
+                          maxHeight: 'min(70vh, 480px)',
+                        }}
                       >
                         {item.children.map((child) => (
                           <div key={child._id} className="relative group/menu-node">
@@ -1242,7 +1257,7 @@ export function HeaderMenuPreview({
                             </a>
                             {child.children.length > 0 && (
                               <div className="absolute left-full top-0 pl-1 hidden group-hover/menu-node:block">
-                                <div className="rounded-lg border py-2 min-w-[180px]" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+                                <div className="rounded-lg border py-2 min-w-[180px] overflow-y-auto scrollbar-menu-thin" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder, maxHeight: 'min(70vh, 450px)' }}>
                                   {renderDesktopFlyoutNodes(child.children)}
                                 </div>
                               </div>
@@ -1407,7 +1422,7 @@ export function HeaderMenuPreview({
                                         </a>
                                         {sub.children.length > 0 && (
                                           <div className="absolute left-full top-0 ml-2 hidden group-hover/menu-node:block">
-                                            <div className="rounded-xl border py-2 min-w-[220px] shadow-lg" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+                                            <div className="rounded-xl border py-2 min-w-[220px] shadow-lg overflow-y-auto scrollbar-menu-thin" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder, maxHeight: 'min(70vh, 480px)' }}>
                                               {renderDesktopFlyoutNodes(sub.children)}
                                             </div>
                                           </div>
@@ -1429,8 +1444,12 @@ export function HeaderMenuPreview({
                           </div>
                         ) : (
                           <div
-                            className="rounded-lg border py-2 min-w-[240px]"
-                            style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}
+                            className="rounded-lg border py-2 min-w-[240px] overflow-y-auto scrollbar-menu-thin"
+                            style={{ 
+                              backgroundColor: tokens.dropdownBg, 
+                              borderColor: tokens.dropdownBorder,
+                              maxHeight: 'min(70vh, 480px)',
+                            }}
                           >
                             {item.children.map((child) => (
                               <div key={child._id} className="relative group/menu-node">
@@ -1446,7 +1465,7 @@ export function HeaderMenuPreview({
                                 </a>
                                 {child.children.length > 0 && (
                                   <div className="absolute left-full top-0 pl-1 hidden group-hover/menu-node:block">
-                                    <div className="rounded-lg border py-2 min-w-[180px]" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+                                    <div className="rounded-lg border py-2 min-w-[180px] overflow-y-auto scrollbar-menu-thin" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder, maxHeight: 'min(70vh, 450px)' }}>
                                       {renderDesktopFlyoutNodes(child.children)}
                                     </div>
                                   </div>

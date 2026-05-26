@@ -91,6 +91,30 @@ body {
   background: transparent;
 }
 
+/* Custom scrollbar mỏng cho flyout/dropdown menu */
+.scrollbar-menu-thin {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--scrollbar-color) 40%, transparent) transparent;
+}
+
+.scrollbar-menu-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.scrollbar-menu-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-menu-thin::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--scrollbar-color) 40%, transparent);
+  border-radius: 9999px;
+}
+
+.scrollbar-menu-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-color);
+}
+
 .admin-sidebar-scroll {
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--scrollbar-color) 75%, transparent) transparent;

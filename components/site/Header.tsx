@@ -821,7 +821,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
           {node.children.length > 0 && (
             <div className={cn('absolute top-0 z-50 hidden', flyoutPositionClass)}>
               <div
-                className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(300px,calc(100vw-2rem))] shadow-xl group-hover/menu-node:block overflow-y-auto')}
+                className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(300px,calc(100vw-2rem))] shadow-xl group-hover/menu-node:block overflow-y-auto scrollbar-menu-thin')}
                 style={{
                   backgroundColor: tokens.dropdownBg,
                   borderColor: tokens.dropdownBorder,
@@ -864,7 +864,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         {node.children.length > 0 && isLevel4Open && (
           <div className="absolute left-0 top-full pt-1 z-50">
             <div
-              className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(300px,calc(100vw-2rem))] shadow-xl overflow-y-auto')}
+              className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(300px,calc(100vw-2rem))] shadow-xl overflow-y-auto scrollbar-menu-thin')}
               style={{
                 backgroundColor: tokens.dropdownBg,
                 borderColor: tokens.dropdownBorder,
@@ -1099,7 +1099,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                           >
                                             {sub.label}
                                           </div>
-                                          <div className="space-y-0.5 pl-2 max-h-[220px] overflow-y-auto">
+                                          <div className="space-y-0.5 pl-2 max-h-[220px] overflow-y-auto scrollbar-menu-thin">
                                             {sub.children.map(leaf => (
                                               <Link
                                                 key={leaf._id}
@@ -1151,7 +1151,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                             onMouseLeave={scheduleDeepMenuClose}
                                           >
                                             <div
-                                              className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(300px,calc(100vw-2rem))] shadow-xl overflow-y-auto')}
+                                              className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(300px,calc(100vw-2rem))] shadow-xl overflow-y-auto scrollbar-menu-thin')}
                                               style={{
                                                 backgroundColor: tokens.dropdownBg,
                                                 borderColor: tokens.dropdownBorder,
@@ -1172,11 +1172,12 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                         </div>
                       ) : (
                         <div
-                          className="rounded-lg border py-2 min-w-[200px]"
+                          className="rounded-lg border py-2 min-w-[200px] overflow-y-auto scrollbar-menu-thin"
                           style={{
                             backgroundColor: tokens.dropdownBg,
                             borderColor: tokens.dropdownBorder,
                             maxWidth: getViewportSafeMaxWidth(),
+                            maxHeight: 'min(70vh, 480px)',
                           }}
                         >
                           {item.children.map((child) => (
@@ -1205,8 +1206,12 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                   )}
                                 >
                                   <div
-                                    className="rounded-lg border py-2 min-w-[180px]"
-                                    style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}
+                                    className="rounded-lg border py-2 min-w-[180px] overflow-y-auto scrollbar-menu-thin"
+                                    style={{ 
+                                      backgroundColor: tokens.dropdownBg, 
+                                      borderColor: tokens.dropdownBorder,
+                                      maxHeight: 'min(70vh, 450px)',
+                                    }}
                                   >
                                     {child.children.map((sub) => (
                                     <Link
@@ -1675,7 +1680,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                         >
                                           {sub.label}
                                         </div>
-                                        <div className="space-y-0.5 pl-2 max-h-[220px] overflow-y-auto">
+                                        <div className="space-y-0.5 pl-2 max-h-[220px] overflow-y-auto scrollbar-menu-thin">
                                           {sub.children.map(leaf => (
                                             <Link
                                               key={leaf._id}
@@ -1726,7 +1731,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                           onMouseEnter={clearDeepMenuCloseIntent}
                                           onMouseLeave={scheduleDeepMenuClose}
                                         >
-                                          <div className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(320px,calc(100vw-2rem))] shadow-lg')} style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+                                          <div className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(320px,calc(100vw-2rem))] shadow-lg overflow-y-auto scrollbar-menu-thin')} style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder, maxHeight: 'min(70vh, 480px)' }}>
                                             {renderDesktopFlyoutNodes(sub.children, true)}
                                           </div>
                                         </div>
@@ -1741,11 +1746,12 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                       </div>
                     ) : (
                       <div
-                        className={cn(r.dropdown, 'border py-2 min-w-[200px]')}
+                        className={cn(r.dropdown, 'border py-2 min-w-[200px] overflow-y-auto scrollbar-menu-thin')}
                         style={{
                           backgroundColor: tokens.dropdownBg,
                           borderColor: tokens.dropdownBorder,
                           maxWidth: getViewportSafeMaxWidth(),
+                          maxHeight: 'min(70vh, 480px)',
                         }}
                       >
                         {item.children.map((child) => (
@@ -1937,7 +1943,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                             >
                                               {sub.label}
                                             </div>
-                                            <div className="space-y-0.5 pl-2 max-h-[220px] overflow-y-auto">
+                                            <div className="space-y-0.5 pl-2 max-h-[220px] overflow-y-auto scrollbar-menu-thin">
                                               {sub.children.map(leaf => (
                                                 <Link
                                                   key={leaf._id}
@@ -1988,7 +1994,14 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                               onMouseEnter={clearDeepMenuCloseIntent}
                                               onMouseLeave={scheduleDeepMenuClose}
                                             >
-                                              <div className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(320px,calc(100vw-2rem))] shadow-lg')} style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+                                              <div 
+                                             className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(320px,calc(100vw-2rem))] shadow-lg overflow-y-auto scrollbar-menu-thin')} 
+                                             style={{ 
+                                               backgroundColor: tokens.dropdownBg, 
+                                               borderColor: tokens.dropdownBorder,
+                                               maxHeight: 'min(70vh, 480px)',
+                                             }}
+                                           >
                                                 {renderDesktopFlyoutNodes(sub.children, true)}
                                               </div>
                                             </div>
@@ -2003,11 +2016,12 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                           </div>
                         ) : (
                           <div
-                            className={cn(r.dropdown, 'border py-2 min-w-[240px]')}
+                            className={cn(r.dropdown, 'border py-2 min-w-[240px] overflow-y-auto scrollbar-menu-thin')}
                             style={{
                               backgroundColor: tokens.dropdownBg,
                               borderColor: tokens.dropdownBorder,
                               maxWidth: getViewportSafeMaxWidth(),
+                              maxHeight: 'min(70vh, 480px)',
                             }}
                           >
                             {item.children.map((child) => (
