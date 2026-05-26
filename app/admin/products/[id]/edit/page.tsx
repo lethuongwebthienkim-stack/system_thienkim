@@ -190,8 +190,8 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
   }>({});
   const generatedSku = useQuery(
     api.productsSmart.generateSmartSku,
-    name.trim()
-      ? { name: name.trim(), categoryId: categoryId ? categoryId as Id<"productCategories"> : undefined }
+    categoryId
+      ? { name: name.trim() || 'Product', categoryId: categoryId as Id<"productCategories"> }
       : 'skip'
   );
   const resolvedSkuPreview = sku.trim() || generatedSku || productData?.sku || '';
@@ -699,10 +699,14 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
   }, [renderType, hasMarkdownRender, hasHtmlRender]);
 
   useEffect(() => {
-    if (!sku.trim() && generatedSku) {
-      setSku(generatedSku);
+    if (!isDataLoaded || !productData) return;
+    
+    if (categoryId === productData.categoryId) {
+      setSku(productData.sku);
+    } else {
+      setSku(generatedSku || '');
     }
-  }, [generatedSku, sku]);
+  }, [categoryId, generatedSku, productData, isDataLoaded]);
 
   useEffect(() => {
     if (productTypeMode === 'physical' || productTypeMode === 'digital') {

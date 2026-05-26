@@ -121,11 +121,10 @@ function ProductCreateContent() {
     customContent?: string;
     expiresAt?: number;
   }>({});
-  const lastGeneratedSkuRef = useRef('');
   const generatedSku = useQuery(
     api.productsSmart.generateSmartSku,
-    name.trim()
-      ? { name: name.trim(), categoryId: categoryId ? categoryId as Id<"productCategories"> : undefined }
+    categoryId
+      ? { name: name.trim() || 'Product', categoryId: categoryId as Id<"productCategories"> }
       : 'skip'
   );
   const resolvedSkuPreview = sku.trim() || generatedSku || '';
@@ -318,14 +317,7 @@ function ProductCreateContent() {
   }, [productTypeMode]);
 
   useEffect(() => {
-    if (!generatedSku) {
-      return;
-    }
-    setSku((currentSku) => {
-      const shouldUseGenerated = !currentSku.trim() || currentSku === lastGeneratedSkuRef.current;
-      lastGeneratedSkuRef.current = generatedSku;
-      return shouldUseGenerated ? generatedSku : currentSku;
-    });
+    setSku(generatedSku || '');
   }, [generatedSku]);
 
   useEffect(() => {
