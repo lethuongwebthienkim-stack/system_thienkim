@@ -138,12 +138,6 @@ const parseDescription = (text: string, isDarkBg: boolean) => {
   });
 };
 
-
-const getSuggestedSecondary = (color: string) => {
-  // Simple check to return a darker/lighter shade for gradient if secondary not provided
-  return color;
-};
-
 const getPopupBackgroundStyle = (config: PopupConfig, brandColor: string, secondary?: string) => {
   const mode = config.backgroundMode ?? 'solid';
   const secColor = secondary || brandColor;
@@ -337,7 +331,7 @@ function CloseButton({ onClose, isDarkBg = false }: { onClose: () => void; isDar
   );
 }
 
-function PopupCard({ config, brandColor, secondary, mode: colorMode, style, previewDevice, onClose, onDismissToday }: { config: PopupConfig; brandColor: string; secondary?: string; mode?: 'single' | 'dual'; style: PopupStyle; previewDevice: PreviewDevice; onClose: () => void; onDismissToday: () => void }) {
+function PopupCard({ config, brandColor, secondary, style, previewDevice, onClose, onDismissToday }: { config: PopupConfig; brandColor: string; secondary?: string; style: PopupStyle; previewDevice: PreviewDevice; onClose: () => void; onDismissToday: () => void }) {
   const tokens = getPopupColorTokens(brandColor, config.colorIntensity);
   const borderStyle = { borderColor: tokens.border };
   const isMobilePreview = previewDevice === 'mobile';
@@ -535,7 +529,7 @@ function PopupOverlay({
       onClick={onClose}
     >
       <div onClick={(event) => event.stopPropagation()} className="contents">
-        <PopupCard config={config} brandColor={brandColor} secondary={secondary} mode={mode} style={style} previewDevice={previewDevice} onClose={onClose} onDismissToday={handleDismissToday} />
+        <PopupCard config={config} brandColor={brandColor} secondary={secondary} style={style} previewDevice={previewDevice} onClose={onClose} onDismissToday={handleDismissToday} />
       </div>
     </div>
   );
