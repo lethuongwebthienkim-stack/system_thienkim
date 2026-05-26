@@ -28,12 +28,7 @@ export default function HomePageClient({
   const loadingStartRef = useRef<number | null>(null);
   const delayTimerRef = useRef<number | null>(null);
   const deferredTriggerRef = useRef<HTMLDivElement | null>(null);
-  const [criticalCount, setCriticalCount] = useState(() => {
-    if (typeof window === 'undefined') {
-      return MAX_CRITICAL_COMPONENTS;
-    }
-    return window.innerWidth < 768 ? 1 : MAX_CRITICAL_COMPONENTS;
-  });
+  const [criticalCount, setCriticalCount] = useState(MAX_CRITICAL_COMPONENTS);
 
   const isDataReady = typeof resolvedComponents !== 'undefined';
 
