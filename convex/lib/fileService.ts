@@ -2,6 +2,10 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { api } from "../_generated/api";
 
+function isValidStorageId(id: unknown): id is Id<"_storage"> {
+  return typeof id === "string" && !id.includes("-") && id.length >= 20;
+}
+
 export type FileOwnerRef = {
   ownerField: string;
   ownerId: string;
@@ -87,7 +91,8 @@ export async function removeOwnerFileReferences(
     .collect();
   const removedStorageIds = new Set<Id<"_storage">>(references.map(reference => reference.storageId));
 
-  for (const storageId of dedupeStorageIds(options?.previousStorageIds)) {
+  const previousStorageIds = dedupeStorageIds(options?.previousStorageIds).filter(isValidStorageId);
+  for (const storageId of previousStorageIds) {
     removedStorageIds.add(storageId);
   }
 
@@ -103,7 +108,11 @@ export async function syncOwnerFileReferences(
   options?: { previousStorageIds?: Array<Id<"_storage"> | null | undefined> }
 ) {
   const now = Date.now();
-  const nextStorageIds = new Set(dedupeStorageIds(storageIds));
+  
+  const validNextStorageIds = dedupeStorageIds(storageIds).filter(isValidStorageId);
+  const validPreviousStorageIds = dedupeStorageIds(options?.previousStorageIds).filter(isValidStorageId);
+
+  const nextStorageIds = new Set(validNextStorageIds);
   const existing = await ctx.db
     .query("fileReferences")
     .withIndex("by_owner_field", q =>
@@ -120,7 +129,7 @@ export async function syncOwnerFileReferences(
     }
   }
 
-  for (const storageId of dedupeStorageIds(options?.previousStorageIds)) {
+  for (const storageId of validPreviousStorageIds) {
     if (!nextStorageIds.has(storageId)) {
       removedStorageIds.add(storageId);
     }
@@ -154,7 +163,7 @@ export async function commitFileDraftUploads(
   ctx: MutationCtx,
   storageIds: Array<Id<"_storage"> | null | undefined>
 ) {
-  const committedStorageIds = dedupeStorageIds(storageIds);
+  const committedStorageIds = dedupeStorageIds(storageIds).filter(isValidStorageId);
   if (committedStorageIds.length === 0) {
     return { committed: 0 };
   }
@@ -165,7 +174,7 @@ export async function cleanupStorageIdsIfUnreferenced(
   ctx: MutationCtx,
   storageIds: Array<Id<"_storage"> | null | undefined>
 ) {
-  const cleanupStorageIds = dedupeStorageIds(storageIds);
+  const cleanupStorageIds = dedupeStorageIds(storageIds).filter(isValidStorageId);
   await Promise.all(cleanupStorageIds.map((storageId) =>
     ctx.runMutation(api.storage.cleanupStorageIfUnreferenced, { storageId })
   ));
