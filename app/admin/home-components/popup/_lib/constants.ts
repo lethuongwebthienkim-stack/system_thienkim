@@ -1,5 +1,5 @@
 import { DEFAULT_SECTION_SPACING, normalizeSectionSpacing } from '../../_shared/types/sectionSpacing';
-import type { PopupConfig, PopupCornerRadius, PopupFrequency, PopupStyle, PopupTrigger } from '../_types';
+import type { PopupConfig, PopupCornerRadius, PopupFrequency, PopupStyle, PopupTrigger, PopupBackgroundMode } from '../_types';
 
 export const POPUP_STYLES: Array<{ id: PopupStyle; label: string }> = [
   { id: 'center-card', label: 'Premium Modal' },
@@ -9,6 +9,7 @@ export const POPUP_STYLES: Array<{ id: PopupStyle; label: string }> = [
   { id: 'minimal-alert', label: 'Smart Alert' },
   { id: 'full-screen', label: 'Campaign Hero' },
   { id: 'image-only', label: 'Image Only' },
+  { id: 'centered-advertisement', label: 'Premium Advertisement' },
 ];
 
 export const DEFAULT_POPUP_CONFIG: PopupConfig = {
@@ -33,10 +34,11 @@ export const DEFAULT_POPUP_CONFIG: PopupConfig = {
   spacing: DEFAULT_SECTION_SPACING,
   colorIntensity: 50,
   showDoNotShowToday: false,
+  backgroundMode: 'solid',
 };
 
 export const normalizePopupStyle = (value: unknown): PopupStyle => {
-  if (value === 'center-card' || value === 'split-visual' || value === 'bottom-sheet' || value === 'side-panel' || value === 'minimal-alert' || value === 'full-screen' || value === 'image-only') {
+  if (value === 'center-card' || value === 'split-visual' || value === 'bottom-sheet' || value === 'side-panel' || value === 'minimal-alert' || value === 'full-screen' || value === 'image-only' || value === 'centered-advertisement') {
     return value;
   }
   return DEFAULT_POPUP_CONFIG.style;
@@ -54,6 +56,27 @@ export const normalizePopupFrequency = (value: unknown): PopupFrequency => {
     return value;
   }
   return DEFAULT_POPUP_CONFIG.frequency;
+};
+
+export const normalizePopupBackgroundMode = (value: unknown): PopupBackgroundMode => {
+  const valid: PopupBackgroundMode[] = [
+    'solid', 
+    'brand', 
+    'secondary-solid',
+    'gradient-brand-to-secondary',
+    'gradient-secondary-to-brand',
+    'gradient-brand-dark',
+    'gradient-secondary-dark',
+    'pattern-sunburst',
+    'pattern-sunburst-secondary',
+    'pattern-sunburst-gradient',
+    'glassmorphism',
+    'dark-aesthetic'
+  ];
+  if (typeof value === 'string' && valid.includes(value as any)) {
+    return value as PopupBackgroundMode;
+  }
+  return 'solid';
 };
 
 const normalizeString = (value: unknown, fallback: string) => (
@@ -133,5 +156,6 @@ export const normalizePopupConfig = (config: unknown): PopupConfig => {
     spacing: normalizePopupSpacing(raw.spacing, raw.noVerticalMargin),
     colorIntensity: normalizeColorIntensity(raw.colorIntensity),
     showDoNotShowToday: normalizeBoolean(raw.showDoNotShowToday, DEFAULT_POPUP_CONFIG.showDoNotShowToday),
+    backgroundMode: normalizePopupBackgroundMode(raw.backgroundMode),
   };
 };
