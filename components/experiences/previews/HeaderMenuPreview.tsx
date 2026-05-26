@@ -40,6 +40,7 @@ export type HeaderMenuConfig = {
     sloganEnabled?: boolean;
   };
   wishlist: { show: boolean };
+  megaLevel1Color?: 'default' | 'primary' | 'secondary';
 };
 
 type MenuItem = {
@@ -136,6 +137,14 @@ export function HeaderMenuPreview({
     popup: radiusLevel === 'none' ? 'rounded-none' : radiusLevel === 'small' ? 'rounded-md' : 'rounded-2xl',
     item: radiusLevel === 'none' ? 'rounded-none' : radiusLevel === 'small' ? 'rounded' : 'rounded-lg',
   };
+
+  // Màu tiêu đề cấp 1 Mega Menu
+  const level1ColorMode = config.megaLevel1Color ?? 'default';
+  const level1Color =
+    level1ColorMode === 'primary' ? tokens.primary
+    : level1ColorMode === 'secondary' ? tokens.secondary
+    : tokens.textPrimary;
+
   const logoSizeMap: Record<HeaderLayoutStyle, number[]> = {
     classic: buildLinearSteps(24, 160),
     topbar: buildLinearSteps(28, 180),
@@ -701,7 +710,7 @@ export function HeaderMenuPreview({
                                     target={child.openInNewTab ? '_blank' : undefined}
                                     rel={child.openInNewTab ? 'noreferrer' : undefined}
                                     className="block text-sm font-semibold whitespace-normal break-words leading-snug"
-                                    style={{ color: tokens.textPrimary }}
+                                    style={{ color: level1Color }}
                                   >
                                     {child.label}
                                   </a>
@@ -1173,7 +1182,7 @@ export function HeaderMenuPreview({
                                 target={child.openInNewTab ? '_blank' : undefined}
                                 rel={child.openInNewTab ? 'noreferrer' : undefined}
                                 className="block text-sm font-semibold whitespace-normal break-words leading-snug"
-                                style={{ color: tokens.textPrimary }}
+                                style={{ color: level1Color }}
                               >
                                 {child.label}
                               </a>
@@ -1380,7 +1389,7 @@ export function HeaderMenuPreview({
                             <div className={cn('grid gap-6', gridCols)}>
                               {item.children.map((child) => (
                                 <div key={child._id} className="space-y-3">
-                                  <a href={child.url} className="text-sm font-semibold whitespace-normal break-words leading-snug" style={{ color: tokens.textPrimary }}>
+                                  <a href={child.url} className="text-sm font-semibold whitespace-normal break-words leading-snug" style={{ color: level1Color }}>
                                     {child.label}
                                   </a>
                                   <div className="space-y-2">

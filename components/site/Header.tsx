@@ -85,6 +85,7 @@ interface HeaderConfig {
   showBrandAccent?: boolean;
   flatSubMenus?: boolean;
   borderRadiusStyle?: 'none' | 'small' | 'large';
+  megaLevel1Color?: 'default' | 'primary' | 'secondary';
   cta?: { show?: boolean; text?: string; url?: string };
   topbar?: TopbarConfig;
   search?: SearchConfig;
@@ -107,6 +108,7 @@ const DEFAULT_CONFIG: HeaderConfig = {
   showBrandAccent: false,
   flatSubMenus: false,
   borderRadiusStyle: 'large',
+  megaLevel1Color: 'default',
   cart: { show: true },
   cta: { show: true, text: 'Liên hệ', url: '/contact' },
   login: { show: true, text: 'Đăng nhập' },
@@ -785,6 +787,13 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
     item: radiusLevel === 'none' ? 'rounded-none' : radiusLevel === 'small' ? 'rounded' : 'rounded-lg',
   };
 
+  // Màu tiêu đề cấp 1 Mega Menu
+  const level1ColorMode = config.megaLevel1Color ?? 'default';
+  const level1Color =
+    level1ColorMode === 'primary' ? tokens.primary
+    : level1ColorMode === 'secondary' ? tokens.secondary
+    : tokens.textPrimary;
+
   const renderDesktopFlyoutNodes = (nodes: MenuItemWithChildren[], deepMode: boolean): React.ReactNode => nodes.map((node) => {
     if (!deepMode) {
       const flyoutKey = `flyout-${node._id}`;
@@ -803,7 +812,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
             href={node.url}
             target={node.openInNewTab ? '_blank' : undefined}
             rel={node.openInNewTab ? 'noreferrer' : undefined}
-            className="flex min-w-0 items-start justify-between gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-[var(--menu-dropdown-hover-bg)] hover:text-[var(--menu-dropdown-hover-text)]"
+            className={cn('flex min-w-0 items-start justify-between gap-2 px-3 py-2 text-sm transition-colors hover:bg-[var(--menu-dropdown-hover-bg)] hover:text-[var(--menu-dropdown-hover-text)]', r.item)}
             style={{ color: tokens.dropdownItemText, ...menuVars }}
           >
             <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{node.label}</span>
@@ -811,7 +820,14 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
           </Link>
           {node.children.length > 0 && (
             <div className={cn('absolute top-0 z-50 hidden', flyoutPositionClass)}>
-              <div className="rounded-lg border py-2 min-w-[220px] max-w-[min(320px,calc(100vw-2rem))] shadow-lg group-hover/menu-node:block" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+              <div
+                className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(300px,calc(100vw-2rem))] shadow-xl group-hover/menu-node:block overflow-y-auto')}
+                style={{
+                  backgroundColor: tokens.dropdownBg,
+                  borderColor: tokens.dropdownBorder,
+                  maxHeight: 'min(60vh, 480px)',
+                }}
+              >
                 {renderDesktopFlyoutNodes(node.children, deepMode)}
               </div>
             </div>
@@ -836,7 +852,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
           href={node.url}
           target={node.openInNewTab ? '_blank' : undefined}
           rel={node.openInNewTab ? 'noreferrer' : undefined}
-          className="flex min-w-0 items-start justify-between gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-[var(--menu-dropdown-hover-bg)] hover:text-[var(--menu-dropdown-hover-text)]"
+          className={cn('flex min-w-0 items-start justify-between gap-2 px-3 py-2 text-sm transition-colors hover:bg-[var(--menu-dropdown-hover-bg)] hover:text-[var(--menu-dropdown-hover-text)]', r.item)}
           style={{
             ...(isLevel4Open ? { backgroundColor: tokens.dropdownItemHoverBg, color: tokens.dropdownItemHoverText } : { color: tokens.dropdownItemText }),
             ...menuVars,
@@ -847,14 +863,21 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         </Link>
         {node.children.length > 0 && isLevel4Open && (
           <div className="absolute left-0 top-full pt-1 z-50">
-            <div className="rounded-lg border py-2 min-w-[220px] max-w-[min(320px,calc(100vw-2rem))]" style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+            <div
+              className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(300px,calc(100vw-2rem))] shadow-xl overflow-y-auto')}
+              style={{
+                backgroundColor: tokens.dropdownBg,
+                borderColor: tokens.dropdownBorder,
+                maxHeight: 'min(60vh, 480px)',
+              }}
+            >
               {node.children.map((child) => (
                 <Link
                   key={child._id}
                   href={child.url}
                   target={child.openInNewTab ? '_blank' : undefined}
                   rel={child.openInNewTab ? 'noreferrer' : undefined}
-                  className="block rounded-lg px-3 py-2 text-sm whitespace-normal break-words leading-snug transition-colors hover:bg-[var(--menu-dropdown-hover-bg)] hover:text-[var(--menu-dropdown-hover-text)]"
+                  className={cn('block px-3 py-2 text-sm whitespace-normal break-words leading-snug transition-colors hover:bg-[var(--menu-dropdown-hover-bg)] hover:text-[var(--menu-dropdown-hover-text)]', r.item)}
                   style={{ color: tokens.dropdownItemText, ...menuVars }}
                 >
                   {child.label}
@@ -1059,7 +1082,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                   href={child.url}
                                   target={child.openInNewTab ? '_blank' : undefined}
                                   className="block text-sm font-semibold whitespace-normal break-words leading-snug"
-                                  style={{ color: tokens.textPrimary }}
+                                  style={{ color: level1Color }}
                                 >
                                   {child.label}
                                 </Link>
@@ -1127,7 +1150,14 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                             onMouseEnter={clearDeepMenuCloseIntent}
                                             onMouseLeave={scheduleDeepMenuClose}
                                           >
-                                            <div className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(320px,calc(100vw-2rem))] shadow-lg')} style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}>
+                                            <div
+                                              className={cn(r.dropdown, 'border py-2 min-w-[220px] max-w-[min(300px,calc(100vw-2rem))] shadow-xl overflow-y-auto')}
+                                              style={{
+                                                backgroundColor: tokens.dropdownBg,
+                                                borderColor: tokens.dropdownBorder,
+                                                maxHeight: 'min(60vh, 480px)',
+                                              }}
+                                            >
                                               {renderDesktopFlyoutNodes(sub.children, true)}
                                             </div>
                                           </div>
@@ -1628,7 +1658,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                 href={child.url}
                                 target={child.openInNewTab ? '_blank' : undefined}
                                 className="block text-sm font-semibold"
-                                style={{ color: tokens.textPrimary }}
+                                style={{ color: level1Color }}
                               >
                                 {child.label}
                               </Link>
@@ -1890,7 +1920,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                     href={child.url}
                                     target={child.openInNewTab ? '_blank' : undefined}
                                     className="text-sm font-semibold"
-                                    style={{ color: tokens.textPrimary }}
+                                    style={{ color: level1Color }}
                                   >
                                     {child.label}
                                   </Link>
