@@ -20,7 +20,7 @@ export function normalizeStorageId(ctx: QueryCtx | MutationCtx, value: unknown):
   if (typeof value !== "string" || !value.trim()) {
     return null;
   }
-  return ctx.db.normalizeId("_storage" as any, value) as Id<"_storage"> | null;
+  return ctx.db.system.normalizeId("_storage", value);
 }
 
 export function normalizeStorageIds(
