@@ -2,10 +2,6 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { api } from "../_generated/api";
 
-function isValidStorageId(id: unknown): id is Id<"_storage"> {
-  return typeof id === "string" && !id.includes("-") && id.length >= 20;
-}
-
 export type FileOwnerRef = {
   ownerField: string;
   ownerId: string;
@@ -20,12 +16,29 @@ export type FileUsage = {
   table: string;
 };
 
-export function normalizeStorageIds(values: Array<Id<"_storage"> | null | undefined> | null | undefined) {
-  return values?.filter((value): value is Id<"_storage"> => Boolean(value)) ?? [];
+export function normalizeStorageId(ctx: QueryCtx | MutationCtx, value: unknown): Id<"_storage"> | null {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+  return ctx.db.normalizeId("_storage" as any, value) as Id<"_storage"> | null;
+}
+
+export function normalizeStorageIds(
+  ctx: QueryCtx | MutationCtx,
+  values: Array<string | null | undefined> | null | undefined
+) {
+  return values?.map(value => normalizeStorageId(ctx, value)).filter((value): value is Id<"_storage"> => Boolean(value)) ?? [];
+}
+
+export function dedupeNormalizedStorageIds(
+  ctx: QueryCtx | MutationCtx,
+  values: Array<string | null | undefined> | null | undefined
+) {
+  return Array.from(new Set(normalizeStorageIds(ctx, values)));
 }
 
 export function dedupeStorageIds(values: Array<Id<"_storage"> | null | undefined> | null | undefined) {
-  return Array.from(new Set(normalizeStorageIds(values)));
+  return Array.from(new Set(values?.filter((value): value is Id<"_storage"> => Boolean(value)) ?? []));
 }
 
 export function isConvexManagedMediaUrl(url?: string | null) {
@@ -83,7 +96,7 @@ export async function removeFileReferencesForStorage(ctx: MutationCtx, storageId
 export async function removeOwnerFileReferences(
   ctx: MutationCtx,
   owner: Pick<FileOwnerRef, "ownerId" | "ownerTable">,
-  options?: { previousStorageIds?: Array<Id<"_storage"> | null | undefined> }
+  options?: { previousStorageIds?: Array<string | null | undefined> }
 ) {
   const references = await ctx.db
     .query("fileReferences")
@@ -91,7 +104,7 @@ export async function removeOwnerFileReferences(
     .collect();
   const removedStorageIds = new Set<Id<"_storage">>(references.map(reference => reference.storageId));
 
-  const previousStorageIds = dedupeStorageIds(options?.previousStorageIds).filter(isValidStorageId);
+  const previousStorageIds = dedupeNormalizedStorageIds(ctx, options?.previousStorageIds);
   for (const storageId of previousStorageIds) {
     removedStorageIds.add(storageId);
   }
@@ -104,13 +117,13 @@ export async function removeOwnerFileReferences(
 export async function syncOwnerFileReferences(
   ctx: MutationCtx,
   owner: FileOwnerRef,
-  storageIds: Array<Id<"_storage"> | null | undefined>,
-  options?: { previousStorageIds?: Array<Id<"_storage"> | null | undefined> }
+  storageIds: Array<string | null | undefined>,
+  options?: { previousStorageIds?: Array<string | null | undefined> }
 ) {
   const now = Date.now();
   
-  const validNextStorageIds = dedupeStorageIds(storageIds).filter(isValidStorageId);
-  const validPreviousStorageIds = dedupeStorageIds(options?.previousStorageIds).filter(isValidStorageId);
+  const validNextStorageIds = dedupeNormalizedStorageIds(ctx, storageIds);
+  const validPreviousStorageIds = dedupeNormalizedStorageIds(ctx, options?.previousStorageIds);
 
   const nextStorageIds = new Set(validNextStorageIds);
   const existing = await ctx.db
@@ -161,9 +174,9 @@ export async function syncOwnerFileReferences(
 
 export async function commitFileDraftUploads(
   ctx: MutationCtx,
-  storageIds: Array<Id<"_storage"> | null | undefined>
+  storageIds: Array<string | null | undefined>
 ) {
-  const committedStorageIds = dedupeStorageIds(storageIds).filter(isValidStorageId);
+  const committedStorageIds = dedupeNormalizedStorageIds(ctx, storageIds);
   if (committedStorageIds.length === 0) {
     return { committed: 0 };
   }
@@ -172,9 +185,9 @@ export async function commitFileDraftUploads(
 
 export async function cleanupStorageIdsIfUnreferenced(
   ctx: MutationCtx,
-  storageIds: Array<Id<"_storage"> | null | undefined>
+  storageIds: Array<string | null | undefined>
 ) {
-  const cleanupStorageIds = dedupeStorageIds(storageIds).filter(isValidStorageId);
+  const cleanupStorageIds = dedupeNormalizedStorageIds(ctx, storageIds);
   await Promise.all(cleanupStorageIds.map((storageId) =>
     ctx.runMutation(api.storage.cleanupStorageIfUnreferenced, { storageId })
   ));
@@ -184,8 +197,8 @@ export async function cleanupStorageIdsIfUnreferenced(
 export async function syncOwnerFilesAndCleanup(
   ctx: MutationCtx,
   owner: FileOwnerRef,
-  storageIds: Array<Id<"_storage"> | null | undefined>,
-  options?: { previousStorageIds?: Array<Id<"_storage"> | null | undefined> }
+  storageIds: Array<string | null | undefined>,
+  options?: { previousStorageIds?: Array<string | null | undefined> }
 ) {
   const result = await syncOwnerFileReferences(ctx, owner, storageIds, options);
   await commitFileDraftUploads(ctx, storageIds);
@@ -196,7 +209,7 @@ export async function syncOwnerFilesAndCleanup(
 export async function removeOwnerFilesAndCleanup(
   ctx: MutationCtx,
   owner: Pick<FileOwnerRef, "ownerId" | "ownerTable">,
-  options?: { previousStorageIds?: Array<Id<"_storage"> | null | undefined> }
+  options?: { previousStorageIds?: Array<string | null | undefined> }
 ) {
   const result = await removeOwnerFileReferences(ctx, owner, options);
   await cleanupStorageIdsIfUnreferenced(ctx, result.removedStorageIds);
@@ -237,7 +250,7 @@ export async function resolveStorageIdsFromLegacyUrls(
       resolvedStorageIds.push(image.storageId);
     }
   }
-  return dedupeStorageIds(resolvedStorageIds);
+  return dedupeNormalizedStorageIds(ctx, resolvedStorageIds);
 }
 
 export function fileReferenceUsage(reference: Doc<"fileReferences">): FileUsage {

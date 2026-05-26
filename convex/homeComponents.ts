@@ -32,7 +32,7 @@ async function updateHomeComponentStats(
   }
 }
 
-function collectConfigStorageIds(value: unknown, acc = new Set<Id<"_storage">>()): Id<"_storage">[] {
+function collectConfigStorageIds(value: unknown, acc = new Set<string>()): string[] {
   if (!value) {
     return Array.from(acc);
   }
@@ -43,7 +43,7 @@ function collectConfigStorageIds(value: unknown, acc = new Set<Id<"_storage">>()
   if (typeof value === "object") {
     const record = value as Record<string, unknown>;
     if (typeof record.storageId === "string" && record.storageId.trim()) {
-      acc.add(record.storageId as Id<"_storage">);
+      acc.add(record.storageId);
     }
     Object.values(record).forEach(item => collectConfigStorageIds(item, acc));
   }
@@ -74,15 +74,18 @@ function resolveConfigStorageIds(config: unknown) {
   return collectConfigStorageIds(config);
 }
 
-function sameStorageIds(
-  left: Array<Id<"_storage"> | null | undefined>,
-  right: Array<Id<"_storage"> | null | undefined>
-) {
-  const normalize = (values: Array<Id<"_storage"> | null | undefined>) =>
-    Array.from(new Set(values.filter((value): value is Id<"_storage"> => Boolean(value)))).sort();
-  const leftIds = normalize(left);
-  const rightIds = normalize(right);
-  return leftIds.length === rightIds.length && leftIds.every((value, index) => value === rightIds[index]);
+function collectStorageIdsFromStorageUrls(config: unknown) {
+  return collectConfigUrls(config)
+    .map((url) => {
+      const marker = "/api/storage/";
+      const markerIndex = url.indexOf(marker);
+      if (markerIndex === -1) {
+        return null;
+      }
+      const rawStorageId = url.slice(markerIndex + marker.length).split("?")[0]?.split("#")[0]?.trim();
+      return rawStorageId || null;
+    })
+    .filter((storageId): storageId is string => Boolean(storageId));
 }
 
 async function syncHomeComponentFileReferences(
@@ -92,12 +95,9 @@ async function syncHomeComponentFileReferences(
   previousConfig?: unknown
 ) {
   const [nextStorageIds, previousStorageIds] = await Promise.all([
-    resolveConfigStorageIds(nextConfig),
-    resolveConfigStorageIds(previousConfig),
+    [...resolveConfigStorageIds(nextConfig), ...collectStorageIdsFromStorageUrls(nextConfig)],
+    [...resolveConfigStorageIds(previousConfig), ...collectStorageIdsFromStorageUrls(previousConfig)],
   ]);
-  if (sameStorageIds(nextStorageIds, previousStorageIds)) {
-    return;
-  }
 
   const { removedStorageIds } = await syncOwnerFileReferences(ctx, {
     ownerField: "config",
@@ -292,7 +292,7 @@ export const cleanupUnreferencedConfigMedia = mutation({
     const maxBatch = Math.min(args.batchSize ?? 100, 200);
     const homeComponents = await ctx.db.query("homeComponents").take(1000);
     const referencedUrls = new Set<string>();
-    const referencedStorageIds = new Set<Id<"_storage">>();
+    const referencedStorageIds = new Set<string>();
 
     for (const component of homeComponents) {
       collectConfigUrls(component.config).forEach(url => referencedUrls.add(url));

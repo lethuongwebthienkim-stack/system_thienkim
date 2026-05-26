@@ -43,15 +43,6 @@ const DEMO_GALLERY_ITEMS: GalleryItem[] = [
   { id: 'demo-6', link: '', url: '/demo/gallery/gallery-6.png' },
 ];
 
-const extractStorageIdFromUrl = (url?: string): string | undefined => {
-  if (!url) {return undefined;}
-  if (url.includes('/api/storage/')) {
-    const parts = url.split('/api/storage/');
-    return parts[parts.length - 1]?.split('?')[0];
-  }
-  return undefined;
-};
-
 const COMPONENT_TYPE = 'Gallery';
 
 type SnapshotEditableComponent = {
@@ -149,7 +140,7 @@ export default function GalleryEditPage({
 
     const config = component.config ?? {};
     const items = (config.items as { url: string; link: string; name?: string; storageId?: string }[] | undefined) ?? DEFAULT_GALLERY_ITEMS;
-    const normalizedItems = items.map((item, idx) => ({ id: `item-${idx + 1}`, link: item.link || '', name: item.name ?? '', url: item.url, storageId: (item.storageId || extractStorageIdFromUrl(item.url)) as Id<'_storage'> }));
+    const normalizedItems = items.map((item, idx) => ({ id: `item-${idx + 1}`, link: item.link || '', name: item.name ?? '', url: item.url, storageId: item.storageId as Id<'_storage'> | undefined }));
     resetgalleryItems(normalizedItems);
 
     const nextGalleryStyle = (config.style as GalleryStyle) || 'grid';

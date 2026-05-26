@@ -26,15 +26,6 @@ import { HomeComponentStickyFooter } from '@/app/admin/home-components/_shared/c
 import { DEFAULT_PARTNERS_CORNER_RADIUS, DEFAULT_PARTNERS_DISPLAY_MODE, DEFAULT_PARTNERS_LOGO_SIZE, DEFAULT_PARTNERS_SHOW_BORDER, DEFAULT_PARTNERS_SPACING, normalizePartnersCornerRadius, normalizePartnersDisplayMode, normalizePartnersLogoSize, normalizePartnersShowBorder, normalizePartnersSpacing, normalizePartnersStyle, type PartnerItem, type PartnersCornerRadius, type PartnersDisplayMode, type PartnersLogoSize, type PartnersSpacing, type PartnersStyle } from '../../_types';
 import { AiDemoPartnersImport } from '../../../product-list/_components/AiDemoProductsImport';
 
-const extractStorageIdFromUrl = (url?: string): string | undefined => {
-  if (!url) {return undefined;}
-  if (url.includes('/api/storage/')) {
-    const parts = url.split('/api/storage/');
-    return parts[parts.length - 1]?.split('?')[0];
-  }
-  return undefined;
-};
-
 const COMPONENT_TYPE = 'Partners';
 
 type SnapshotEditableComponent = {
@@ -142,7 +133,7 @@ export default function PartnersEditPage({
         link: item.link || '',
         name: item.name ?? '',
         url: item.url,
-        storageId: (item.storageId || extractStorageIdFromUrl(item.url)) as Id<'_storage'>,
+        storageId: item.storageId as Id<'_storage'> | undefined,
       })) ?? [{ id: 'item-1', link: '', name: '', url: '' }];
       const nextStyle = normalizePartnersStyle(config.style);
       const nextDisplayMode = normalizePartnersDisplayMode(config.displayMode);
