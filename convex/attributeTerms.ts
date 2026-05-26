@@ -164,6 +164,7 @@ export const getTermsForProducts = query({
                 name: group.name,
                 slug: group.slug,
                 code: group.code,
+                filterType: group.filterType,
               },
             });
           }
@@ -191,6 +192,7 @@ export const getTermsForProducts = query({
             name: v.string(),
             slug: v.string(),
             code: v.string(),
+            filterType: v.optional(v.string()),
           }),
         })
       ),

@@ -23,6 +23,8 @@ export type HeaderMenuConfig = {
   headerStickyMobile?: boolean;
   layerColors?: MenuLayerColorConfig;
   showBrandAccent: boolean;
+  flatSubMenus?: boolean;
+  borderRadiusStyle?: 'none' | 'small' | 'large';
   cart: { show: boolean };
   cta: { show: boolean; text: string; url?: string };
   login: { show: boolean; text: string };
@@ -125,6 +127,15 @@ export function HeaderMenuPreview({
   const showBrandName = config.showBrandName !== false;
   const logoSizeLevel = config.logoSizeLevel ?? 2;
   const headerSpacingLevel = clampHeaderSpacingLevel(config.headerSpacingLevel);
+
+  // Bo góc động theo config
+  const radiusLevel = config.borderRadiusStyle ?? 'large';
+  const r = {
+    btn: radiusLevel === 'none' ? 'rounded-none' : radiusLevel === 'small' ? 'rounded' : 'rounded-lg',
+    dropdown: radiusLevel === 'none' ? 'rounded-none' : radiusLevel === 'small' ? 'rounded-md' : 'rounded-xl',
+    popup: radiusLevel === 'none' ? 'rounded-none' : radiusLevel === 'small' ? 'rounded-md' : 'rounded-2xl',
+    item: radiusLevel === 'none' ? 'rounded-none' : radiusLevel === 'small' ? 'rounded' : 'rounded-lg',
+  };
   const logoSizeMap: Record<HeaderLayoutStyle, number[]> = {
     classic: buildLinearSteps(24, 160),
     topbar: buildLinearSteps(28, 180),
@@ -679,7 +690,7 @@ export function HeaderMenuPreview({
                       <div className="absolute top-full left-1/2 mt-3 -translate-x-1/2 z-50">
                         {isDeepMenuForItem(item._id) ? (
                           <div
-                            className="min-w-[720px] max-w-[960px] rounded-2xl border p-5 shadow-xl"
+                            className={cn(r.popup, 'min-w-[720px] max-w-[960px] border p-5 shadow-xl')}
                             style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}
                           >
                             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
@@ -696,6 +707,33 @@ export function HeaderMenuPreview({
                                   </a>
                                   <div className="space-y-1">
                                     {child.children.length > 0 ? child.children.map((sub) => (
+                                      config.flatSubMenus ? (
+                                        <div key={sub._id} className="mt-4 mb-2 first:mt-0">
+                                          <div 
+                                            className="mb-2 font-bold uppercase tracking-wider text-[11px] border-l-2 pl-2" 
+                                            style={{ color: tokens.brandBadgeBg || tokens.textPrimary, borderColor: tokens.brandBadgeBg || tokens.borderStrong }}
+                                          >
+                                            {sub.label}
+                                          </div>
+                                          {sub.children.length > 0 && (
+                                            <div className="space-y-1 pl-2 max-h-[240px] overflow-y-auto scrollbar-thin">
+                                              {sub.children.map(leaf => (
+                                                <a 
+                                                  key={leaf._id} 
+                                                  href={leaf.url} 
+                                                  target={leaf.openInNewTab ? '_blank' : undefined} 
+                                                  className="block py-1.5 text-[13px] transition-colors"
+                                                  style={{ color: tokens.textSubtle }}
+                                                  onMouseEnter={(e) => { e.currentTarget.style.color = tokens.textPrimary; }}
+                                                  onMouseLeave={(e) => { e.currentTarget.style.color = tokens.textSubtle; }}
+                                                >
+                                                  {leaf.label}
+                                                </a>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
                                       <div key={sub._id} className="relative group/menu-node">
                                         <a
                                           href={sub.url}
@@ -715,6 +753,7 @@ export function HeaderMenuPreview({
                                           </div>
                                         )}
                                       </div>
+                                      )
                                     )) : (
                                       <a
                                         href={child.url}
@@ -733,7 +772,7 @@ export function HeaderMenuPreview({
                           </div>
                         ) : (
                           <div
-                            className="rounded-lg border py-2 min-w-[200px]"
+                            className={cn(r.dropdown, 'border py-2 min-w-[200px]')}
                             style={{ backgroundColor: tokens.dropdownBg, borderColor: tokens.dropdownBorder }}
                           >
                             {item.children.map((child) => (

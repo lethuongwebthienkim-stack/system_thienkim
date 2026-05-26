@@ -36,6 +36,9 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
   const primarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_primary' });
   const secondarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_secondary' });
   
+  const enableProductTypesSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableProductTypes' });
+  const enableProductTypes = enableProductTypesSetting?.value === true;
+  
   // Query terms thực tế của nhóm thuộc tính
   const terms = useQuery(api.attributeTerms.listByGroup, { groupId: id as Id<"attributeGroups"> });
 
@@ -55,6 +58,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
   const [filterType, setFilterType] = useState('single');
   const [inputType, setInputType] = useState('select');
   const [isFilterable, setIsFilterable] = useState(true);
+  const [isSpecialFilter, setIsSpecialFilter] = useState(false);
   const [iconName, setIconName] = useState('Wine');
   const [iconColor, setIconColor] = useState('#ea580c');
   const [pendingImportedTerms, setPendingImportedTerms] = useState<PendingAttributeTerm[]>([]);
@@ -70,6 +74,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
     filterType !== groupData.filterType ||
     inputType !== groupData.inputType ||
     isFilterable !== (groupData.isFilterable ?? true) ||
+    isSpecialFilter !== (groupData.isSpecialFilter ?? false) ||
     iconName !== (groupData.iconPath ?? 'Wine') ||
     iconColor !== (groupData.displayConfig?.iconColor ?? groupData.displayConfig?.color ?? '#ea580c') ||
     pendingImportedTerms.length > 0
@@ -85,6 +90,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
       setFilterType(groupData.filterType);
       setInputType(groupData.inputType);
       setIsFilterable(groupData.isFilterable ?? true);
+      setIsSpecialFilter(groupData.isSpecialFilter ?? false);
       setIconName(groupData.iconPath ?? 'Wine');
       setIconColor(groupData.displayConfig?.iconColor ?? groupData.displayConfig?.color ?? '#ea580c');
     }
@@ -93,6 +99,11 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {return;}
+
+    if (isSpecialFilter && (filterType === 'range' || inputType === 'range')) {
+      toast.error('Bộ lọc đặc biệt không được phép sử dụng kiểu khoảng giá (range). Vui lòng chọn kiểu Một lựa chọn hoặc Nhiều lựa chọn.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -105,6 +116,7 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
         filterType,
         inputType,
         isFilterable,
+        isSpecialFilter,
         iconPath: iconName,
         displayConfig: {
           ...displayConfigWithoutRange,
@@ -290,6 +302,20 @@ export default function AttributeGroupEditPage({ params }: { params: Promise<{ i
                       Hiển thị trong bộ lọc (Filter)
                     </Label>
                   </div>
+                  {enableProductTypes && (
+                    <div className="flex items-center gap-2 h-10 border border-slate-100 dark:border-slate-800/50 rounded-md px-3 bg-white dark:bg-slate-900/50 mt-2">
+                      <input
+                        type="checkbox"
+                        id="isSpecialFilter"
+                        checked={isSpecialFilter}
+                        onChange={(e) => setIsSpecialFilter(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                      />
+                      <Label htmlFor="isSpecialFilter" className="text-sm font-medium cursor-pointer select-none">
+                        Bộ lọc đặc biệt
+                      </Label>
+                    </div>
+                  )}
                 </div>
               </CardContent>
               

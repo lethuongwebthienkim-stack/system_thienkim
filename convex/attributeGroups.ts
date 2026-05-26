@@ -11,6 +11,7 @@ const attributeGroupDoc = v.object({
   filterType: v.string(),
   inputType: v.string(),
   isFilterable: v.boolean(),
+  isSpecialFilter: v.optional(v.boolean()),
   order: v.number(),
   displayConfig: v.optional(v.any()),
   iconPath: v.optional(v.string()),
@@ -85,12 +86,17 @@ export const create = mutation({
     filterType: v.string(),
     inputType: v.string(),
     isFilterable: v.boolean(),
+    isSpecialFilter: v.optional(v.boolean()),
     order: v.optional(v.number()),
     displayConfig: v.optional(v.any()),
     iconPath: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const resolvedSlug = await resolveUniqueSlug(ctx, { scope: "category", slug: args.slug });
+    
+    if (args.isSpecialFilter && (args.filterType === 'range' || args.inputType === 'range')) {
+      throw new Error("Bộ lọc đặc biệt không được phép sử dụng kiểu range");
+    }
     
     let nextOrder = args.order;
     if (nextOrder === undefined) {
@@ -116,6 +122,7 @@ export const update = mutation({
     filterType: v.optional(v.string()),
     inputType: v.optional(v.string()),
     isFilterable: v.optional(v.boolean()),
+    isSpecialFilter: v.optional(v.boolean()),
     order: v.optional(v.number()),
     displayConfig: v.optional(v.any()),
     iconPath: v.optional(v.string()),
@@ -124,6 +131,14 @@ export const update = mutation({
     const { id, ...updates } = args;
     const group = await ctx.db.get(id);
     if (!group) throw new Error("Attribute Group not found");
+
+    const finalIsSpecialFilter = args.isSpecialFilter !== undefined ? args.isSpecialFilter : group.isSpecialFilter;
+    const finalFilterType = args.filterType !== undefined ? args.filterType : group.filterType;
+    const finalInputType = args.inputType !== undefined ? args.inputType : group.inputType;
+
+    if (finalIsSpecialFilter && (finalFilterType === 'range' || finalInputType === 'range')) {
+      throw new Error("Bộ lọc đặc biệt không được phép sử dụng kiểu range");
+    }
 
     if (args.slug && args.slug !== group.slug) {
       const resolvedSlug = await resolveUniqueSlug(ctx, {
@@ -250,6 +265,7 @@ export const listFilterable = query({
       filterType: v.string(),
       inputType: v.string(),
       isFilterable: v.boolean(),
+      isSpecialFilter: v.optional(v.boolean()),
       order: v.number(),
       displayConfig: v.optional(v.any()),
       iconPath: v.optional(v.string()),

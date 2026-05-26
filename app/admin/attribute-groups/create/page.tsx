@@ -265,6 +265,9 @@ export default function AttributeGroupCreatePage() {
   const primarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_primary' });
   const secondarySetting = useQuery(api.settings.getByKey, { key: 'site_brand_secondary' });
   
+  const enableProductTypesSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableProductTypes' });
+  const enableProductTypes = enableProductTypesSetting?.value === true;
+  
   const brandPrimary = (primarySetting?.value as string) || '#ea580c';
   const brandSecondary = (secondarySetting?.value as string) || '#475569';
 
@@ -281,6 +284,7 @@ export default function AttributeGroupCreatePage() {
   const [filterType, setFilterType] = useState('single');
   const [inputType, setInputType] = useState('select');
   const [isFilterable, setIsFilterable] = useState(true);
+  const [isSpecialFilter, setIsSpecialFilter] = useState(false);
   const [iconName, setIconName] = useState('Wine');
   const [iconColor, setIconColor] = useState('#ea580c');
   const [pendingTerms, setPendingTerms] = useState<PendingTerm[]>([]);
@@ -292,6 +296,7 @@ export default function AttributeGroupCreatePage() {
     filterType !== 'single' ||
     inputType !== 'select' ||
     isFilterable !== true ||
+    isSpecialFilter !== false ||
     iconName !== 'Wine' ||
     iconColor !== '#ea580c' ||
     pendingTerms.length > 0
@@ -317,6 +322,11 @@ export default function AttributeGroupCreatePage() {
     e.preventDefault();
     if (!name.trim() || !slug.trim()) {return;}
 
+    if (isSpecialFilter && (filterType === 'range' || inputType === 'range')) {
+      toast.error('Bộ lọc đặc biệt không được phép sử dụng kiểu khoảng giá (range). Vui lòng chọn kiểu Một lựa chọn hoặc Nhiều lựa chọn.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const groupId = await createGroup({
@@ -326,6 +336,7 @@ export default function AttributeGroupCreatePage() {
         filterType,
         inputType,
         isFilterable,
+        isSpecialFilter,
         iconPath: iconName,
         displayConfig: {
           iconColor,
@@ -488,6 +499,20 @@ export default function AttributeGroupCreatePage() {
                       Hiển thị trong bộ lọc (Filter)
                     </Label>
                   </div>
+                  {enableProductTypes && (
+                    <div className="flex items-center gap-2 h-10 border border-slate-100 dark:border-slate-800/50 rounded-md px-3 bg-white dark:bg-slate-900/50 mt-2">
+                      <input
+                        type="checkbox"
+                        id="isSpecialFilter"
+                        checked={isSpecialFilter}
+                        onChange={(e) => setIsSpecialFilter(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer"
+                      />
+                      <Label htmlFor="isSpecialFilter" className="text-sm font-medium cursor-pointer select-none">
+                        Bộ lọc đặc biệt
+                      </Label>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">

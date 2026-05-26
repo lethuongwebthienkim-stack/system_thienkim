@@ -508,6 +508,7 @@ export default defineSchema({
     filterType: v.string(), // e.g. "checkbox", "radio", "select"
     inputType: v.string(),
     isFilterable: v.boolean(),
+    isSpecialFilter: v.optional(v.boolean()),
     order: v.number(),
     displayConfig: v.optional(v.any()),
     iconPath: v.optional(v.string()),

@@ -1643,29 +1643,69 @@ function ProductCreateContent() {
                         />
                       )}
                       <div className={`grid grid-cols-2 gap-2 mt-1 ${hasManyTerms ? 'max-h-48 overflow-y-auto pr-1' : ''}`}>
-                        {filteredTerms.map(term => (
-                          <label key={term._id} className="flex items-center gap-2 cursor-pointer bg-slate-50 dark:bg-slate-900 px-2 py-1.5 rounded-md border border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
-                            <input
-                              type={group.inputType === 'radio' || group.filterType === 'single' ? 'radio' : 'checkbox'}
-                              name={`attr_${group._id}`}
-                              checked={attributeTermIds.includes(term._id)}
-                              onChange={(e) => {
-                                if (group.inputType === 'radio' || group.filterType === 'single') {
-                                  const otherTermIds = group.terms.map(t => t._id).filter(id => id !== term._id);
-                                  setAttributeTermIds(prev => [...prev.filter(id => !otherTermIds.includes(id)), term._id]);
-                                } else {
-                                  if (e.target.checked) {
-                                    setAttributeTermIds(prev => [...prev, term._id]);
+                        {filteredTerms.map(term => {
+                          const isSelected = attributeTermIds.includes(term._id);
+                          const isSingle = group.inputType === 'radio' || group.filterType === 'single';
+                          
+                          return (
+                            <label
+                              key={term._id}
+                              className={`flex items-center gap-2.5 cursor-pointer px-3 py-2 rounded-lg border transition-all duration-200 select-none shadow-sm active:scale-[0.98] ${
+                                isSelected
+                                  ? 'bg-[#9B2C3B]/5 dark:bg-[#9B2C3B]/10 border-[#9B2C3B] dark:border-[#9B2C3B]'
+                                  : 'bg-slate-50/50 dark:bg-slate-900/40 border-slate-200/80 dark:border-slate-800/80 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700'
+                              }`}
+                            >
+                              <input
+                                type={isSingle ? 'radio' : 'checkbox'}
+                                name={`attr_${group._id}`}
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (isSingle) {
+                                    const otherTermIds = group.terms.map(t => t._id).filter(id => id !== term._id);
+                                    setAttributeTermIds(prev => [...prev.filter(id => !otherTermIds.includes(id)), term._id]);
                                   } else {
-                                    setAttributeTermIds(prev => prev.filter(id => id !== term._id));
+                                    if (e.target.checked) {
+                                      setAttributeTermIds(prev => [...prev, term._id]);
+                                    } else {
+                                      setAttributeTermIds(prev => prev.filter(id => id !== term._id));
+                                    }
                                   }
-                                }
-                              }}
-                              className="w-3.5 h-3.5"
-                            />
-                            <span className="text-xs truncate">{term.name}</span>
-                          </label>
-                        ))}
+                                }}
+                                className="sr-only"
+                              />
+                              
+                              {/* Custom Indicator */}
+                              {isSingle ? (
+                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all bg-white dark:bg-slate-950 shrink-0 ${
+                                  isSelected ? 'border-[#9B2C3B]' : 'border-slate-300 dark:border-slate-700'
+                                }`}>
+                                  {isSelected && (
+                                    <div className="w-2 h-2 rounded-full bg-[#9B2C3B] scale-100 transition-transform duration-200" />
+                                  )}
+                                </div>
+                              ) : (
+                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0 ${
+                                  isSelected ? 'bg-[#9B2C3B] border-[#9B2C3B]' : 'bg-white dark:bg-slate-950 border-slate-300 dark:border-slate-700'
+                                }`}>
+                                  {isSelected && (
+                                    <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </div>
+                              )}
+                              
+                              <span className={`text-xs truncate ${
+                                isSelected
+                                  ? 'text-[#9B2C3B] dark:text-[#f43f5e] font-semibold'
+                                  : 'text-slate-700 dark:text-slate-300 font-normal'
+                              }`}>
+                                {term.name}
+                              </span>
+                            </label>
+                          );
+                        })}
                         {filteredTerms.length === 0 && (
                           <p className="col-span-2 text-xs text-slate-400 italic text-center py-2">
                             Không tìm thấy kết quả

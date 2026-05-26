@@ -38,6 +38,7 @@ import { VariantSelector, type VariantSelectorOption } from '@/components/produc
 import type { Id } from '@/convex/_generated/dataModel';
 import { getPublicPriceLabel } from '@/lib/products/public-price';
 import { toRichTextContent } from '@/lib/products/product-supplemental-content';
+import { ProductAttributesBadges } from '../products/ProductsPage';
 import { buildCategoryPath, buildDetailPath, normalizeRouteMode } from '@/lib/ia/route-mode';
 import { useProductFrameConfig } from '@/components/shared/ProductImageFrameBox';
 
@@ -617,6 +618,19 @@ export default function ProductDetailPage({ params }: PageProps) {
       ? { paginationOpts: { cursor: null, numItems: Math.min(commentsPerPageSetting * 2, 60) }, status: 'Approved', targetId: product._id, targetType: 'product' }
       : 'skip'
   );
+  
+  const productTermsSource = useQuery(
+    api.attributeTerms.getTermsForProducts,
+    product?._id ? { productIds: [product._id] } : 'skip'
+  );
+  const productTerms = productTermsSource?.[0]?.terms ?? [];
+  const productAttributesMap = useMemo(() => {
+    if (!product?._id || productTerms.length === 0) return new Map();
+    const map = new Map<string, any[]>();
+    map.set(product._id, productTerms);
+    return map;
+  }, [product?._id, productTerms]);
+
   const comments = useMemo(() => commentsPage?.page ?? [], [commentsPage?.page]);
   const saleMode = useMemo<ProductsSaleMode>(() => {
     const value = saleModeSetting?.value;
@@ -1015,6 +1029,8 @@ export default function ProductDetailPage({ params }: PageProps) {
           accentColors={experienceConfig.accentColors}
           showSocialButtons={experienceConfig.showSocialButtons}
           socialButtons={experienceConfig.socialButtons}
+          productAttributesMap={productAttributesMap}
+          productTypeId={(product as any)?.productTypeId}
         />
       )}
       {experienceConfig.layoutStyle === 'modern' && (
@@ -1222,6 +1238,8 @@ interface StyleProps {
   accentColors?: ProductDetailAccentColorConfig;
   showSocialButtons?: boolean;
   socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
+  productAttributesMap?: Map<string, any[]>;
+  productTypeId?: string;
 }
 
 interface ExperienceBlocksProps {
@@ -1899,6 +1917,8 @@ function ClassicStyle({
   accentColors,
   showSocialButtons,
   socialButtons,
+  productAttributesMap,
+  productTypeId,
 }: ClassicStyleProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -2188,6 +2208,18 @@ function ClassicStyle({
                   onSelect={handleSelectOption}
                   isOptionValueAvailable={isOptionValueAvailable}
                   accentColor={brandColor}
+                />
+              </div>
+            )}
+
+            {productAttributesMap && productAttributesMap.has(product._id) && productAttributesMap.get(product._id)!.length > 0 && (
+              <div className="mb-4 md:mb-6">
+                <ProductAttributesBadges
+                  productId={product._id}
+                  productAttributesMap={productAttributesMap}
+                  tokens={tokens}
+                  className="flex flex-wrap gap-2 mt-2 mb-2 max-w-full"
+                  productTypeId={productTypeId}
                 />
               </div>
             )}
