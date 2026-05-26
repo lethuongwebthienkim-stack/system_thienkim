@@ -504,13 +504,6 @@ function ProductsContent(props: ProductsPageProps) {
 
   const productIds = useMemo(() => products.map((product) => product._id), [products]);
 
-  const activeTermIds = useQuery(
-    api.products.getActiveTermsForProducts,
-    enableProductTypes && productIds.length > 0
-      ? { productIds }
-      : 'skip'
-  );
-
   const productAttributesData = useQuery(
     api.attributeTerms.getTermsForProducts,
     enableProductTypes && productIds.length > 0
