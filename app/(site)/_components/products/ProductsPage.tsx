@@ -1709,7 +1709,7 @@ export function ProductAttributesBadges({
 
   return (
     <div className={className}>
-      {(limit ? sortedGroups.slice(0, limit) : sortedGroups).map((groupItem, index) => {
+      {(limit ? sortedGroups.slice(0, limit) : sortedGroups).map((groupItem) => {
         const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
         const groupId = groupItem.group._id;
 
