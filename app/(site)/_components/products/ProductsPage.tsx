@@ -16,7 +16,7 @@ import { buildCategoryPath, buildDetailPath, buildModuleListPath, normalizeRoute
 import { QuickAddVariantModal } from '@/components/products/QuickAddVariantModal';
 import { ProductImageWithOverlay, useProductImageOverlayConfigs } from '@/components/shared/ProductImageWithOverlay';
 import type { WatermarkConfig, ProductFrameConfig } from '@/components/shared/ProductImageWithOverlay';
-import { ChevronDown, Heart, Package, Search, ShoppingCart, SlidersHorizontal, X, Check } from 'lucide-react';
+import { ChevronDown, Heart, Package, Search, ShoppingCart, SlidersHorizontal, X, Check, MapPin, Tag, Grape, Soup } from 'lucide-react';
 import type { Id } from '@/convex/_generated/dataModel';
 import { getPublicPriceLabel } from '@/lib/products/public-price';
 import { getProductImageAspectRatioCssValue, resolveProductImageAspectRatio } from '@/lib/products/image-aspect-ratio';
@@ -510,6 +510,22 @@ function ProductsContent(props: ProductsPageProps) {
       ? { productIds }
       : 'skip'
   );
+
+  const productAttributesData = useQuery(
+    api.attributeTerms.getTermsForProducts,
+    enableProductTypes && productIds.length > 0
+      ? { productIds }
+      : 'skip'
+  );
+
+  const productAttributesMap = useMemo(() => {
+    const map = new Map<string, any[]>();
+    if (!productAttributesData) return map;
+    for (const item of productAttributesData) {
+      map.set(item.productId, item.terms);
+    }
+    return map;
+  }, [productAttributesData]);
 
   const displayFilterableGroups = useMemo(() => {
     if (!filterableGroups) return undefined;
@@ -1268,6 +1284,7 @@ function ProductsContent(props: ProductsPageProps) {
           hasActiveFilters={hasActiveProductFilters}
           onClearFilters={handleClearAllFilters}
           radiusClass={radiusClass}
+          productAttributesMap={productAttributesMap}
         />
         {quickAddModal}
       </>
@@ -1326,6 +1343,7 @@ function ProductsContent(props: ProductsPageProps) {
           hasActiveFilters={hasActiveProductFilters}
           onClearFilters={handleClearAllFilters}
           radiusClass={radiusClass}
+          productAttributesMap={productAttributesMap}
         />
         {quickAddModal}
       </>
@@ -1536,6 +1554,7 @@ function ProductsContent(props: ProductsPageProps) {
             watermarkConfig={watermarkConfig}
             getDetailHref={getProductDetailHref}
             radiusClass={radiusClass}
+            productAttributesMap={productAttributesMap}
           />
         )}
 
@@ -1611,7 +1630,75 @@ function ProductCardActions({ product, tokens, showStock, showAddToCartButton, s
   );
 }
 
-function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string }) {
+function getAttributeIcon(code: string) {
+  const c = code.toLowerCase();
+  if (c.includes('brand') || c.includes('thuong-hieu') || c.includes('nhà sản xuất') || c.includes('producer')) {
+    return <Tag size={12} className="shrink-0" />;
+  }
+  if (c.includes('country') || c.includes('quoc-gia') || c.includes('xuat-xu') || c.includes('origin')) {
+    return <MapPin size={12} className="shrink-0" />;
+  }
+  if (c.includes('grape') || c.includes('giong-nho') || c.includes('nho')) {
+    return <Grape size={12} className="shrink-0" />;
+  }
+  if (c.includes('flavor') || c.includes('huong-vi') || c.includes('vi') || c.includes('aroma') || c.includes('taste')) {
+    return <Soup size={12} className="shrink-0" />;
+  }
+  return <Tag size={12} className="shrink-0" />;
+}
+
+function ProductAttributesBadges({
+  productId,
+  productAttributesMap,
+  primaryColor = '#9B2C3B',
+  className = "flex flex-wrap gap-1.5 mt-1.5 mb-1 max-w-full"
+}: {
+  productId: string;
+  productAttributesMap?: Map<string, any[]>;
+  primaryColor?: string;
+  className?: string;
+}) {
+  if (!productAttributesMap) return null;
+  const terms = productAttributesMap.get(productId);
+  if (!terms || terms.length === 0) return null;
+
+  const priorityCodes = ['brand', 'country', 'grape', 'flavor'];
+  const sortedTerms = [...terms].sort((a, b) => {
+    const aCode = a.group.code.toLowerCase();
+    const bCode = b.group.code.toLowerCase();
+    const aIndex = priorityCodes.findIndex(p => aCode.includes(p));
+    const bIndex = priorityCodes.findIndex(p => bCode.includes(p));
+    
+    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+    if (aIndex !== -1) return -1;
+    if (bIndex !== -1) return 1;
+    return a.group.order - b.group.order;
+  });
+
+  return (
+    <div className={className}>
+      {sortedTerms.slice(0, 4).map((term, index) => {
+        const icon = getAttributeIcon(term.group.code);
+        const isHiddenOnMobile = index >= 2;
+
+        return (
+          <div
+            key={term._id}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 ${
+              isHiddenOnMobile ? 'hidden sm:inline-flex' : 'inline-flex'
+            } max-w-full truncate`}
+            title={`${term.group.name}: ${term.name}`}
+          >
+            <span style={{ color: primaryColor }}>{icon}</span>
+            <span className="truncate">{term.name}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass, productAttributesMap }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string; productAttributesMap?: Map<string, any[]> }) {
   const productImagePlaceholder = useProductImagePlaceholder();
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -1668,6 +1755,7 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
                 )}
               </div>
             )}
+            <ProductAttributesBadges productId={product._id} productAttributesMap={productAttributesMap} primaryColor="#9B2C3B" />
             <div className="min-h-[20px] mt-2">
               {showStock && product.stock <= 5 && product.stock > 0 && <p className="text-xs" style={{ color: tokens.stockLowText }}>Chỉ còn {product.stock} sản phẩm</p>}
               {showStock && product.stock === 0 && <p className="text-xs" style={{ color: tokens.stockOutText }}>Hết hàng</p>}
@@ -1693,7 +1781,7 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
   );
 }
 
-function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge: _showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string }) {
+function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge: _showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass, productAttributesMap }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string; productAttributesMap?: Map<string, any[]> }) {
   const productImagePlaceholder = useProductImagePlaceholder();
   return (
     <div className="space-y-4">
@@ -1732,7 +1820,8 @@ function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, 
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <p className="text-xs mb-1" style={{ color: tokens.metaText }}>{categoryMap.get(product.categoryId) ?? 'Sản phẩm'}</p>
             <h3 className="font-semibold text-lg transition-colors mb-2" style={{ color: tokens.bodyText }}>{product.name}</h3>
-            {product.description && <p className="text-sm line-clamp-2 mb-3" style={{ color: tokens.metaText }} dangerouslySetInnerHTML={{ __html: product.description.slice(0, 150) }} />}
+            {product.description && <p className="text-sm line-clamp-2 mb-2" style={{ color: tokens.metaText }} dangerouslySetInnerHTML={{ __html: product.description.slice(0, 150) }} />}
+            <ProductAttributesBadges productId={product._id} productAttributesMap={productAttributesMap} primaryColor="#9B2C3B" className="flex flex-wrap gap-1.5 mb-3 max-w-full" />
             <div className="flex items-center gap-4">
               {showPrice && (
                 <div className="flex items-center gap-2">
@@ -2186,6 +2275,7 @@ interface LayoutProps {
   hasActiveFilters?: boolean;
   onClearFilters?: () => void;
   radiusClass: string;
+  productAttributesMap?: Map<string, any[]>;
 }
 
 interface MobileProductsFiltersProps {
@@ -2444,7 +2534,7 @@ function MobileProductsFilters({
   );
 }
 
-function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap: _categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, attributeFilter, hasActiveFilters, onClearFilters, radiusClass }: LayoutProps) {
+function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, categoryMap: _categoryMap, selectedCategory, onCategoryChange, searchQuery, onSearchChange, sortBy, onSortChange, tokens, showPrice, showSalePrice, showStock, saleMode, totalCount, paginationNode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, activeCategoryDoc, showCategorySubtitle, enableCategoryFilterFooterContent, filterableGroups, selectedAttributes, onAttributeChange, productType, selectedPriceRange, onPriceRangeChange, enableProductTypes, productTypes, onProductTypeChange, attributeFilter, hasActiveFilters, onClearFilters, radiusClass, productAttributesMap }: LayoutProps) {
   const [categorySearchQuery, setCategorySearchQuery] = useState('');
   const productImagePlaceholder = useProductImagePlaceholder();
 
@@ -2764,6 +2854,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     <div className="p-3 flex flex-1 flex-col">
                       <h3 className="font-medium text-sm line-clamp-2 transition-colors" style={{ color: tokens.bodyText }}>{product.name}</h3>
                       {showPrice && <span className="font-bold text-sm block mt-1" style={{ color: tokens.priceColor }}>{priceDisplay.label}</span>}
+                      <ProductAttributesBadges productId={product._id} productAttributesMap={productAttributesMap} primaryColor="#9B2C3B" />
                       <div className="min-h-[20px] mt-2">
                         {showStock && product.stock <= 5 && product.stock > 0 && <span className="text-xs block" style={{ color: tokens.stockLowText }}>Chỉ còn {product.stock} sản phẩm</span>}
                         {showStock && product.stock === 0 && <span className="text-xs block" style={{ color: tokens.stockOutText }}>Hết hàng</span>}
