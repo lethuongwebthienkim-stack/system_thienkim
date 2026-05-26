@@ -382,7 +382,7 @@ function ProductsContent(props: ProductsPageProps) {
 
   // Load price range from URL or props
   const [selectedPriceRange, setSelectedPriceRange] = useState<PriceRange | null>(null);
-  
+
   useEffect(() => {
     if (props.priceRangeFilter) {
       setSelectedPriceRange(props.priceRangeFilter);
@@ -400,7 +400,7 @@ function ProductsContent(props: ProductsPageProps) {
   const selectedAttributes = useMemo(() => {
     const filters: Record<string, string[]> = {};
     if (!filterableGroups) return filters;
-    
+
     // Tải từ props.attributeFilter nếu có (props.attributeFilter.termSlug)
     if (props.attributeFilter) {
       filters[props.attributeFilter.groupId] = props.attributeFilter.termSlug
@@ -530,39 +530,23 @@ function ProductsContent(props: ProductsPageProps) {
   const displayFilterableGroups = useMemo(() => {
     if (!filterableGroups) return undefined;
     if (!enableProductTypes) return filterableGroups;
-    if (activeTermIds === undefined) return filterableGroups;
 
-    const activeTermSet = new Set(activeTermIds);
-    return filterableGroups
-      .map((group) => {
-        const filterType = group.filterType || 'single';
-        // Range group: giữ nguyên TẤT CẢ terms gốc (slider cần toàn bộ dải để hiển thị đúng).
-        // Nếu lọc theo activeTermSet, sau khi user chọn range → chỉ còn 1 term → slider ẩn.
-        if (filterType === 'range') {
-          return group;
-        }
-        // Non-range: lọc theo activeTermSet để ẩn option không có sản phẩm
-        const filteredTerms = (group.terms || []).filter((term: any) =>
-          activeTermSet.has(term._id)
-        );
-        return { ...group, terms: filteredTerms };
-      })
-      .filter((group) => {
-        const filterType = group.filterType || 'single';
+    return filterableGroups.filter((group) => {
+      const filterType = group.filterType || 'single';
 
-        if (filterType === 'range') {
-          // Dùng terms gốc từ filterableGroups để tính dải, không bị ảnh hưởng bởi filter hiện tại
-          const originalGroup = filterableGroups.find(g => g._id === group._id);
-          const numericValues = (originalGroup?.terms || [])
-            .map((t: any) => parseNumericValue(t.name))
-            .filter((v: number | null): v is number => v !== null);
-          if (numericValues.length <= 1) return false;
-          return Math.min(...numericValues) !== Math.max(...numericValues);
-        }
+      if (filterType === 'range') {
+        // Dùng terms gốc để tính dải min/max
+        const numericValues = (group.terms || [])
+          .map((t: any) => parseNumericValue(t.name))
+          .filter((v: number | null): v is number => v !== null);
+        if (numericValues.length <= 1) return false;
+        return Math.min(...numericValues) !== Math.max(...numericValues);
+      }
 
-        return group.terms.length > 1;
-      });
-  }, [filterableGroups, activeTermIds, enableProductTypes]);
+      // Giữ tất cả thuộc tính của nhóm để không bị biến mất khi qua trang khác
+      return group.terms.length > 0;
+    });
+  }, [filterableGroups, enableProductTypes]);
 
   const wishlistProductIds = useQuery(
     api.wishlist.listCustomerProductIds,
@@ -699,8 +683,8 @@ function ProductsContent(props: ProductsPageProps) {
       }
     } else {
       // Trường hợp xóa filter hoặc thay đổi gián tiếp (đôn filter)
-      const currentPrimary: 'category' | 'priceRange' | 'attribute' | 'type' = props.categoryId 
-        ? 'category' 
+      const currentPrimary: 'category' | 'priceRange' | 'attribute' | 'type' = props.categoryId
+        ? 'category'
         : (props.priceRangeFilter ? 'priceRange' : (props.attributeFilter ? 'attribute' : 'type'));
 
       if (currentPrimary === 'category' && hasCategory) {
@@ -1555,6 +1539,8 @@ function ProductsContent(props: ProductsPageProps) {
             getDetailHref={getProductDetailHref}
             radiusClass={radiusClass}
             productAttributesMap={productAttributesMap}
+            onAttributeChange={handleAttributeChange}
+            selectedAttributes={selectedAttributes}
           />
         )}
 
@@ -1587,6 +1573,7 @@ interface ProductCardProps {
     hasVariants?: boolean;
     categoryId: string;
     description?: string;
+    productTypeId?: string;
   };
   categoryMap: Map<string, string>;
   showPrice: boolean;
@@ -1607,7 +1594,7 @@ function ProductCardActions({ product, tokens, showStock, showAddToCartButton, s
     <div className={`mt-3 grid grid-cols-1 gap-2 ${actionHeightClass}`}>
       {showAddToCartButton && (
         <button
-          className="w-full rounded-lg py-2 text-sm font-medium transition-colors flex items-center justify-center gap-1.5 disabled:opacity-55 disabled:cursor-not-allowed"
+          className="w-full rounded-lg py-2 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-1.5 disabled:opacity-55 disabled:cursor-not-allowed hover:brightness-95 hover:scale-[1.02] active:scale-[0.98] shadow-sm hover:shadow-md"
           style={{ backgroundColor: tokens.primaryActionBg, color: tokens.primaryActionText }}
           onClick={(event) => { event.preventDefault(); onAddToCart(product); }}
           disabled={isOutOfStock}
@@ -1618,8 +1605,12 @@ function ProductCardActions({ product, tokens, showStock, showAddToCartButton, s
       )}
       {showBuyNowButton && (
         <button
-          className="w-full rounded-lg py-2 text-sm font-medium border transition-colors disabled:opacity-55 disabled:cursor-not-allowed"
-          style={{ borderColor: tokens.secondaryActionBorder, color: tokens.secondaryActionText }}
+          className="w-full rounded-lg py-2 text-sm font-medium border transition-all duration-300 disabled:opacity-55 disabled:cursor-not-allowed hover:bg-[var(--btn-hover-bg)] hover:scale-[1.02] active:scale-[0.98] shadow-sm hover:shadow-md"
+          style={{
+            borderColor: tokens.secondaryActionBorder,
+            color: tokens.secondaryActionText,
+            '--btn-hover-bg': tokens.secondaryActionHoverBg,
+          } as React.CSSProperties}
           onClick={(event) => { event.preventDefault(); onBuyNow(product); }}
           disabled={isOutOfStock}
         >
@@ -1647,28 +1638,81 @@ function getAttributeIcon(code: string) {
   return <Tag size={12} className="shrink-0" />;
 }
 
-function ProductAttributesBadges({
+type AttributeBadgeTokens = {
+  primary: string;
+  cardBorder?: string;
+  border?: string;
+};
+
+export function ProductAttributesBadges({
   productId,
   productAttributesMap,
-  primaryColor = '#9B2C3B',
-  className = "flex flex-wrap gap-1.5 mt-1.5 mb-1 max-w-full"
+  tokens,
+  className = "flex flex-wrap gap-1.5 mt-1.5 mb-1 max-w-full",
+  onAttributeChange,
+  selectedAttributes,
+  productTypeId,
+  limit
 }: {
   productId: string;
   productAttributesMap?: Map<string, any[]>;
-  primaryColor?: string;
+  tokens: AttributeBadgeTokens;
   className?: string;
+  onAttributeChange?: (groupSlug: string, termSlug: any, checked: boolean) => void;
+  selectedAttributes?: Record<string, string[]>;
+  productTypeId?: string;
+  limit?: number;
 }) {
+  const router = useRouter();
+  const enableProductTypesSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableProductTypes' });
+  const enableProductTypes = enableProductTypesSetting?.value === true;
+  const productTypesData = useQuery(api.productTypes.listAll, enableProductTypes ? {} : 'skip');
+
+  const productTypeSlugMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!productTypesData) return map;
+    productTypesData.forEach(t => {
+      if (t.active) {
+        map.set(t._id, t.slug);
+      }
+    });
+    return map;
+  }, [productTypesData]);
+
   if (!productAttributesMap) return null;
   const terms = productAttributesMap.get(productId);
   if (!terms || terms.length === 0) return null;
 
+  // 1. Nhóm các term theo groupId để tránh trùng lặp badge cùng loại và gộp tên
+  const groupMap = new Map<string, { group: any; terms: Array<{ _id: string; name: string; slug: string }> }>();
+  for (const term of terms) {
+    if (!term.group) continue;
+    const groupId = term.group._id;
+    if (!groupMap.has(groupId)) {
+      groupMap.set(groupId, {
+        group: term.group,
+        terms: []
+      });
+    }
+    const groupData = groupMap.get(groupId)!;
+    groupData.terms.push({ _id: term._id, name: term.name, slug: term.slug });
+  }
+
+  // 2. Chuyển đổi thành danh sách các nhóm đã gộp
+  const mergedGroups = Array.from(groupMap.values()).map(g => ({
+    _id: g.terms.map(t => t._id).join('-'),
+    group: g.group,
+    terms: g.terms,
+  }));
+
+  // 3. Sắp xếp các nhóm theo thứ tự ưu tiên
   const priorityCodes = ['brand', 'country', 'grape', 'flavor'];
-  const sortedTerms = [...terms].sort((a, b) => {
+  const sortedGroups = mergedGroups.sort((a, b) => {
     const aCode = a.group.code.toLowerCase();
     const bCode = b.group.code.toLowerCase();
     const aIndex = priorityCodes.findIndex(p => aCode.includes(p));
     const bIndex = priorityCodes.findIndex(p => bCode.includes(p));
-    
+
     if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
     if (aIndex !== -1) return -1;
     if (bIndex !== -1) return 1;
@@ -1677,20 +1721,70 @@ function ProductAttributesBadges({
 
   return (
     <div className={className}>
-      {sortedTerms.slice(0, 4).map((term, index) => {
-        const icon = getAttributeIcon(term.group.code);
+      {(limit ? sortedGroups.slice(0, limit) : sortedGroups).map((groupItem, index) => {
+        const icon = getAttributeIcon(groupItem.group.code);
         const isHiddenOnMobile = index >= 2;
+        const groupId = groupItem.group._id;
+
+        const isAnyTermChecked = groupItem.terms.some(term => {
+          const currentTermSlugs = selectedAttributes?.[groupId] || [];
+          return currentTermSlugs.includes(term.slug);
+        });
 
         return (
           <div
-            key={term._id}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 text-slate-600 dark:text-slate-400 ${
+            key={groupItem._id}
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border transition-all duration-300 shadow-[0_1px_2px_rgba(0,0,0,0.02)] ${
               isHiddenOnMobile ? 'hidden sm:inline-flex' : 'inline-flex'
-            } max-w-full truncate`}
-            title={`${term.group.name}: ${term.name}`}
+            } max-w-full hover:border-[var(--badge-hover-border)]`}
+            style={{
+              borderColor: isAnyTermChecked ? tokens.primary : (tokens.cardBorder ?? tokens.border ?? `${tokens.primary}33`),
+              backgroundColor: isAnyTermChecked ? `${tokens.primary}12` : undefined,
+              '--badge-hover-border': isAnyTermChecked ? tokens.primary : `${tokens.primary}50`,
+            } as React.CSSProperties}
+            title={groupItem.group.name}
           >
-            <span style={{ color: primaryColor }}>{icon}</span>
-            <span className="truncate">{term.name}</span>
+            <span style={{ color: tokens.primary }} className="shrink-0 flex items-center justify-center">{icon}</span>
+            <div className="flex items-center gap-1 truncate max-w-full">
+              {groupItem.terms.map((term, i) => {
+                const currentTermSlugs = selectedAttributes?.[groupId] || [];
+                const isChecked = currentTermSlugs.includes(term.slug);
+
+                return (
+                  <span
+                    key={term._id}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+
+                      if (enableProductTypes && productTypeId) {
+                        const productTypeSlug = productTypeSlugMap.get(productTypeId);
+                        if (productTypeSlug) {
+                          if (groupItem.group.filterType === 'range') {
+                            router.push(`/${productTypeSlug}?attr_${groupItem.group.slug}=${term.slug}`, { scroll: false });
+                          } else {
+                            router.push(`/${productTypeSlug}/${groupItem.group.slug}/${term.slug}`, { scroll: false });
+                          }
+                          return;
+                        }
+                      }
+
+                      onAttributeChange?.(groupItem.group.slug, term.slug, !isChecked);
+                    }}
+                    className={`cursor-pointer transition-colors hover:underline truncate max-w-full ${
+                      isChecked
+                        ? 'font-semibold'
+                        : 'font-normal text-slate-600 dark:text-slate-400'
+                    }`}
+                    style={isChecked ? { color: tokens.primary } : undefined}
+                    title={`Lọc theo ${groupItem.group.name.toLowerCase()}: ${term.name}`}
+                  >
+                    {term.name}
+                    {i < groupItem.terms.length - 1 ? ',' : ''}
+                  </span>
+                );
+              })}
+            </div>
           </div>
         );
       })}
@@ -1698,7 +1792,7 @@ function ProductAttributesBadges({
   );
 }
 
-function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass, productAttributesMap }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string; productAttributesMap?: Map<string, any[]> }) {
+function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass, productAttributesMap, onAttributeChange, selectedAttributes }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string; productAttributesMap?: Map<string, any[]>; onAttributeChange?: (groupSlug: string, termSlug: any, checked: boolean) => void; selectedAttributes?: Record<string, string[]> }) {
   const productImagePlaceholder = useProductImagePlaceholder();
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
@@ -1709,8 +1803,13 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
         <Link
           key={product._id}
           href={getDetailHref(product)}
-          className={`group ${radiusClass} overflow-hidden border transition-colors flex flex-col h-full`}
-          style={{ backgroundColor: tokens.cardBackground, borderColor: tokens.cardBorder }}
+          className={`group ${radiusClass} overflow-hidden border transition-all duration-300 flex flex-col h-full hover:border-[var(--card-hover-border)] hover:shadow-lg hover:shadow-[var(--card-hover-shadow)] hover:-translate-y-1`}
+          style={{
+            backgroundColor: tokens.cardBackground,
+            borderColor: tokens.cardBorder,
+            '--card-hover-border': tokens.primary,
+            '--card-hover-shadow': `${tokens.primary}15`,
+          } as React.CSSProperties}
         >
           <ProductImageWithOverlay
             frameConfig={frameConfig}
@@ -1733,8 +1832,14 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
             )}
             {showWishlistButton && canUseWishlist && (
               <button
-                className="absolute top-2 right-2 p-2 rounded-full border transition-colors z-30"
-                style={{ backgroundColor: tokens.wishlistButtonBg, borderColor: tokens.wishlistButtonBorder, color: wishlistIdSet.has(product._id) ? tokens.wishlistIconActive : tokens.wishlistIcon }}
+                className="absolute top-2 right-2 p-2 rounded-full border transition-all duration-300 z-30 hover:bg-[var(--wishlist-hover-bg)] hover:border-[var(--wishlist-hover-border)] hover:scale-110 active:scale-95"
+                style={{
+                  backgroundColor: tokens.wishlistButtonBg,
+                  borderColor: tokens.wishlistButtonBorder,
+                  color: wishlistIdSet.has(product._id) ? tokens.wishlistIconActive : tokens.wishlistIcon,
+                  '--wishlist-hover-bg': wishlistIdSet.has(product._id) ? `${tokens.wishlistIconActive}15` : `${tokens.primary}10`,
+                  '--wishlist-hover-border': wishlistIdSet.has(product._id) ? tokens.wishlistIconActive : tokens.primary,
+                } as React.CSSProperties}
                 onClick={(event) => { event.preventDefault(); onToggleWishlist(product._id); }}
                 aria-label="Thêm vào yêu thích"
               >
@@ -1743,8 +1848,19 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
             )}
           </ProductImageWithOverlay>
           <div className="p-4 flex flex-1 flex-col">
-            <p className="text-xs mb-1" style={{ color: tokens.metaText }}>{categoryMap.get(product.categoryId) ?? 'Sản phẩm'}</p>
-            <h3 className="font-medium line-clamp-2 transition-colors mb-2" style={{ color: tokens.bodyText }}>{product.name}</h3>
+            <div className="flex mb-1.5">
+              <span
+                className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full border transition-all duration-300"
+                style={{
+                  backgroundColor: tokens.categoryBadgeBg,
+                  color: tokens.categoryBadgeText,
+                  borderColor: tokens.categoryBadgeBorder
+                }}
+              >
+                {categoryMap.get(product.categoryId) ?? 'Sản phẩm'}
+              </span>
+            </div>
+            <h3 className="font-medium line-clamp-2 transition-colors mb-2 group-hover:text-[var(--title-hover-color)]" style={{ color: tokens.bodyText, '--title-hover-color': tokens.primary } as React.CSSProperties}>{product.name}</h3>
             {showPrice && (
               <div className="flex items-center gap-2">
                 <span className="font-bold" style={{ color: tokens.priceColor }}>{priceDisplay.label}</span>
@@ -1755,7 +1871,15 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
                 )}
               </div>
             )}
-            <ProductAttributesBadges productId={product._id} productAttributesMap={productAttributesMap} primaryColor="#9B2C3B" />
+            <ProductAttributesBadges
+              productId={product._id}
+              productAttributesMap={productAttributesMap}
+              tokens={tokens}
+              onAttributeChange={onAttributeChange}
+              selectedAttributes={selectedAttributes}
+              productTypeId={product.productTypeId}
+              limit={4}
+            />
             <div className="min-h-[20px] mt-2">
               {showStock && product.stock <= 5 && product.stock > 0 && <p className="text-xs" style={{ color: tokens.stockLowText }}>Chỉ còn {product.stock} sản phẩm</p>}
               {showStock && product.stock === 0 && <p className="text-xs" style={{ color: tokens.stockOutText }}>Hết hàng</p>}
@@ -1781,7 +1905,7 @@ function ProductGrid({ products, categoryMap, tokens, showPrice, showSalePrice, 
   );
 }
 
-function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge: _showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass, productAttributesMap }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string; productAttributesMap?: Map<string, any[]> }) {
+function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, showStock, saleMode, showWishlistButton, showAddToCartButton, showBuyNowButton, buyNowLabel, showPromotionBadge: _showPromotionBadge, wishlistIdSet, onToggleWishlist, onAddToCart, onBuyNow, canUseWishlist, imageAspectRatioStyle, frameConfig, watermarkConfig, getDetailHref, radiusClass, productAttributesMap, onAttributeChange, selectedAttributes }: { products: ProductCardProps['product'][]; categoryMap: Map<string, string>; tokens: ProductsListColors; showPrice: boolean; showSalePrice: boolean; showStock: boolean; saleMode: ProductsSaleMode; showWishlistButton: boolean; showAddToCartButton: boolean; showBuyNowButton: boolean; buyNowLabel: string; showPromotionBadge: boolean; wishlistIdSet: Set<Id<'products'>>; onToggleWishlist: (id: Id<'products'>) => void; onAddToCart: (product: ProductCardProps['product']) => void; onBuyNow: (product: ProductCardProps['product']) => void; canUseWishlist: boolean; imageAspectRatioStyle: React.CSSProperties; frameConfig?: ProductFrameConfig | null; watermarkConfig?: WatermarkConfig | null; getDetailHref: (product: ProductCardProps['product']) => string; radiusClass: string; productAttributesMap?: Map<string, any[]>; onAttributeChange?: (groupSlug: string, termSlug: any, checked: boolean) => void; selectedAttributes?: Record<string, string[]> }) {
   const productImagePlaceholder = useProductImagePlaceholder();
   return (
     <div className="space-y-4">
@@ -1792,8 +1916,13 @@ function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, 
         <Link
           key={product._id}
           href={getDetailHref(product)}
-          className={`group flex gap-4 ${radiusClass} overflow-hidden border transition-colors p-4`}
-          style={{ backgroundColor: tokens.cardBackground, borderColor: tokens.cardBorder }}
+          className={`group flex gap-4 ${radiusClass} overflow-hidden border transition-all duration-300 p-4 hover:border-[var(--card-hover-border)] hover:shadow-lg hover:shadow-[var(--card-hover-shadow)] hover:-translate-y-0.5`}
+          style={{
+            backgroundColor: tokens.cardBackground,
+            borderColor: tokens.cardBorder,
+            '--card-hover-border': tokens.primary,
+            '--card-hover-shadow': `${tokens.primary}10`,
+          } as React.CSSProperties}
         >
           <ProductImageWithOverlay
             frameConfig={frameConfig}
@@ -1808,8 +1937,14 @@ function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, 
             )}
             {showWishlistButton && canUseWishlist && (
               <button
-                className="absolute top-2 right-2 p-2 rounded-full border transition-colors z-30"
-                style={{ backgroundColor: tokens.wishlistButtonBg, borderColor: tokens.wishlistButtonBorder, color: wishlistIdSet.has(product._id) ? tokens.wishlistIconActive : tokens.wishlistIcon }}
+                className="absolute top-2 right-2 p-2 rounded-full border transition-all duration-300 z-30 hover:bg-[var(--wishlist-hover-bg)] hover:border-[var(--wishlist-hover-border)] hover:scale-110 active:scale-95"
+                style={{
+                  backgroundColor: tokens.wishlistButtonBg,
+                  borderColor: tokens.wishlistButtonBorder,
+                  color: wishlistIdSet.has(product._id) ? tokens.wishlistIconActive : tokens.wishlistIcon,
+                  '--wishlist-hover-bg': wishlistIdSet.has(product._id) ? `${tokens.wishlistIconActive}15` : `${tokens.primary}10`,
+                  '--wishlist-hover-border': wishlistIdSet.has(product._id) ? tokens.wishlistIconActive : tokens.primary,
+                } as React.CSSProperties}
                 onClick={(event) => { event.preventDefault(); onToggleWishlist(product._id); }}
                 aria-label="Thêm vào yêu thích"
               >
@@ -1818,10 +1953,30 @@ function ProductList({ products, categoryMap, tokens, showPrice, showSalePrice, 
             )}
           </ProductImageWithOverlay>
           <div className="flex-1 min-w-0 flex flex-col justify-center">
-            <p className="text-xs mb-1" style={{ color: tokens.metaText }}>{categoryMap.get(product.categoryId) ?? 'Sản phẩm'}</p>
-            <h3 className="font-semibold text-lg transition-colors mb-2" style={{ color: tokens.bodyText }}>{product.name}</h3>
+            <div className="flex mb-1.5">
+              <span
+                className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full border transition-all duration-300"
+                style={{
+                  backgroundColor: tokens.categoryBadgeBg,
+                  color: tokens.categoryBadgeText,
+                  borderColor: tokens.categoryBadgeBorder
+                }}
+              >
+                {categoryMap.get(product.categoryId) ?? 'Sản phẩm'}
+              </span>
+            </div>
+            <h3 className="font-semibold text-lg transition-colors mb-2 group-hover:text-[var(--title-hover-color)]" style={{ color: tokens.bodyText, '--title-hover-color': tokens.primary } as React.CSSProperties}>{product.name}</h3>
             {product.description && <p className="text-sm line-clamp-2 mb-2" style={{ color: tokens.metaText }} dangerouslySetInnerHTML={{ __html: product.description.slice(0, 150) }} />}
-            <ProductAttributesBadges productId={product._id} productAttributesMap={productAttributesMap} primaryColor="#9B2C3B" className="flex flex-wrap gap-1.5 mb-3 max-w-full" />
+            <ProductAttributesBadges
+              productId={product._id}
+              productAttributesMap={productAttributesMap}
+              tokens={tokens}
+              className="flex flex-wrap gap-1.5 mb-3 max-w-full"
+              onAttributeChange={onAttributeChange}
+              selectedAttributes={selectedAttributes}
+              productTypeId={product.productTypeId}
+              limit={4}
+            />
             <div className="flex items-center gap-4">
               {showPrice && (
                 <div className="flex items-center gap-2">
@@ -2106,8 +2261,8 @@ function AttributeFilterGroupWidget({
                       if (filterType !== 'multiple') toggleDropdown(false);
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md text-left transition-colors ${
-                      isSelected 
-                        ? 'font-semibold' 
+                      isSelected
+                        ? 'font-semibold'
                         : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
                     }`}
                     style={isSelected ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText } : {}}
@@ -2195,7 +2350,7 @@ function AttributeFilterGroupWidget({
             className="w-full min-h-9 flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-left leading-5 transition-colors group hover:opacity-85"
             style={{ color: tokens.bodyText }}
           >
-            <div 
+            <div
               className={`w-4 h-4 flex shrink-0 items-center justify-center transition-all ${
                 isRadio ? 'rounded-full' : 'rounded border'
               }`}
@@ -2551,7 +2706,7 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
       return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     };
     const normalizedQuery = removeDiacritics(query);
-    return categories.filter(cat => 
+    return categories.filter(cat =>
       removeDiacritics(cat.name).includes(normalizedQuery)
     );
   }, [categories, categorySearchQuery]);
@@ -2818,8 +2973,13 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                   <Link
                     key={product._id}
                     href={getDetailHref(product)}
-                    className={`group ${radiusClass} overflow-hidden border transition-colors flex flex-col h-full`}
-                    style={{ backgroundColor: tokens.cardBackground, borderColor: tokens.cardBorder }}
+                    className={`group ${radiusClass} overflow-hidden border transition-all duration-300 flex flex-col h-full hover:border-[var(--card-hover-border)] hover:shadow-lg hover:shadow-[var(--card-hover-shadow)] hover:-translate-y-1`}
+                    style={{
+                      backgroundColor: tokens.cardBackground,
+                      borderColor: tokens.cardBorder,
+                      '--card-hover-border': tokens.primary,
+                      '--card-hover-shadow': `${tokens.primary}15`,
+                    } as React.CSSProperties}
                   >
                   <ProductImageWithOverlay
                     frameConfig={frameConfig}
@@ -2842,8 +3002,14 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     )}
                     {showWishlistButton && canUseWishlist && (
                       <button
-                        className="absolute top-2 right-2 p-2 rounded-full border transition-colors z-30"
-                        style={{ backgroundColor: tokens.wishlistButtonBg, borderColor: tokens.wishlistButtonBorder, color: wishlistIdSet.has(product._id) ? tokens.wishlistIconActive : tokens.wishlistIcon }}
+                        className="absolute top-2 right-2 p-2 rounded-full border transition-all duration-300 z-30 hover:bg-[var(--wishlist-hover-bg)] hover:border-[var(--wishlist-hover-border)] hover:scale-110 active:scale-95"
+                        style={{
+                          backgroundColor: tokens.wishlistButtonBg,
+                          borderColor: tokens.wishlistButtonBorder,
+                          color: wishlistIdSet.has(product._id) ? tokens.wishlistIconActive : tokens.wishlistIcon,
+                          '--wishlist-hover-bg': wishlistIdSet.has(product._id) ? `${tokens.wishlistIconActive}15` : `${tokens.primary}10`,
+                          '--wishlist-hover-border': wishlistIdSet.has(product._id) ? tokens.wishlistIconActive : tokens.primary,
+                        } as React.CSSProperties}
                         onClick={(event) => { event.preventDefault(); onToggleWishlist(product._id); }}
                         aria-label="Thêm vào yêu thích"
                       >
@@ -2852,9 +3018,28 @@ function CatalogLayout({ isLoadingProducts, postsPerPage, products, categories, 
                     )}
                   </ProductImageWithOverlay>
                     <div className="p-3 flex flex-1 flex-col">
-                      <h3 className="font-medium text-sm line-clamp-2 transition-colors" style={{ color: tokens.bodyText }}>{product.name}</h3>
+                      <div className="flex mb-1.5">
+                        <span
+                          className="text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full border transition-all duration-300"
+                          style={{
+                            backgroundColor: tokens.categoryBadgeBg,
+                            color: tokens.categoryBadgeText,
+                            borderColor: tokens.categoryBadgeBorder
+                          }}
+                        >
+                          {_categoryMap.get(product.categoryId) ?? 'Sản phẩm'}
+                        </span>
+                      </div>
+                      <h3 className="font-medium text-sm line-clamp-2 transition-colors group-hover:text-[var(--title-hover-color)]" style={{ color: tokens.bodyText, '--title-hover-color': tokens.primary } as React.CSSProperties}>{product.name}</h3>
                       {showPrice && <span className="font-bold text-sm block mt-1" style={{ color: tokens.priceColor }}>{priceDisplay.label}</span>}
-                      <ProductAttributesBadges productId={product._id} productAttributesMap={productAttributesMap} primaryColor="#9B2C3B" />
+                      <ProductAttributesBadges
+                        productId={product._id}
+                        productAttributesMap={productAttributesMap}
+                        tokens={tokens}
+                        onAttributeChange={onAttributeChange}
+                        selectedAttributes={selectedAttributes}
+                        productTypeId={product.productTypeId}
+                      />
                       <div className="min-h-[20px] mt-2">
                         {showStock && product.stock <= 5 && product.stock > 0 && <span className="text-xs block" style={{ color: tokens.stockLowText }}>Chỉ còn {product.stock} sản phẩm</span>}
                         {showStock && product.stock === 0 && <span className="text-xs block" style={{ color: tokens.stockOutText }}>Hết hàng</span>}
@@ -3073,6 +3258,8 @@ function ListLayout({ isLoadingProducts, postsPerPage, products, categories, cat
             watermarkConfig={watermarkConfig}
             getDetailHref={getDetailHref}
             radiusClass={radiusClass}
+            onAttributeChange={onAttributeChange}
+            selectedAttributes={selectedAttributes}
           />
         )}
 
