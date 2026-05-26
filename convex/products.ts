@@ -47,6 +47,8 @@ const comboItemDoc = v.object({
   name: v.string(),
   price: v.optional(v.number()),
   type: v.union(v.literal("standard"), v.literal("mix")),
+  syncId: v.optional(v.string()),
+  isSynced: v.optional(v.boolean()),
   standardConfig: v.optional(
     v.object({
       minQty: v.number(),
@@ -63,6 +65,7 @@ const comboItemDoc = v.object({
   ),
   mixConfig: v.optional(
     v.object({
+      currentProductQty: v.optional(v.number()),
       items: v.array(
         v.object({
           productId: v.id("products"),
