@@ -816,7 +816,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
             style={{ color: tokens.dropdownItemText, ...menuVars }}
           >
             <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{node.label}</span>
-            {node.children.length > 0 && <ChevronRight size={14} />}
+            {node.children.length > 0 && <ChevronRight size={10} className="transition-transform duration-200 group-hover/menu-node:rotate-90" />}
           </Link>
           {node.children.length > 0 && (
             <div className={cn('absolute top-0 z-50 hidden', flyoutPositionClass)}>
@@ -859,7 +859,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
           }}
         >
           <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{node.label}</span>
-          {node.children.length > 0 && <ChevronRight size={14} />}
+          {node.children.length > 0 && <ChevronRight size={10} className={cn('transition-transform duration-200', isLevel4Open && 'rotate-90')} />}
         </Link>
         {node.children.length > 0 && isLevel4Open && (
           <div className="absolute left-full top-0 ml-1 z-50">
@@ -1142,7 +1142,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                           }}
                                         >
                                           <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{sub.label}</span>
-                                          {sub.children.length > 0 && <ChevronRight size={14} />}
+                                          {sub.children.length > 0 && <ChevronRight size={10} className={cn('transition-transform duration-200', isLevel3Active && 'rotate-90')} />}
                                         </Link>
                                         {sub.children.length > 0 && isLevel3Active && (
                                           <div
@@ -1196,7 +1196,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                 style={{ color: tokens.dropdownItemText, ...menuVars }}
                               >
                                 <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{child.label}</span>
-                                {child.children.length > 0 && <ChevronRight size={14} />}
+                                {child.children.length > 0 && <ChevronRight size={10} className="transition-transform duration-200 group-hover/child:rotate-90" />}
                               </Link>
                               {child.children.length > 0 && (
                                 <div
@@ -1288,7 +1288,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                               style={{ color: tokens.dropdownItemText, ...menuVars }}
                             >
                               {root.label}
-                              {root.children.length > 0 && <ChevronRight size={14} />}
+                              {root.children.length > 0 && <ChevronRight size={10} className="rotate-90" />}
                             </Link>
 
                             {root.children.length > 0 && (
@@ -1723,7 +1723,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                         }}
                                       >
                                         <span>{sub.label}</span>
-                                        {sub.children.length > 0 && <ChevronRight size={14} />}
+                                        {sub.children.length > 0 && <ChevronRight size={10} className={cn('transition-transform duration-200', isLevel3Active && 'rotate-90')} />}
                                       </Link>
                                       {sub.children.length > 0 && isLevel3Active && (
                                         <div
@@ -1986,7 +1986,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                                             }}
                                           >
                                             <span>{sub.label}</span>
-                                            {sub.children.length > 0 && <ChevronRight size={14} />}
+                                            {sub.children.length > 0 && <ChevronRight size={10} className={cn('transition-transform duration-200', isLevel3Active && 'rotate-90')} />}
                                           </Link>
                                           {sub.children.length > 0 && isLevel3Active && (
                                             <div

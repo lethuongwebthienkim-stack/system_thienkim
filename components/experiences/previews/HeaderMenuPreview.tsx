@@ -524,7 +524,7 @@ export function HeaderMenuPreview({
         style={{ color: tokens.dropdownItemText, ...menuVars }}
       >
         <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{node.label}</span>
-        {node.children.length > 0 && <ChevronRight size={14} />}
+        {node.children.length > 0 && <ChevronRight size={10} className="transition-transform duration-200 group-hover/menu-node:rotate-90" />}
       </a>
       {node.children.length > 0 && (
         <div 
@@ -759,7 +759,7 @@ export function HeaderMenuPreview({
                                           style={{ color: tokens.dropdownItemText, ...menuVars }}
                                         >
                                           <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{sub.label}</span>
-                                          {sub.children.length > 0 && <ChevronRight size={14} />}
+                                          {sub.children.length > 0 && <ChevronRight size={10} className="transition-transform duration-200 group-hover/menu-node:rotate-90" />}
                                         </a>
                                         {sub.children.length > 0 && (
                                           <div className="absolute left-full top-0 ml-2 hidden group-hover/menu-node:block">
@@ -805,7 +805,7 @@ export function HeaderMenuPreview({
                                   style={{ color: tokens.dropdownItemText, ...menuVars }}
                                 >
                                   <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{child.label}</span>
-                                  {child.children.length > 0 && <ChevronRight size={14} />}
+                                  {child.children.length > 0 && <ChevronRight size={10} className="transition-transform duration-200 group-hover/menu-node:rotate-90" />}
                                 </a>
                                 {child.children.length > 0 && (
                                   <div className="absolute left-full top-0 pl-1 hidden group-hover/menu-node:block">
@@ -858,7 +858,7 @@ export function HeaderMenuPreview({
                               style={{ color: tokens.dropdownItemText, ...menuVars }}
                             >
                               <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{root.label}</span>
-                              {root.children.length > 0 && <ChevronRight size={14} />}
+                              {root.children.length > 0 && <ChevronRight size={10} className="rotate-90" />}
                             </a>
 
                             {root.children.length > 0 && (
@@ -1208,7 +1208,7 @@ export function HeaderMenuPreview({
                                       style={{ color: tokens.dropdownItemText, ...menuVars }}
                                     >
                                       <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{sub.label}</span>
-                                      {sub.children.length > 0 && <ChevronRight size={14} />}
+                                      {sub.children.length > 0 && <ChevronRight size={10} className="transition-transform duration-200 group-hover/menu-node:rotate-90" />}
                                     </a>
                                     {sub.children.length > 0 && (
                                       <div className="absolute left-full top-0 ml-2 hidden group-hover/menu-node:block">
@@ -1253,7 +1253,7 @@ export function HeaderMenuPreview({
                               style={{ color: tokens.dropdownItemText, ...menuVars }}
                             >
                               <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{child.label}</span>
-                              {child.children.length > 0 && <ChevronRight size={14} />}
+                              {child.children.length > 0 && <ChevronRight size={10} className="transition-transform duration-200 group-hover/menu-node:rotate-90" />}
                             </a>
                             {child.children.length > 0 && (
                               <div className="absolute left-full top-0 pl-1 hidden group-hover/menu-node:block">
@@ -1418,7 +1418,7 @@ export function HeaderMenuPreview({
                                           style={{ color: tokens.dropdownSubItemText, ...menuVars }}
                                         >
                                           <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{sub.label}</span>
-                                          {sub.children.length > 0 && <ChevronRight size={14} />}
+                                          {sub.children.length > 0 && <ChevronRight size={10} className="transition-transform duration-200 group-hover/menu-node:rotate-90" />}
                                         </a>
                                         {sub.children.length > 0 && (
                                           <div className="absolute left-full top-0 ml-2 hidden group-hover/menu-node:block">
@@ -1461,7 +1461,7 @@ export function HeaderMenuPreview({
                                   style={{ color: tokens.dropdownItemText, ...menuVars }}
                                 >
                                   <span className="min-w-0 flex-1 whitespace-normal break-words leading-snug">{child.label}</span>
-                                  {child.children.length > 0 && <ChevronRight size={14} />}
+                                  {child.children.length > 0 && <ChevronRight size={10} className="transition-transform duration-200 group-hover/menu-node:rotate-90" />}
                                 </a>
                                 {child.children.length > 0 && (
                                   <div className="absolute left-full top-0 pl-1 hidden group-hover/menu-node:block">
