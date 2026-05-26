@@ -41,11 +41,13 @@ const removeTones = (str: string): string => {
     .toLowerCase();
 };
 
+const normalizeAttributeText = (str: string): string => removeTones(str).normalize('NFC').trim();
+
 // Hàm phân tách giá trị và đơn vị của term range
 const parseTermValue = (termName: string) => {
-  const match = termName.match(/^([\d.]+)\s*(.*)$/);
+  const match = termName.match(/^([\d.,]+)\s*(.*)$/);
   if (match) {
-    return { value: match[1], unit: match[2] };
+    return { value: match[1].replace(',', '.'), unit: match[2].trim() };
   }
   return { value: '', unit: '' };
 };
@@ -70,10 +72,33 @@ const getDominantUnit = (terms: Array<{ name: string }>) => {
   return dominant;
 };
 
+const findAttributeGroupByName = (groups: any[], groupName: string) => {
+  const normalizedName = normalizeAttributeText(groupName);
+  return groups.find((group) => normalizeAttributeText(group.name) === normalizedName);
+};
+
+const getAttributeValidationErrors = (
+  formConfig: { groups: Array<{ _id: string; name: string; filterType?: string; terms: Array<{ _id: Id<"attributeTerms">; name: string }> }> } | null | undefined,
+  attributeTermIds: Id<"attributeTerms">[],
+  rangeInputs: Record<string, { value: string; unit: string }>
+) => {
+  if (!formConfig) {return [];}
+
+  return formConfig.groups
+    .filter((group) => {
+      if (group.filterType === 'range') {
+        return !rangeInputs[group._id]?.value?.trim();
+      }
+      return !group.terms.some((term) => attributeTermIds.includes(term._id));
+    })
+    .map((group) => group.name);
+};
+
 type RangeInputs = Record<string, { value: string; unit: string }>;
 type ProductFormConfig = {
   groups: Array<{
     _id: string;
+    name: string;
     filterType?: string;
     terms: Array<{ _id: Id<"attributeTerms">; name: string }>;
   }>;
@@ -291,6 +316,50 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
   const activeProductTypeId = productTypeId || productData?.productTypeId || '';
   const formConfig = useQuery(api.productTypes.getFormConfig, activeProductTypeId ? { typeId: activeProductTypeId as Id<"productTypes"> } : 'skip');
+
+  const handleAddStandardTerm = async (group: any) => {
+    const termName = window.prompt(`Nhập giá trị mới cho nhóm thuộc tính "${group.name}":`);
+    if (termName && termName.trim()) {
+      const trimmedName = termName.trim();
+      const exists = group.terms.some(
+        (t: any) => t.name.toLowerCase().trim() === trimmedName.toLowerCase().trim()
+      );
+      if (exists) {
+        toast.error("Giá trị thuộc tính này đã tồn tại.");
+        return;
+      }
+      try {
+        const newTermId = await createAttributeTerm({
+          groupId: group._id,
+          name: trimmedName,
+          slug: trimmedName
+            .toLowerCase()
+            .normalize("NFD")
+            .replaceAll(/[\u0300-\u036F]/g, "")
+            .replaceAll(/[đĐ]/g, "d")
+            .replaceAll(/[^a-z0-9\s-]/g, "")
+            .trim()
+            .replaceAll(/\s+/g, "-")
+            .replaceAll(/-+/g, "-"),
+          active: true
+        });
+        
+        // Tự động tick chọn giá trị mới tạo
+        const isSingle = group.inputType === 'radio' || group.filterType === 'single';
+        if (isSingle) {
+          const otherTermIds = group.terms.map((t: any) => t._id);
+          setAttributeTermIds(prev => [...prev.filter(id => !otherTermIds.includes(id)), newTermId]);
+        } else {
+          setAttributeTermIds(prev => [...prev, newTermId]);
+        }
+        
+        toast.success(`Đã thêm giá trị "${trimmedName}" thành công.`);
+      } catch (err) {
+        console.error(err);
+        toast.error("Không thể tạo giá trị thuộc tính mới.");
+      }
+    }
+  };
   const availableProductTypes = useMemo(() => {
     if (categoryId && categoryProductTypesData && categoryProductTypesData.length > 0) {
       return categoryProductTypesData;
@@ -515,14 +584,34 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
       setImageStorageId(undefined);
     }
 
-    // Gán thuộc tính phân loại từ AI
-    if (enableProductTypes && item.attributeTermIds && item.attributeTermIds.length > 0) {
-      const validIds = formConfig
-        ? item.attributeTermIds.filter((id: any) => 
-            formConfig.groups.some((g: any) => g.terms.some((t: any) => t._id === id))
-          )
-        : item.attributeTermIds;
-      setAttributeTermIds(validIds as any);
+    if (enableProductTypes && (item.attributeTermIds?.length || item.newAttributes || item.attributeRangeValues) && !formConfig) {
+      toast.warning('Chưa tải được cấu hình kiểu sản phẩm nên chưa thể áp dụng thuộc tính AI.');
+    }
+
+    if (enableProductTypes && formConfig?.groups) {
+      const validTermIds = new Set(
+        formConfig.groups.flatMap((group: any) => group.filterType !== 'range' ? group.terms.map((term: any) => term._id) : [])
+      );
+      const nextTermIds = new Set<Id<"attributeTerms">>(
+        (item.attributeTermIds ?? []).filter((termId) => validTermIds.has(termId)) as Id<"attributeTerms">[]
+      );
+
+      if (item.newAttributes) {
+        Object.entries(item.newAttributes).forEach(([groupName, values]) => {
+          const group = findAttributeGroupByName(formConfig.groups, groupName);
+          if (!group || group.filterType === 'range') {return;}
+          values.forEach((value) => {
+            const existingTerm = group.terms.find((term: any) => normalizeAttributeText(term.name) === normalizeAttributeText(value));
+            if (existingTerm) {
+              nextTermIds.add(existingTerm._id);
+            }
+          });
+        });
+      }
+
+      if (nextTermIds.size > 0) {
+        setAttributeTermIds(Array.from(nextTermIds));
+      }
     }
 
     // Gán các thuộc tính lọc Range từ AI
@@ -530,13 +619,17 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
       const nextRangeInputs = { ...rangeInputs };
       formConfig.groups.forEach((group: any) => {
         if (group.filterType === 'range') {
-          const aiValue = item.attributeRangeValues![group.name];
+          const matchEntry = Object.entries(item.attributeRangeValues!).find(
+            ([k]) => normalizeAttributeText(k) === normalizeAttributeText(group.name)
+          );
+          
+          const aiValue = matchEntry ? matchEntry[1] : undefined;
           if (aiValue) {
-            const match = aiValue.match(/^([\d.]+)\s*(.*)$/);
-            if (match) {
+            const parsed = parseTermValue(aiValue);
+            if (parsed.value) {
               nextRangeInputs[group._id] = {
-                value: match[1].trim(),
-                unit: match[2].trim() || '%'
+                value: parsed.value,
+                unit: parsed.unit || getDominantUnit(group.terms) || '%'
               };
             }
           }
@@ -807,6 +900,21 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
     }
     if (hasTaxonomyConflict) {
       toast.error("Không thể lưu: Các danh mục được chọn phải thuộc cùng một kiểu sản phẩm.");
+      return;
+    }
+    if (enableProductTypes && availableProductTypes.length > 0 && !productTypeId) {
+      toast.error('Vui lòng chọn kiểu sản phẩm trước khi lưu.');
+      return;
+    }
+    if (enableProductTypes && productTypeId && !formConfig) {
+      toast.error('Đang tải cấu hình thuộc tính, vui lòng thử lại sau.');
+      return;
+    }
+    const missingAttributes = enableProductTypes && productTypeId
+      ? getAttributeValidationErrors(formConfig, attributeTermIds, rangeInputs)
+      : [];
+    if (missingAttributes.length > 0) {
+      toast.error(`Vui lòng điền đủ thuộc tính trước khi lưu: ${missingAttributes.join(', ')}`);
       return;
     }
 
@@ -1885,13 +1993,27 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                   const iconColor = group.displayConfig?.iconColor || group.displayConfig?.color || '#ea580c';
                   
                   const renderLabelWithIcon = () => (
-                    <div className="flex items-center gap-2">
-                      {group.iconPath && (
-                        <span style={{ color: iconColor }} className="shrink-0">
-                          <IconComponent size={16} />
-                        </span>
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        {group.iconPath && (
+                          <span style={{ color: iconColor }} className="shrink-0">
+                            <IconComponent size={16} />
+                          </span>
+                        )}
+                        <Label className="text-sm font-semibold">{group.name}</Label>
+                      </div>
+                      {!isRange && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-slate-500 hover:text-[#9B2C3B] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md shrink-0"
+                          onClick={() => handleAddStandardTerm(group)}
+                          title={`Thêm nhanh giá trị cho ${group.name}`}
+                        >
+                          <Plus size={14} />
+                        </Button>
                       )}
-                      <Label className="text-sm font-semibold">{group.name}</Label>
                     </div>
                   );
                   
@@ -1899,7 +2021,10 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                     const currentInput = rangeInputs[group._id] || { value: '', unit: '%' };
                     const dominantUnit = getDominantUnit(group.terms);
                     const isUnitDifferent = dominantUnit && currentInput.value && currentInput.unit !== dominantUnit;
-                    const availableUnits = (group.displayConfig?.units as string[]) || ['%', 'ml', 'kg', 'g'];
+                    const configuredUnits = (group.displayConfig?.units as string[]) || ['%', 'ml', 'kg', 'g'];
+                    const availableUnits = currentInput.unit && !configuredUnits.includes(currentInput.unit)
+                      ? [...configuredUnits, currentInput.unit]
+                      : configuredUnits;
                     
                     const handleAddUnit = async () => {
                       const newUnit = window.prompt(`Nhập đơn vị mới cho nhóm thuộc tính "${group.name}":`);
