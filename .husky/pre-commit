@@ -1,6 +1,3 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
-
 echo "🚀 [Harness Engine] Đang quét chất lượng code trước khi commit..."
 
 # 1. Chạy linter siêu tốc cục bộ trên các file staged
