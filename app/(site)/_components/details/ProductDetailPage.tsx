@@ -447,6 +447,21 @@ export default function ProductDetailPage({ params }: PageProps) {
   
   const product = useQuery(api.products.getBySlug, { slug });
 
+  const enableProductTypesSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableProductTypes' });
+  const enableProductTypes = enableProductTypesSetting?.value === true;
+  const productTypesData = useQuery(api.productTypes.listAll, enableProductTypes ? {} : 'skip');
+
+  const productTypeSlugMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (!productTypesData) return map;
+    productTypesData.forEach(t => {
+      if (t.active) {
+        map.set(t._id, t.slug);
+      }
+    });
+    return map;
+  }, [productTypesData]);
+
   const enableCombosSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableCombos' });
   const enableCombos = enableCombosSetting?.value === true;
 
@@ -629,9 +644,6 @@ export default function ProductDetailPage({ params }: PageProps) {
       ? { paginationOpts: { cursor: null, numItems: Math.min(commentsPerPageSetting * 2, 60) }, status: 'Approved', targetId: product._id, targetType: 'product' }
       : 'skip'
   );
-  
-  const enableProductTypesSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableProductTypes' });
-  const enableProductTypes = enableProductTypesSetting?.value === true;
 
   const productTermsSource = useQuery(
     api.attributeTerms.getTermsForProducts,
@@ -1049,6 +1061,8 @@ export default function ProductDetailPage({ params }: PageProps) {
           premiumBannerBg={experienceConfig.premiumBannerBg}
           premiumBannerText={experienceConfig.premiumBannerText}
           showPremiumBanner={experienceConfig.showPremiumBanner}
+          enableProductTypes={enableProductTypes}
+          productTypeSlugMap={productTypeSlugMap}
         />
       )}
       {experienceConfig.layoutStyle === 'classic' && (
@@ -1160,6 +1174,10 @@ export default function ProductDetailPage({ params }: PageProps) {
           accentColors={experienceConfig.accentColors}
           showSocialButtons={experienceConfig.showSocialButtons}
           socialButtons={experienceConfig.socialButtons}
+          productAttributesMap={productAttributesMap}
+          productTypeId={(product as any)?.productTypeId}
+          enableProductTypes={enableProductTypes}
+          productTypeSlugMap={productTypeSlugMap}
         />
       )}
       {experienceConfig.layoutStyle === 'minimal' && (
@@ -1215,6 +1233,10 @@ export default function ProductDetailPage({ params }: PageProps) {
           accentColors={experienceConfig.accentColors}
           showSocialButtons={experienceConfig.showSocialButtons}
           socialButtons={experienceConfig.socialButtons}
+          productAttributesMap={productAttributesMap}
+          productTypeId={(product as any)?.productTypeId}
+          enableProductTypes={enableProductTypes}
+          productTypeSlugMap={productTypeSlugMap}
         />
       )}
       <ProductImageLightbox
@@ -1314,6 +1336,8 @@ interface StyleProps {
   socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
   productAttributesMap?: Map<string, any[]>;
   productTypeId?: string;
+  enableProductTypes?: boolean;
+  productTypeSlugMap?: Map<string, string>;
 }
 
 interface ExperienceBlocksProps {
@@ -2521,6 +2545,8 @@ interface PremiumStyleProps extends StyleProps, ExperienceBlocksProps {
   premiumBannerBg?: 'primary' | 'secondary' | 'black' | 'white';
   premiumBannerText?: 'primary' | 'secondary' | 'black' | 'white';
   showPremiumBanner?: boolean;
+  enableProductTypes?: boolean;
+  productTypeSlugMap?: Map<string, string>;
 }
 
 function PremiumStyle({
@@ -2580,7 +2606,10 @@ function PremiumStyle({
   premiumBannerBg = 'primary',
   premiumBannerText = 'white',
   showPremiumBanner = true,
+  enableProductTypes,
+  productTypeSlugMap,
 }: PremiumStyleProps) {
+  const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<VariantSelectionMap>({});
@@ -3228,11 +3257,16 @@ function PremiumStyle({
                           const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
                           const valuesStr = groupItem.terms.map(t => t.name).join(', ');
 
+                          const handleShowModal = (e: React.MouseEvent) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setActiveAttrModal({ title: groupItem.group.name, value: valuesStr });
+                          };
+
                           return (
                             <div
                               key={groupItem._id}
-                              onClick={() => setActiveAttrModal({ title: groupItem.group.name, value: valuesStr })}
-                              className={`flex-shrink-0 select-none min-w-0 px-2.5 md:px-6 flex items-center gap-2 md:gap-3.5 cursor-pointer hover:opacity-80 active:opacity-60 transition-all ${
+                              className={`flex-shrink-0 select-none min-w-0 px-2.5 md:px-6 flex items-center gap-2 md:gap-3.5 ${
                                 index < sortedGroups.length - 1 ? 'border-r' : ''
                               }`}
                               style={{
@@ -3244,15 +3278,47 @@ function PremiumStyle({
                                     : 'calc(100% / 4)',
                               }}
                             >
-                              <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
+                              <span 
+                                style={{ color: tokens.primary }} 
+                                className="flex shrink-0 items-center justify-center cursor-pointer hover:opacity-80 transition-all"
+                                onClick={handleShowModal}
+                                title={`Xem chi tiết ${groupItem.group.name}`}
+                              >
                                 <IconComponent size={18} className="md:w-[26px] md:h-[26px] md:size-auto" />
                               </span>
                               <div className="flex flex-col text-left min-w-0 flex-1">
-                                <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1 break-words" style={{ color: tokens.metaText }}>
+                                <span 
+                                  className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1 break-words cursor-pointer hover:opacity-80 transition-all" 
+                                  style={{ color: tokens.metaText }}
+                                  onClick={handleShowModal}
+                                  title={`Xem chi tiết ${groupItem.group.name}`}
+                                >
                                   {groupItem.group.name}
                                 </span>
                                 <p className="text-[11px] md:text-sm font-bold break-words line-clamp-2 leading-tight" style={{ color: tokens.headingColor }}>
-                                  {valuesStr}
+                                  {groupItem.terms.map((term) => (
+                                    <span
+                                      key={term._id}
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        if (enableProductTypes && productTypeId && productTypeSlugMap) {
+                                          const productTypeSlug = productTypeSlugMap.get(productTypeId);
+                                          if (productTypeSlug) {
+                                            if (groupItem.group.filterType === 'range') {
+                                              router.push(`/${productTypeSlug}?attr_${groupItem.group.slug}=${term.slug}`, { scroll: false });
+                                            } else {
+                                              router.push(`/${productTypeSlug}/${groupItem.group.slug}/${term.slug}`, { scroll: false });
+                                            }
+                                          }
+                                        }
+                                      }}
+                                      className="cursor-pointer hover:underline transition-all before:content-[',_'] first:before:content-none"
+                                      title={`Lọc theo ${groupItem.group.name.toLowerCase()}: ${term.name}`}
+                                    >
+                                      {term.name}
+                                    </span>
+                                  ))}
                                 </p>
                               </div>
                             </div>
@@ -3272,21 +3338,58 @@ function PremiumStyle({
                         const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
                         const valuesStr = groupItem.terms.map(t => t.name).join(', ');
 
+                        const handleShowModal = (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setActiveAttrModal({ title: groupItem.group.name, value: valuesStr });
+                        };
+
                         return (
                           <div
                             key={groupItem._id}
-                            onClick={() => setActiveAttrModal({ title: groupItem.group.name, value: valuesStr })}
-                            className="px-2.5 md:px-6 flex items-center gap-2 md:gap-3.5 min-w-0 first:pl-0 last:pr-0 cursor-pointer hover:opacity-80 active:opacity-60 transition-all"
+                            className="px-2.5 md:px-6 flex items-center gap-2 md:gap-3.5 min-w-0 first:pl-0 last:pr-0"
                           >
-                            <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
+                            <span 
+                              style={{ color: tokens.primary }} 
+                              className="flex shrink-0 items-center justify-center cursor-pointer hover:opacity-80 transition-all"
+                              onClick={handleShowModal}
+                              title={`Xem chi tiết ${groupItem.group.name}`}
+                            >
                               <IconComponent size={18} className="md:w-[26px] md:h-[26px] md:size-auto" />
                             </span>
                             <div className="flex flex-col text-left min-w-0 flex-1">
-                              <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1 break-words" style={{ color: tokens.metaText }}>
+                              <span 
+                                className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1 break-words cursor-pointer hover:opacity-80 transition-all" 
+                                style={{ color: tokens.metaText }}
+                                onClick={handleShowModal}
+                                title={`Xem chi tiết ${groupItem.group.name}`}
+                              >
                                 {groupItem.group.name}
                               </span>
                               <p className="text-[11px] md:text-sm font-bold break-words line-clamp-2 leading-tight" style={{ color: tokens.headingColor }}>
-                                {valuesStr}
+                                {groupItem.terms.map((term) => (
+                                  <span
+                                    key={term._id}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (enableProductTypes && productTypeId && productTypeSlugMap) {
+                                        const productTypeSlug = productTypeSlugMap.get(productTypeId);
+                                        if (productTypeSlug) {
+                                          if (groupItem.group.filterType === 'range') {
+                                            router.push(`/${productTypeSlug}?attr_${groupItem.group.slug}=${term.slug}`, { scroll: false });
+                                          } else {
+                                            router.push(`/${productTypeSlug}/${groupItem.group.slug}/${term.slug}`, { scroll: false });
+                                          }
+                                        }
+                                      }
+                                    }}
+                                    className="cursor-pointer hover:underline transition-all before:content-[',_'] first:before:content-none"
+                                    title={`Lọc theo ${groupItem.group.name.toLowerCase()}: ${term.name}`}
+                                  >
+                                    {term.name}
+                                  </span>
+                                ))}
                               </p>
                             </div>
                           </div>
@@ -3455,6 +3558,110 @@ function PremiumStyle({
 }
 
 // ====================================================================================
+// COMPONENT: ProductAttributesBadgesModernMinimal - Giao diện đẹp mắt có border, background bo tròn giống Preview
+// ====================================================================================
+interface ProductAttributesBadgesModernMinimalProps {
+  productId: string;
+  productAttributesMap: Map<string, any[]>;
+  tokens: any;
+  productTypeId?: string;
+  enableProductTypes?: boolean;
+  productTypeSlugMap?: Map<string, string>;
+  className?: string;
+}
+
+function ProductAttributesBadgesModernMinimal({
+  productId,
+  productAttributesMap,
+  tokens,
+  productTypeId,
+  enableProductTypes,
+  productTypeSlugMap,
+  className = "grid grid-cols-2 gap-2 md:grid-cols-3 w-full mt-2 mb-2"
+}: ProductAttributesBadgesModernMinimalProps) {
+  const router = useRouter();
+  if (!productAttributesMap) return null;
+  const terms = productAttributesMap.get(productId);
+  if (!terms || terms.length === 0) return null;
+
+  // 1. Nhóm các term theo groupId
+  const groupMap = new Map<string, { group: any; terms: Array<{ _id: string; name: string; slug: string }> }>();
+  for (const term of terms) {
+    if (!term.group) continue;
+    const groupId = term.group._id;
+    if (!groupMap.has(groupId)) {
+      groupMap.set(groupId, {
+        group: term.group,
+        terms: []
+      });
+    }
+    const groupData = groupMap.get(groupId)!;
+    groupData.terms.push({ _id: term._id, name: term.name, slug: term.slug });
+  }
+
+  const mergedGroups = Array.from(groupMap.values()).map(g => ({
+    _id: g.terms.map(t => t._id).join('-'),
+    group: g.group,
+    terms: g.terms,
+  }));
+
+  const sortedGroups = mergedGroups.sort((a, b) => (a.group.order ?? 9999) - (b.group.order ?? 9999));
+
+  return (
+    <div className={className}>
+      {sortedGroups.map((groupItem) => {
+        const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
+        const valuesStr = groupItem.terms.map(t => t.name).join(', ');
+
+        return (
+          <div
+            key={groupItem._id}
+            className="flex items-center gap-1.5 text-xs font-medium py-1 px-2 rounded-lg border min-w-0"
+            style={{
+              borderColor: tokens.border || '#e2e8f0',
+              backgroundColor: tokens.surfaceMuted || '#f8fafc',
+              color: tokens.bodyText || '#334155'
+            }}
+          >
+            <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
+              <IconComponent size={14} />
+            </span>
+            <span className="truncate" title={`${groupItem.group.name}: ${valuesStr}`}>
+              <span className="opacity-60 font-normal uppercase text-[10px] mr-1">{groupItem.group.name}:</span>
+              <span className="font-semibold">
+                {groupItem.terms.map((term, tIdx) => (
+                  <span
+                    key={term._id}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (enableProductTypes && productTypeId && productTypeSlugMap) {
+                        const productTypeSlug = productTypeSlugMap.get(productTypeId);
+                        if (productTypeSlug) {
+                          if (groupItem.group.filterType === 'range') {
+                            router.push(`/${productTypeSlug}?attr_${groupItem.group.slug}=${term.slug}`, { scroll: false });
+                          } else {
+                            router.push(`/${productTypeSlug}/${groupItem.group.slug}/${term.slug}`, { scroll: false });
+                          }
+                        }
+                      }
+                    }}
+                    className="cursor-pointer hover:underline transition-all before:content-[',_'] first:before:content-none"
+                    title={`Lọc theo ${groupItem.group.name.toLowerCase()}: ${term.name}`}
+                  >
+                    {term.name}
+                  </span>
+                ))}
+              </span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ====================================================================================
 // STYLE 2: MODERN - Landing page style with hero
 // ====================================================================================
 function ModernStyle({
@@ -3507,6 +3714,10 @@ function ModernStyle({
   accentColors,
   showSocialButtons,
   socialButtons,
+  productAttributesMap,
+  productTypeId,
+  enableProductTypes,
+  productTypeSlugMap,
 }: StyleProps & ExperienceBlocksProps & HighlightBlockProps & { heroStyle: ModernHeroStyle }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -3907,6 +4118,20 @@ function ModernStyle({
               />
             )}
 
+            {productAttributesMap && productAttributesMap.has(product._id) && productAttributesMap.get(product._id)!.length > 0 && (
+              <div className="mt-2 mb-2">
+                <ProductAttributesBadgesModernMinimal
+                  productId={product._id}
+                  productAttributesMap={productAttributesMap}
+                  tokens={tokens}
+                  className="grid grid-cols-2 gap-2 md:grid-cols-3 w-full mt-2 mb-2"
+                  productTypeId={productTypeId}
+                  enableProductTypes={enableProductTypes}
+                  productTypeSlugMap={productTypeSlugMap}
+                />
+              </div>
+            )}
+
             <div className="h-px w-full" style={{ backgroundColor: tokens.divider }} />
 
             {enableCombos && saleMode === 'contact' && !product.hasVariants && product.combos && product.combos.length > 0 && (
@@ -4160,6 +4385,10 @@ function MinimalStyle({
   accentColors,
   showSocialButtons,
   socialButtons,
+  productAttributesMap,
+  productTypeId,
+  enableProductTypes,
+  productTypeSlugMap,
 }: StyleProps & ExperienceBlocksProps & HighlightBlockProps & { contentWidth: MinimalContentWidth }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<VariantSelectionMap>({});
@@ -4494,6 +4723,20 @@ function MinimalStyle({
                   onSelect={handleSelectOption}
                   isOptionValueAvailable={isOptionValueAvailable}
                   accentColor={brandColor}
+                />
+              </div>
+            )}
+
+            {productAttributesMap && productAttributesMap.has(product._id) && productAttributesMap.get(product._id)!.length > 0 && (
+              <div className="mb-4 md:mb-6">
+                <ProductAttributesBadgesModernMinimal
+                  productId={product._id}
+                  productAttributesMap={productAttributesMap}
+                  tokens={tokens}
+                  className="grid grid-cols-2 gap-2 md:grid-cols-3 w-full mt-2 mb-2"
+                  productTypeId={productTypeId}
+                  enableProductTypes={enableProductTypes}
+                  productTypeSlugMap={productTypeSlugMap}
                 />
               </div>
             )}
