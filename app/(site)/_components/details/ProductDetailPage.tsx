@@ -2597,6 +2597,7 @@ function PremiumStyle({
   });
   const [canScrollAttrPrev, setCanScrollAttrPrev] = useState(false);
   const [canScrollAttrNext, setCanScrollAttrNext] = useState(false);
+  const [activeAttrModal, setActiveAttrModal] = useState<{ title: string; value: string } | null>(null);
 
   const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
@@ -3186,7 +3187,7 @@ function PremiumStyle({
           return (
             <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
               <div 
-                className="rounded-2xl p-4 md:p-5 relative border"
+                className="rounded-2xl py-3 px-2 md:p-5 relative border"
                 style={{ 
                   backgroundColor: tokens.surfaceMuted || '#f8fafc',
                   borderColor: tokens.border || '#e2e8f0'
@@ -3221,7 +3222,7 @@ function PremiumStyle({
 
                   {/* Carousel or Grid */}
                   {hasOverflow ? (
-                    <div className="overflow-hidden mx-8 md:mx-10" ref={premiumAttrRef}>
+                    <div className="overflow-hidden mx-6 md:mx-10" ref={premiumAttrRef}>
                       <div className="flex gap-0">
                         {sortedGroups.map((groupItem, index) => {
                           const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
@@ -3230,7 +3231,8 @@ function PremiumStyle({
                           return (
                             <div
                               key={groupItem._id}
-                              className={`flex-shrink-0 select-none min-w-0 px-2.5 md:px-6 flex items-center gap-2 md:gap-3.5 ${
+                              onClick={() => setActiveAttrModal({ title: groupItem.group.name, value: valuesStr })}
+                              className={`flex-shrink-0 select-none min-w-0 px-2.5 md:px-6 flex items-center gap-2 md:gap-3.5 cursor-pointer hover:opacity-80 active:opacity-60 transition-all ${
                                 index < sortedGroups.length - 1 ? 'border-r' : ''
                               }`}
                               style={{
@@ -3249,7 +3251,7 @@ function PremiumStyle({
                                 <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1 break-words" style={{ color: tokens.metaText }}>
                                   {groupItem.group.name}
                                 </span>
-                                <p className="text-[11px] md:text-sm font-bold break-words leading-tight" style={{ color: tokens.headingColor }}>
+                                <p className="text-[11px] md:text-sm font-bold break-words line-clamp-2 leading-tight" style={{ color: tokens.headingColor }}>
                                   {valuesStr}
                                 </p>
                               </div>
@@ -3273,7 +3275,8 @@ function PremiumStyle({
                         return (
                           <div
                             key={groupItem._id}
-                            className="px-2.5 md:px-6 flex items-center gap-2 md:gap-3.5 min-w-0 first:pl-0 last:pr-0"
+                            onClick={() => setActiveAttrModal({ title: groupItem.group.name, value: valuesStr })}
+                            className="px-2.5 md:px-6 flex items-center gap-2 md:gap-3.5 min-w-0 first:pl-0 last:pr-0 cursor-pointer hover:opacity-80 active:opacity-60 transition-all"
                           >
                             <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
                               <IconComponent size={18} className="md:w-[26px] md:h-[26px] md:size-auto" />
@@ -3282,7 +3285,7 @@ function PremiumStyle({
                               <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1 break-words" style={{ color: tokens.metaText }}>
                                 {groupItem.group.name}
                               </span>
-                              <p className="text-[11px] md:text-sm font-bold break-words leading-tight" style={{ color: tokens.headingColor }}>
+                              <p className="text-[11px] md:text-sm font-bold break-words line-clamp-2 leading-tight" style={{ color: tokens.headingColor }}>
                                 {valuesStr}
                               </p>
                             </div>
@@ -3293,6 +3296,37 @@ function PremiumStyle({
                   )}
                 </div>
               </div>
+
+              {/* Glassmorphism Modal xem full thuộc tính */}
+              {activeAttrModal && (
+                <div 
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center p-4"
+                  onClick={() => setActiveAttrModal(null)}
+                >
+                  <div 
+                    className="rounded-2xl p-6 max-w-sm w-full border text-center relative shadow-2xl"
+                    style={{ 
+                      backgroundColor: tokens.surface || '#ffffff',
+                      borderColor: tokens.border || '#e2e8f0'
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button 
+                      className="absolute top-3 right-3 opacity-60 hover:opacity-100 transition-all text-sm font-bold"
+                      style={{ color: tokens.bodyText }}
+                      onClick={() => setActiveAttrModal(null)}
+                    >
+                      ✕
+                    </button>
+                    <h3 className="text-xs font-extrabold uppercase tracking-wider mb-2" style={{ color: tokens.metaText }}>
+                      {activeAttrModal.title}
+                    </h3>
+                    <p className="text-sm font-bold break-words leading-relaxed" style={{ color: tokens.headingColor }}>
+                      {activeAttrModal.value}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })()}
