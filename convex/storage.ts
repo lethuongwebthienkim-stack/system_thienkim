@@ -214,6 +214,48 @@ export const deleteImage = mutation({
       throw new Error("File đang được sử dụng");
     }
 
+    // Harden delete check giống cleanupStorageIfUnreferenced
+    const maxScan = 1000;
+    const products = await ctx.db.query("products").take(maxScan);
+    const posts = await ctx.db.query("posts").take(maxScan);
+    const services = await ctx.db.query("services").take(maxScan);
+    const settings = await ctx.db.query("settings").take(maxScan);
+    const homeComponents = await ctx.db.query("homeComponents").take(maxScan);
+    const storageUrl = await ctx.storage.getUrl(args.storageId);
+    const storageIdValue = args.storageId as string;
+
+    const isUsedInProducts = products.some((product) =>
+      valueMatchesStorage(product.imageStorageId, storageIdValue, storageUrl)
+      || valueMatchesStorage(product.imageStorageIds, storageIdValue, storageUrl)
+      || valueMatchesStorage(product.image, storageIdValue, storageUrl)
+      || valueMatchesStorage(product.images, storageIdValue, storageUrl)
+      || valueMatchesStorage(product.description, storageIdValue, storageUrl)
+      || valueMatchesStorage(product.markdownRender, storageIdValue, storageUrl)
+      || valueMatchesStorage(product.htmlRender, storageIdValue, storageUrl)
+    );
+    const isUsedInPosts = posts.some((post) =>
+      valueMatchesStorage(post.thumbnailStorageId, storageIdValue, storageUrl)
+      || valueMatchesStorage(post.thumbnail, storageIdValue, storageUrl)
+      || valueMatchesStorage(post.content, storageIdValue, storageUrl)
+      || valueMatchesStorage(post.markdownRender, storageIdValue, storageUrl)
+      || valueMatchesStorage(post.htmlRender, storageIdValue, storageUrl)
+    );
+    const isUsedInServices = services.some((service) =>
+      valueMatchesStorage(service.thumbnailStorageId, storageIdValue, storageUrl)
+      || valueMatchesStorage(service.thumbnail, storageIdValue, storageUrl)
+      || valueMatchesStorage(service.content, storageIdValue, storageUrl)
+      || valueMatchesStorage(service.markdownRender, storageIdValue, storageUrl)
+      || valueMatchesStorage(service.htmlRender, storageIdValue, storageUrl)
+    );
+    const isUsedInSettings = settings.some((setting) => valueMatchesStorage(setting.value, storageIdValue, storageUrl));
+    const isUsedInHomeComponents = homeComponents.some((component) =>
+      valueMatchesStorage(component.config, storageIdValue, storageUrl)
+    );
+
+    if (isUsedInProducts || isUsedInPosts || isUsedInServices || isUsedInSettings || isUsedInHomeComponents) {
+      throw new Error("File đang được sử dụng bởi một thành phần khác");
+    }
+
     await ctx.storage.delete(args.storageId);
     
     // Delete from images table if exists
