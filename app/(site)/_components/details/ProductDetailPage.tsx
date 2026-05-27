@@ -3091,6 +3091,12 @@ function PremiumStyle({
                 tokens={tokens}
               />
             )}
+
+            {highlightsEnabled && highlights && highlights.length > 0 && (
+              <div className="mt-4">
+                <HighlightsGrid highlights={highlights} tokens={tokens} />
+              </div>
+            )}
           </div>
         </div>
 

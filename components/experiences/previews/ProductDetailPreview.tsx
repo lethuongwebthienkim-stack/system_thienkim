@@ -1723,6 +1723,12 @@ export function ProductDetailPreview({
                     tokens={tokens}
                   />
                 )}
+
+                {showHighlightBlock && (
+                  <div className="mt-4">
+                    {renderHighlights()}
+                  </div>
+                )}
               </div>
             </div>
 
