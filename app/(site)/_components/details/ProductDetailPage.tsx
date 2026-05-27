@@ -2192,13 +2192,13 @@ function ClassicStyle({
             </div>
 
             {showPrice && (
-              <div className="flex items-end gap-3 mb-3 md:mb-6">
+              <div className="flex flex-col md:flex-row md:items-end gap-1 md:gap-3 mb-3 md:mb-6">
                 <span className="text-xl md:text-3xl font-bold" style={{ color: tokens.priceColor }}>{priceDisplay.label}</span>
                 {showSalePrice && priceDisplay.comparePrice && (
-                  <>
-                    <span className="text-xl line-through" style={{ color: tokens.priceOriginalText }}>{formatPrice(priceDisplay.comparePrice)}</span>
-                    <span className="px-2 py-0.5 text-sm font-medium rounded" style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}>Tiết kiệm {formatPrice(priceDisplay.comparePrice - basePrice)}</span>
-                  </>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm md:text-xl line-through italic" style={{ color: tokens.priceOriginalText }}>{formatPrice(priceDisplay.comparePrice)}</span>
+                    <span className="px-2 py-0.5 text-xs md:text-sm font-medium rounded" style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}>Tiết kiệm {formatPrice(priceDisplay.comparePrice - basePrice)}</span>
+                  </div>
                 )}
               </div>
             )}

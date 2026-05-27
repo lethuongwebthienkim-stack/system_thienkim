@@ -822,10 +822,12 @@ export function ProductDetailPreview({
                   </div>
                 )}
               </div>
-              <div className="flex items-baseline gap-3">
+              <div className="flex flex-col md:flex-row md:items-end gap-1 md:gap-3">
                 <span className="text-xl font-bold" style={{ color: tokens.priceColor }}>{formatVND(price)}</span>
-                <span className="text-lg line-through" style={{ color: tokens.priceOriginalText }}>{formatVND(originalPrice)}</span>
-                <span className="px-2 py-0.5 text-sm font-medium rounded" style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}>-{Math.round((1 - price / originalPrice) * 100)}%</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm md:text-lg line-through italic" style={{ color: tokens.priceOriginalText }}>{formatVND(originalPrice)}</span>
+                  <span className="px-2 py-0.5 text-xs md:text-sm font-medium rounded" style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}>-{Math.round((1 - price / originalPrice) * 100)}%</span>
+                </div>
               </div>
               {showVariants && <VariantPreview tokens={tokens} />}
 
