@@ -66,6 +66,10 @@ type ProductDetailPreviewProps = {
   enableImageLightbox?: boolean;
   showHighlights: boolean;
   classicHighlights?: { icon: string; text: string }[];
+  premiumBannerItems?: { title: string; subtitle: string }[];
+  premiumBannerBg?: ProductDetailElementColorChoice;
+  premiumBannerText?: ProductDetailElementColorChoice;
+  showPremiumBanner?: boolean;
   heroStyle?: 'full' | 'split' | 'minimal';
   contentWidth?: 'narrow' | 'medium' | 'wide';
   imageAspectRatio: ProductImageAspectRatio;
@@ -532,6 +536,10 @@ export function ProductDetailPreview({
   enableImageLightbox = false,
   showHighlights,
   classicHighlights = [],
+  premiumBannerItems,
+  premiumBannerBg = 'primary',
+  premiumBannerText = 'white',
+  showPremiumBanner = true,
   heroStyle = 'full',
   contentWidth = 'medium',
   imageAspectRatio,
@@ -1759,25 +1767,27 @@ export function ProductDetailPreview({
               </div>
             </div>
 
-            {/* Dải banner chính sách màu đỏ đô/màu thương hiệu chân trang */}
-            <div className="rounded-2xl p-4 text-white grid grid-cols-2 md:grid-cols-4 gap-4 text-center" style={{ backgroundColor: brandColor }}>
-              <div className="space-y-0.5">
-                <p className="text-xs font-extrabold uppercase tracking-wide">FREESHIP TOÀN QUỐC</p>
-                <p className="text-[10px] opacity-80">Đơn từ 1.000.000đ</p>
-              </div>
-              <div className="space-y-0.5 border-l md:border-l border-white/20">
-                <p className="text-xs font-extrabold uppercase tracking-wide">ĐÓNG GÓI AN TOÀN</p>
-                <p className="text-[10px] opacity-80">Chống sốc 100%</p>
-              </div>
-              <div className="space-y-0.5 border-l border-white/20">
-                <p className="text-xs font-extrabold uppercase tracking-wide">GIAO HÀNG NHANH</p>
-                <p className="text-[10px] opacity-80">Chỉ từ 2 - 3 ngày</p>
-              </div>
-              <div className="space-y-0.5 border-l border-white/20">
-                <p className="text-xs font-extrabold uppercase tracking-wide">QUÀ TẶNG HẤP DẪN</p>
-                <p className="text-[10px] opacity-80">Khi mua combo</p>
-              </div>
-            </div>
+            {/* Dải banner cam kết động từ cài đặt - chân trang Premium */}
+            {showPremiumBanner && premiumBannerItems && premiumBannerItems.length > 0 && (() => {
+              const BANNER_COLOR_MAP: Record<string, string> = {
+                primary: tokens.primary,
+                secondary: tokens.secondary,
+                black: '#111111',
+                white: '#ffffff',
+              };
+              const bgColor = BANNER_COLOR_MAP[premiumBannerBg] ?? tokens.primary;
+              const textColor = BANNER_COLOR_MAP[premiumBannerText] ?? '#ffffff';
+              return (
+                <div className="rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center" style={{ backgroundColor: bgColor, color: textColor }}>
+                  {premiumBannerItems.map((item, idx) => (
+                    <div key={idx} className={`space-y-0.5${idx > 0 ? ' border-l' : ''}`} style={{ borderColor: `${textColor}33` }}>
+                      <p className="text-xs font-extrabold uppercase tracking-wide">{item.title}</p>
+                      <p className="text-[10px] opacity-80">{item.subtitle}</p>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
 
             <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
               <h3 className="font-semibold mb-4" style={{ color: tokens.headingColor }}>Mô tả sản phẩm</h3>

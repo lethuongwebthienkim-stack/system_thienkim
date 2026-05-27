@@ -114,6 +114,10 @@ type ProductDetailExperienceConfig = {
   accentColors?: ProductDetailAccentColorConfig;
   showSocialButtons?: boolean;
   socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
+  premiumBannerBg?: 'primary' | 'secondary' | 'black' | 'white';
+  premiumBannerText?: 'primary' | 'secondary' | 'black' | 'white';
+  premiumBannerItems?: { title: string; subtitle: string }[];
+  showPremiumBanner?: boolean;
 };
 
 type ProductVariantOptionValue = {
@@ -343,6 +347,12 @@ function useProductDetailExperienceConfig(): ProductDetailExperienceConfig {
       },
       showSocialButtons: raw?.showSocialButtons ?? false,
       socialButtons: raw?.socialButtons ?? [],
+      premiumBannerBg: (raw?.layouts?.premium as any)?.premiumBannerBg ?? 'primary',
+      premiumBannerText: (raw?.layouts?.premium as any)?.premiumBannerText ?? 'white',
+      showPremiumBanner: (raw?.layouts?.premium as any)?.showPremiumBanner ?? true,
+      premiumBannerItems: Array.isArray((raw?.layouts?.premium as any)?.premiumBannerItems)
+        ? (raw?.layouts?.premium as any).premiumBannerItems as { title: string; subtitle: string }[]
+        : undefined,
     };
   }, [experienceSetting?.value, legacyHighlightsEnabled, legacyStyle, cartAvailable, canUseComments, canUseCommentLikes, canUseCommentReplies, canUseWishlist, ordersEnabled, moduleDefaultAspectRatio]);
 }
@@ -1034,6 +1044,10 @@ export default function ProductDetailPage({ params }: PageProps) {
           socialButtons={experienceConfig.socialButtons}
           productAttributesMap={productAttributesMap}
           productTypeId={(product as any)?.productTypeId}
+          premiumBannerItems={experienceConfig.premiumBannerItems}
+          premiumBannerBg={experienceConfig.premiumBannerBg}
+          premiumBannerText={experienceConfig.premiumBannerText}
+          showPremiumBanner={experienceConfig.showPremiumBanner}
         />
       )}
       {experienceConfig.layoutStyle === 'classic' && (
@@ -2502,6 +2516,10 @@ function ClassicStyle({
 interface PremiumStyleProps extends StyleProps, ExperienceBlocksProps {
   highlights: ClassicHighlightItem[];
   highlightsEnabled: boolean;
+  premiumBannerItems?: { title: string; subtitle: string }[];
+  premiumBannerBg?: 'primary' | 'secondary' | 'black' | 'white';
+  premiumBannerText?: 'primary' | 'secondary' | 'black' | 'white';
+  showPremiumBanner?: boolean;
 }
 
 function PremiumStyle({
@@ -2557,6 +2575,10 @@ function PremiumStyle({
   socialButtons,
   productAttributesMap,
   productTypeId,
+  premiumBannerItems,
+  premiumBannerBg = 'primary',
+  premiumBannerText = 'white',
+  showPremiumBanner = true,
 }: PremiumStyleProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -3121,25 +3143,27 @@ function PremiumStyle({
           </div>
         )}
 
-        {/* Dải banner chính sách màu đỏ đô/màu thương hiệu dynamic chân trang */}
-        <div className="rounded-2xl p-5 text-white grid grid-cols-2 md:grid-cols-4 gap-4 text-center mt-8" style={{ backgroundColor: brandColor }}>
-          <div className="space-y-0.5">
-            <p className="text-sm font-extrabold uppercase tracking-wide">FREESHIP TOÀN QUỐC</p>
-            <p className="text-[11px] opacity-80">Đơn từ 1.000.000đ</p>
-          </div>
-          <div className="space-y-0.5 border-l md:border-l border-white/20">
-            <p className="text-sm font-extrabold uppercase tracking-wide">ĐÓNG GÓI AN TOÀN</p>
-            <p className="text-[11px] opacity-80">Chống sốc 100%</p>
-          </div>
-          <div className="space-y-0.5 border-l border-white/20">
-            <p className="text-sm font-extrabold uppercase tracking-wide">GIAO HÀNG NHANH</p>
-            <p className="text-[11px] opacity-80">Chỉ từ 2 - 3 ngày</p>
-          </div>
-          <div className="space-y-0.5 border-l border-white/20">
-            <p className="text-sm font-extrabold uppercase tracking-wide">QUÀ TẶNG HẤP DẪN</p>
-            <p className="text-[11px] opacity-80">Khi mua combo</p>
-          </div>
-        </div>
+        {/* Dải banner cam kết động từ cài đặt - chân trang Premium */}
+        {showPremiumBanner && premiumBannerItems && premiumBannerItems.length > 0 && (() => {
+          const BANNER_COLOR_MAP: Record<string, string> = {
+            primary: tokens.primary,
+            secondary: tokens.secondary,
+            black: '#111111',
+            white: '#ffffff',
+          };
+          const bgColor = BANNER_COLOR_MAP[premiumBannerBg] ?? tokens.primary;
+          const textColor = BANNER_COLOR_MAP[premiumBannerText] ?? '#ffffff';
+          return (
+            <div className="rounded-2xl p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-center mt-8" style={{ backgroundColor: bgColor, color: textColor }}>
+              {premiumBannerItems.map((item, idx) => (
+                <div key={idx} className={`space-y-0.5${idx > 0 ? ' border-l' : ''}`} style={{ borderColor: `${textColor}33` }}>
+                  <p className="text-sm font-extrabold uppercase tracking-wide">{item.title}</p>
+                  <p className="text-[11px] opacity-80">{item.subtitle}</p>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
 
         {(showDescription && resolvedDescription) || showAllProductImagesSection || supplementalContent?.preContent || supplementalContent?.postContent ? (
           <div className="border-t pt-6 mt-8 md:mt-12" style={{ borderColor: tokens.divider }}>

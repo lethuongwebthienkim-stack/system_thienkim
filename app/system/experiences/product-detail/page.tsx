@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -179,7 +179,7 @@ type ProductDetailExperienceConfig = {
     classic: ClassicLayoutConfig;
     modern: ModernLayoutConfig;
     minimal: MinimalLayoutConfig;
-    premium: BaseImageLayoutConfig;
+    premium: PremiumLayoutConfig;
   };
   showBuyNow: boolean;
   relatedProductsMode: RelatedProductsMode;
@@ -211,6 +211,15 @@ type ModernLayoutConfig = BaseImageLayoutConfig & {
 
 type MinimalLayoutConfig = BaseImageLayoutConfig & {
   contentWidth: 'narrow' | 'medium' | 'wide';
+};
+
+type PremiumBannerItem = { title: string; subtitle: string };
+
+type PremiumLayoutConfig = BaseImageLayoutConfig & {
+  premiumBannerItems: PremiumBannerItem[];
+  premiumBannerBg: ProductDetailElementColorChoice;
+  premiumBannerText: ProductDetailElementColorChoice;
+  showPremiumBanner: boolean;
 };
 
 type ClassicHighlightIcon =
@@ -260,7 +269,12 @@ const DEFAULT_CONFIG: ProductDetailExperienceConfig = {
     classic: { showRating: true, showComments: true, showCommentLikes: true, showCommentReplies: true, showWishlist: true, showShare: true, showAddToCart: true, showClassicHighlights: true },
     modern: { showRating: true, showComments: true, showCommentLikes: true, showCommentReplies: true, showWishlist: true, showShare: true, showAddToCart: true, heroStyle: 'full' },
     minimal: { showRating: true, showComments: true, showCommentLikes: true, showCommentReplies: true, showWishlist: true, showShare: true, showAddToCart: true, contentWidth: 'medium' },
-    premium: { showRating: true, showComments: true, showCommentLikes: true, showCommentReplies: true, showWishlist: true, showShare: true, showAddToCart: true },
+    premium: { showRating: true, showComments: true, showCommentLikes: true, showCommentReplies: true, showWishlist: true, showShare: true, showAddToCart: true, premiumBannerBg: 'primary' as ProductDetailElementColorChoice, premiumBannerText: 'white' as ProductDetailElementColorChoice, showPremiumBanner: true, premiumBannerItems: [
+      { title: 'FREESHIP TOÀN QUỐC', subtitle: 'Đơn từ 1.000.000đ' },
+      { title: 'ĐÓNG GÓI AN TOÀN', subtitle: 'Chống sốc 100%' },
+      { title: 'GIAO HÀNG NHANH', subtitle: 'Chỉ từ 2 - 3 ngày' },
+      { title: 'QUÀ TẶNG HẤP DẪN', subtitle: 'Khi mua combo' },
+    ] },
   },
   showBuyNow: true,
   relatedProductsMode: 'fixed',
@@ -636,6 +650,12 @@ export default function ProductDetailExperiencePage() {
          premium: {
            ...DEFAULT_CONFIG.layouts.premium,
            ...raw?.layouts?.premium,
+           showPremiumBanner: (raw?.layouts?.premium as Partial<PremiumLayoutConfig>)?.showPremiumBanner ?? DEFAULT_CONFIG.layouts.premium.showPremiumBanner,
+           premiumBannerBg: (raw?.layouts?.premium as Partial<PremiumLayoutConfig>)?.premiumBannerBg ?? DEFAULT_CONFIG.layouts.premium.premiumBannerBg,
+           premiumBannerText: (raw?.layouts?.premium as Partial<PremiumLayoutConfig>)?.premiumBannerText ?? DEFAULT_CONFIG.layouts.premium.premiumBannerText,
+           premiumBannerItems: Array.isArray((raw?.layouts?.premium as Partial<PremiumLayoutConfig>)?.premiumBannerItems)
+             ? ((raw?.layouts?.premium as Partial<PremiumLayoutConfig>)?.premiumBannerItems as PremiumBannerItem[])
+             : DEFAULT_CONFIG.layouts.premium.premiumBannerItems,
          },
        },
       showBuyNow: raw?.showBuyNow ?? true,
@@ -787,6 +807,11 @@ export default function ProductDetailExperiencePage() {
   };
 
   const getPreviewProps = () => {
+    const premiumLayoutConfig = config.layouts.premium as PremiumLayoutConfig;
+    const premiumBannerItems = premiumLayoutConfig.premiumBannerItems ?? DEFAULT_CONFIG.layouts.premium.premiumBannerItems;
+    const premiumBannerBg = premiumLayoutConfig.premiumBannerBg ?? DEFAULT_CONFIG.layouts.premium.premiumBannerBg;
+    const premiumBannerText = premiumLayoutConfig.premiumBannerText ?? DEFAULT_CONFIG.layouts.premium.premiumBannerText;
+    const showPremiumBanner = premiumLayoutConfig.showPremiumBanner ?? DEFAULT_CONFIG.layouts.premium.showPremiumBanner;
     const base = {
       layoutStyle: config.layoutStyle,
       showRating: currentLayoutConfig.showRating && canUseComments,
@@ -809,6 +834,10 @@ export default function ProductDetailExperiencePage() {
       enableImageLightbox: config.enableImageLightbox,
       showHighlights: config.layouts.classic.showClassicHighlights,
       classicHighlights,
+      premiumBannerItems,
+      premiumBannerBg,
+      premiumBannerText,
+      showPremiumBanner,
       device: previewDevice,
       brandColor,
       secondaryColor,
@@ -1072,6 +1101,9 @@ export default function ProductDetailExperiencePage() {
         />
       );
     }
+    if (config.layoutStyle === 'premium') {
+      return null;
+    }
     return null;
   };
 
@@ -1273,6 +1305,81 @@ export default function ProductDetailExperiencePage() {
             </div>
           </ControlCard>
 
+          {config.layoutStyle === 'premium' && (() => {
+            const premiumLayoutConfig = currentLayoutConfig as PremiumLayoutConfig;
+            const bannerBg = premiumLayoutConfig.premiumBannerBg ?? DEFAULT_CONFIG.layouts.premium.premiumBannerBg;
+            const bannerText = premiumLayoutConfig.premiumBannerText ?? DEFAULT_CONFIG.layouts.premium.premiumBannerText;
+            const bannerItems = premiumLayoutConfig.premiumBannerItems ?? DEFAULT_CONFIG.layouts.premium.premiumBannerItems;
+            const showBanner = premiumLayoutConfig.showPremiumBanner ?? DEFAULT_CONFIG.layouts.premium.showPremiumBanner;
+            const colorChoices = [
+              { value: 'primary', label: 'Màu chính' },
+              { value: 'secondary', label: 'Màu phụ' },
+              { value: 'black', label: 'Đen' },
+              { value: 'white', label: 'Trắng' },
+            ];
+            return (
+              <ControlCard title="Dải cam kết (Premium)">
+                <ToggleRow
+                  label="Hiện dải cam kết"
+                  checked={showBanner}
+                  onChange={(v) => updateLayoutConfig('showPremiumBanner' as keyof typeof currentLayoutConfig, v as never)}
+                  accentColor={brandColor}
+                />
+                {showBanner && (
+                  <>
+                    <div className="pt-2 pb-3 mb-1 border-b border-slate-200 dark:border-slate-700 space-y-1">
+                      <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Phối màu dải cam kết</p>
+                      <SelectRow
+                        label="Màu nền"
+                        value={bannerBg}
+                        options={colorChoices}
+                        onChange={(v) => updateLayoutConfig('premiumBannerBg' as keyof typeof currentLayoutConfig, v as never)}
+                      />
+                      <SelectRow
+                        label="Màu chữ"
+                        value={bannerText}
+                        options={colorChoices}
+                        onChange={(v) => updateLayoutConfig('premiumBannerText' as keyof typeof currentLayoutConfig, v as never)}
+                      />
+                    </div>
+                    <div className="space-y-3 mt-3">
+                      {bannerItems.map((item, idx) => (
+                        <div key={idx} className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] text-slate-400">Tiêu đề #{idx + 1}</label>
+                            <Input
+                              value={item.title}
+                              onChange={(e) => {
+                                const next = bannerItems.map((b, i) => i === idx ? { ...b, title: e.target.value } : b);
+                                updateLayoutConfig('premiumBannerItems' as keyof typeof currentLayoutConfig, next as never);
+                              }}
+                              className="h-7 text-xs px-2"
+                              placeholder="VD: FREESHIP TOÀN QUỐC"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] text-slate-400">Mô tả ngắn #{idx + 1}</label>
+                            <Input
+                              value={item.subtitle}
+                              onChange={(e) => {
+                                const next = bannerItems.map((b, i) => i === idx ? { ...b, subtitle: e.target.value } : b);
+                                updateLayoutConfig('premiumBannerItems' as keyof typeof currentLayoutConfig, next as never);
+                              }}
+                              className="h-7 text-xs px-2"
+                              placeholder="VD: Đơn từ 1.000.000đ"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </ControlCard>
+            );
+          })()}
+
+
+
           {isCombosEnabled && (
             <ControlCard title="Hiệu ứng Combo">
               <SelectRow
@@ -1433,3 +1540,6 @@ export default function ProductDetailExperiencePage() {
     </div>
   );
 }
+
+
+
