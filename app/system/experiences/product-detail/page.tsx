@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -65,7 +65,7 @@ import {
   type DeviceType,
   type LayoutOption,
 } from '@/components/experiences/editor';
-import { useExperienceConfig, useExampleProductSlug, EXPERIENCE_GROUP, EXPERIENCE_NAMES, MESSAGES } from '@/lib/experiences';
+import { useExperienceConfig, useExampleProduct, useExampleProductSlug, EXPERIENCE_GROUP, EXPERIENCE_NAMES, MESSAGES } from '@/lib/experiences';
 import { useBrandColors } from '@/components/site/hooks';
 import {
   DEFAULT_PRODUCT_IMAGE_ASPECT_RATIO,
@@ -438,6 +438,14 @@ export default function ProductDetailExperiencePage() {
   const enableCombosSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableCombos' });
   const isCombosEnabled = enableCombosSetting?.value === true;
   const exampleProductSlug = useExampleProductSlug();
+  const exampleProduct = useExampleProduct();
+  const enableProductTypesSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableProductTypes' });
+  const enableProductTypes = enableProductTypesSetting?.value === true;
+  const productTermsSource = useQuery(
+    api.attributeTerms.getTermsForProducts,
+    enableProductTypes && exampleProduct?._id ? { productIds: [exampleProduct._id] } : 'skip'
+  );
+  const demoAttributes = productTermsSource?.[0]?.terms ?? [];
   const setMultipleSettings = useMutation(api.settings.setMultiple);
   const [previewDevice, setPreviewDevice] = useState<DeviceType>('desktop');
   const [isSaving, setIsSaving] = useState(false);
@@ -849,6 +857,8 @@ export default function ProductDetailExperiencePage() {
       accentColors: config.accentColors,
       showSocialButtons: config.showSocialButtons,
       socialButtons: config.socialButtons,
+      demoAttributes,
+      productTypeId: exampleProduct?.productTypeId,
     };
 
     return base;

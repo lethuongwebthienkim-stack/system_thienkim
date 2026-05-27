@@ -2,6 +2,7 @@
 
 import React, { use, useEffect, useMemo, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
+import { getAttributeIconComponent } from '@/app/admin/attribute-groups/_lib/iconRegistry';
 import Link from 'next/link';
 import { PublicImage as Image } from '@/components/shared/PublicImage';
 import { useMutation, usePaginatedQuery, useQuery } from 'convex/react';
@@ -2589,6 +2590,37 @@ function PremiumStyle({
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
 
+  const [premiumAttrRef, premiumAttrApi] = useEmblaCarousel({
+    align: 'start',
+    containScroll: 'trimSnaps',
+    loop: false
+  });
+  const [canScrollAttrPrev, setCanScrollAttrPrev] = useState(false);
+  const [canScrollAttrNext, setCanScrollAttrNext] = useState(false);
+
+  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobileViewport = windowWidth < 768;
+  const isTabletViewport = windowWidth >= 768 && windowWidth < 1024;
+
+  useEffect(() => {
+    if (!premiumAttrApi) return;
+    const onSelect = () => {
+      setCanScrollAttrPrev(premiumAttrApi.canScrollPrev());
+      setCanScrollAttrNext(premiumAttrApi.canScrollNext());
+    };
+    premiumAttrApi.on('select', onSelect);
+    premiumAttrApi.on('reInit', onSelect);
+    onSelect();
+  }, [premiumAttrApi]);
+
   useEffect(() => {
     if (!emblaApi) return;
     
@@ -3121,27 +3153,134 @@ function PremiumStyle({
         </div>
 
         {/* Khối Attributes (Phân mục/Bộ lọc/Thông số) thiết kế nằm ngang sang trọng ở dưới cùng - DỮ LIỆU THỰC */}
-        {rawAttributes.length > 0 && (
-          <div className="border-t pt-6 mt-8 md:mt-12" style={{ borderColor: tokens.divider }}>
-            <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: tokens.metaText }}>THÔNG TIN CHI TIẾT SẢN PHẨM</p>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-              {rawAttributes.map((attr: any, index: number) => (
-                <div
-                  key={attr.attributeId || index}
-                  className="border rounded-xl p-3 text-center space-y-1"
-                  style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}
-                >
-                  <span className="text-[10px] font-medium block uppercase" style={{ color: tokens.metaText }}>
-                    {attr.attributeName}
-                  </span>
-                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>
-                    {attr.valueName || attr.value || 'Đang cập nhật'}
-                  </p>
-                </div>
-              ))}
+        {(() => {
+          if (!rawAttributes || rawAttributes.length === 0) return null;
+
+          // 1. Nhóm các term theo groupId
+          const groupMap = new Map<string, { group: any; terms: Array<{ _id: string; name: string; slug: string }> }>();
+          for (const term of rawAttributes) {
+            if (!term.group) continue;
+            const groupId = term.group._id;
+            if (!groupMap.has(groupId)) {
+              groupMap.set(groupId, {
+                group: term.group,
+                terms: []
+              });
+            }
+            const groupData = groupMap.get(groupId)!;
+            groupData.terms.push({ _id: term._id, name: term.name, slug: term.slug });
+          }
+
+          const mergedGroups = Array.from(groupMap.values()).map(g => ({
+            _id: g.terms.map(t => t._id).join('-'),
+            group: g.group,
+            terms: g.terms,
+          }));
+
+          const sortedGroups = mergedGroups.sort((a, b) => (a.group.order ?? 9999) - (b.group.order ?? 9999));
+          if (sortedGroups.length === 0) return null;
+
+          const limit = isMobileViewport ? 3 : isTabletViewport ? 4 : 6;
+          const hasOverflow = sortedGroups.length > limit;
+
+          return (
+            <div className="border-t pt-6 mt-8 md:mt-12" style={{ borderColor: tokens.divider }}>
+              <div className="relative">
+                {/* Nút Prev/Next */}
+                {hasOverflow && (
+                  <div className="absolute -top-11 right-0 flex gap-1.5 z-20">
+                    <button
+                      type="button"
+                      onClick={() => premiumAttrApi?.scrollPrev()}
+                      disabled={!canScrollAttrPrev}
+                      className="h-7 w-7 rounded-full border flex items-center justify-center transition-colors disabled:opacity-35"
+                      style={{ borderColor: tokens.border, backgroundColor: tokens.surface, color: tokens.headingColor }}
+                      aria-label="Thuộc tính trước"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => premiumAttrApi?.scrollNext()}
+                      disabled={!canScrollAttrNext}
+                      className="h-7 w-7 rounded-full border flex items-center justify-center transition-colors disabled:opacity-35"
+                      style={{ borderColor: tokens.border, backgroundColor: tokens.surface, color: tokens.headingColor }}
+                      aria-label="Thuộc tính tiếp theo"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Carousel or Grid */}
+                {hasOverflow ? (
+                  <div className="overflow-hidden" ref={premiumAttrRef}>
+                    <div className="flex gap-3">
+                      {sortedGroups.map((groupItem) => {
+                        const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
+                        const valuesStr = groupItem.terms.map(t => t.name).join(', ');
+
+                        return (
+                          <div
+                            key={groupItem._id}
+                            className="flex-shrink-0 select-none min-w-0"
+                            style={{
+                              flexBasis: isMobileViewport
+                                ? 'calc((100% - 2 * 12px) / 3)'
+                                : isTabletViewport
+                                  ? 'calc((100% - 3 * 12px) / 4)'
+                                  : 'calc((100% - 5 * 12px) / 6)',
+                            }}
+                          >
+                            <div
+                              className="border rounded-xl p-3 text-center space-y-1 h-full flex flex-col justify-center items-center min-h-[82px] md:min-h-[90px]"
+                              style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}
+                            >
+                              <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center mb-1">
+                                <IconComponent size={16} />
+                              </span>
+                              <span className="text-[10px] font-bold block uppercase tracking-wide truncate max-w-full" style={{ color: tokens.metaText }}>
+                                {groupItem.group.name}
+                              </span>
+                              <p className="text-xs font-bold truncate max-w-full" style={{ color: tokens.headingColor }}>
+                                {valuesStr}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`grid gap-3 ${isMobileViewport ? 'grid-cols-3' : isTabletViewport ? 'grid-cols-4' : 'grid-cols-6'}`}>
+                    {sortedGroups.map((groupItem) => {
+                      const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
+                      const valuesStr = groupItem.terms.map(t => t.name).join(', ');
+
+                      return (
+                        <div
+                          key={groupItem._id}
+                          className="border rounded-xl p-3 text-center space-y-1 flex flex-col justify-center items-center min-h-[82px] md:min-h-[90px]"
+                          style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}
+                        >
+                          <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center mb-1">
+                            <IconComponent size={16} />
+                          </span>
+                          <span className="text-[10px] font-bold block uppercase tracking-wide truncate max-w-full" style={{ color: tokens.metaText }}>
+                            {groupItem.group.name}
+                          </span>
+                          <p className="text-xs font-bold truncate max-w-full" style={{ color: tokens.headingColor }}>
+                            {valuesStr}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Dải banner cam kết động từ cài đặt - chân trang Premium */}
         {showPremiumBanner && premiumBannerItems && premiumBannerItems.length > 0 && (() => {

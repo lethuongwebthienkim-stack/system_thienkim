@@ -38,6 +38,8 @@ import {
   Send,
   Mail,
 } from 'lucide-react';
+import useEmblaCarousel from 'embla-carousel-react';
+import { getAttributeIconComponent } from '@/app/admin/attribute-groups/_lib/iconRegistry';
 import { CommentsPreview } from './DetailPreview';
 import {
   getProductDetailColors,
@@ -90,6 +92,8 @@ type ProductDetailPreviewProps = {
   };
   showSocialButtons?: boolean;
   socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
+  demoAttributes?: any[];
+  productTypeId?: string;
 };
 
 const formatVND = (price: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -521,6 +525,71 @@ function VariantPreview({ tokens }: { tokens: ReturnType<typeof getProductDetail
   );
 }
 
+function PreviewAttributesBadges({
+  attributes,
+  tokens,
+  className = "grid grid-cols-2 gap-2 md:grid-cols-3 w-full mt-2 mb-2"
+}: {
+  attributes?: any[];
+  tokens: any;
+  className?: string;
+}) {
+  if (!attributes || attributes.length === 0) return null;
+
+  // 1. Nhóm các term theo groupId
+  const groupMap = new Map<string, { group: any; terms: Array<{ _id: string; name: string; slug: string }> }>();
+  for (const term of attributes) {
+    if (!term.group) continue;
+    const groupId = term.group._id;
+    if (!groupMap.has(groupId)) {
+      groupMap.set(groupId, {
+        group: term.group,
+        terms: []
+      });
+    }
+    const groupData = groupMap.get(groupId)!;
+    groupData.terms.push({ _id: term._id, name: term.name, slug: term.slug });
+  }
+
+  const mergedGroups = Array.from(groupMap.values()).map(g => ({
+    _id: g.terms.map(t => t._id).join('-'),
+    group: g.group,
+    terms: g.terms,
+  }));
+
+  const sortedGroups = mergedGroups.sort((a, b) => (a.group.order ?? 9999) - (b.group.order ?? 9999));
+
+  return (
+    <div className={className}>
+      {sortedGroups.map((groupItem) => {
+        const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
+        const valuesStr = groupItem.terms.map(t => t.name).join(', ');
+
+        return (
+          <div
+            key={groupItem._id}
+            className="flex items-center gap-1.5 text-xs font-medium py-1 px-2 rounded-lg border min-w-0"
+            style={{
+              borderColor: tokens.border || '#e2e8f0',
+              backgroundColor: tokens.surface || '#ffffff',
+              color: tokens.bodyText || '#334155'
+            }}
+          >
+            <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
+              <IconComponent size={14} />
+            </span>
+            <span className="truncate" title={`${groupItem.group.name}: ${valuesStr}`}>
+              <span className="opacity-60 font-normal uppercase text-[10px] mr-1">{groupItem.group.name}:</span>
+              <span className="font-semibold">{valuesStr}</span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+
 export function ProductDetailPreview({
   layoutStyle,
   showRating,
@@ -555,6 +624,8 @@ export function ProductDetailPreview({
   accentColors,
   showSocialButtons = false,
   socialButtons = [],
+  demoAttributes = [],
+  productTypeId,
 }: ProductDetailPreviewProps) {
   const tokens = getProductDetailColors(brandColor, secondaryColor, colorMode);
   const categoryBadgeColors = resolveProductDetailElementColor(accentColors?.categoryBadge ?? 'secondary', tokens);
@@ -567,6 +638,24 @@ export function ProductDetailPreview({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [mainImageHeight, setMainImageHeight] = useState<number | null>(null);
+  const [premiumAttrRef, premiumAttrApi] = useEmblaCarousel({
+    align: 'start',
+    containScroll: 'trimSnaps',
+    loop: false
+  });
+  const [canScrollAttrPrev, setCanScrollAttrPrev] = useState(false);
+  const [canScrollAttrNext, setCanScrollAttrNext] = useState(false);
+
+  useEffect(() => {
+    if (!premiumAttrApi) return;
+    const onSelect = () => {
+      setCanScrollAttrPrev(premiumAttrApi.canScrollPrev());
+      setCanScrollAttrNext(premiumAttrApi.canScrollNext());
+    };
+    premiumAttrApi.on('select', onSelect);
+    premiumAttrApi.on('reInit', onSelect);
+    onSelect();
+  }, [premiumAttrApi]);
   const mainImageRef = useRef<HTMLDivElement>(null);
   const mainImageHeightRef = useRef<number | null>(null);
   const productName = 'iPhone 15 Pro Max 256GB';
@@ -838,6 +927,11 @@ export function ProductDetailPreview({
                 </div>
               </div>
               {showVariants && <VariantPreview tokens={tokens} />}
+              {demoAttributes && demoAttributes.length > 0 && (
+                <div className="mt-2 mb-2">
+                  <PreviewAttributesBadges attributes={demoAttributes} tokens={tokens} />
+                </div>
+              )}
 
               {enableCombos && (
                 <PreviewCombosBlock
@@ -1113,6 +1207,11 @@ export function ProductDetailPreview({
                 </div>
 
                 {showVariants && <VariantPreview tokens={tokens} />}
+                {demoAttributes && demoAttributes.length > 0 && (
+                  <div className="mt-2 mb-2">
+                    <PreviewAttributesBadges attributes={demoAttributes} tokens={tokens} />
+                  </div>
+                )}
 
                 <div className="h-px w-full" style={{ backgroundColor: tokens.divider }} />
 
@@ -1332,6 +1431,11 @@ export function ProductDetailPreview({
                   </div>
                   <div className="mt-3 md:mt-4">
                     {showVariants && <VariantPreview tokens={tokens} />}
+                    {demoAttributes && demoAttributes.length > 0 && (
+                      <div className="mt-2 mb-2">
+                        <PreviewAttributesBadges attributes={demoAttributes} tokens={tokens} />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1737,35 +1841,143 @@ export function ProductDetailPreview({
             </div>
 
             {/* Khối Attributes hàng ngang tinh tế ở chân trang */}
-            <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
-              <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: tokens.metaText }}>THÔNG TIN CHI TIẾT SẢN PHẨM</p>
-              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
-                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>THƯƠNG HIỆU</span>
-                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>Vedovato</p>
+            {(() => {
+              const attributesToRender = demoAttributes && demoAttributes.length > 0 ? demoAttributes : [
+                { _id: '1', group: { _id: 'g1', name: 'THƯƠNG HIỆU', iconPath: 'Wine', order: 1 }, name: 'Vedovato', slug: 'vedovato' },
+                { _id: '2', group: { _id: 'g2', name: 'XUẤT XỨ', iconPath: 'Globe', order: 2 }, name: 'Ý (Italia)', slug: 'y' },
+                { _id: '3', group: { _id: 'g3', name: 'DUNG TÍCH', iconPath: 'GlassWater', order: 3 }, name: '750ml', slug: '750ml' },
+                { _id: '4', group: { _id: 'g4', name: 'NỒNG ĐỘ', iconPath: 'Flame', order: 4 }, name: '16% ABV', slug: '16' },
+                { _id: '5', group: { _id: 'g5', name: 'HƯƠNG VỊ', iconPath: 'Utensils', order: 5 }, name: 'Gỗ sồi, Trái chín', slug: 'go-soi' },
+                { _id: '6', group: { _id: 'g6', name: 'GIỐNG NHO', iconPath: 'Grape', order: 6 }, name: 'Primitivo', slug: 'primitivo' }
+              ];
+
+              // 1. Nhóm các term theo groupId
+              const groupMap = new Map<string, { group: any; terms: Array<{ _id: string; name: string; slug: string }> }>();
+              for (const term of attributesToRender) {
+                if (!term.group) continue;
+                const groupId = term.group._id || term.group.name;
+                if (!groupMap.has(groupId)) {
+                  groupMap.set(groupId, {
+                    group: term.group,
+                    terms: []
+                  });
+                }
+                const groupData = groupMap.get(groupId)!;
+                groupData.terms.push({ _id: term._id, name: term.name, slug: term.slug });
+              }
+
+              const mergedGroups = Array.from(groupMap.values()).map(g => ({
+                _id: g.terms.map(t => t._id).join('-'),
+                group: g.group,
+                terms: g.terms,
+              }));
+
+              const sortedGroups = mergedGroups.sort((a, b) => (a.group.order ?? 9999) - (b.group.order ?? 9999));
+              if (sortedGroups.length === 0) return null;
+
+              const limit = device === 'mobile' ? 3 : device === 'tablet' ? 4 : 6;
+              const hasOverflow = sortedGroups.length > limit;
+
+              return (
+                <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
+                  <div className="relative">
+                    {/* Nút Prev/Next */}
+                    {hasOverflow && (
+                      <div className="absolute -top-11 right-0 flex gap-1.5 z-20">
+                        <button
+                          type="button"
+                          onClick={() => premiumAttrApi?.scrollPrev()}
+                          disabled={!canScrollAttrPrev}
+                          className="h-7 w-7 rounded-full border flex items-center justify-center transition-colors disabled:opacity-35"
+                          style={{ borderColor: tokens.border, backgroundColor: tokens.surface, color: tokens.headingColor }}
+                          aria-label="Thuộc tính trước"
+                        >
+                          <ChevronLeft size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => premiumAttrApi?.scrollNext()}
+                          disabled={!canScrollAttrNext}
+                          className="h-7 w-7 rounded-full border flex items-center justify-center transition-colors disabled:opacity-35"
+                          style={{ borderColor: tokens.border, backgroundColor: tokens.surface, color: tokens.headingColor }}
+                          aria-label="Thuộc tính tiếp theo"
+                        >
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Carousel or Grid */}
+                    {hasOverflow ? (
+                      <div className="overflow-hidden" ref={premiumAttrRef}>
+                        <div className="flex gap-3">
+                          {sortedGroups.map((groupItem) => {
+                            const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
+                            const valuesStr = groupItem.terms.map(t => t.name).join(', ');
+                            const isMobile = device === 'mobile';
+                            const isTablet = device === 'tablet';
+
+                            return (
+                              <div
+                                key={groupItem._id}
+                                className="flex-shrink-0 select-none min-w-0"
+                                style={{
+                                  flexBasis: isMobile
+                                    ? 'calc((100% - 2 * 12px) / 3)'
+                                    : isTablet
+                                      ? 'calc((100% - 3 * 12px) / 4)'
+                                      : 'calc((100% - 5 * 12px) / 6)',
+                                }}
+                              >
+                                <div
+                                  className="border rounded-xl p-3 text-center space-y-1 h-full flex flex-col justify-center items-center min-h-[82px] md:min-h-[90px]"
+                                  style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}
+                                >
+                                  <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center mb-1">
+                                    <IconComponent size={16} />
+                                  </span>
+                                  <span className="text-[10px] font-bold block uppercase tracking-wide truncate max-w-full" style={{ color: tokens.metaText }}>
+                                    {groupItem.group.name}
+                                  </span>
+                                  <p className="text-xs font-bold truncate max-w-full" style={{ color: tokens.headingColor }}>
+                                    {valuesStr}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`grid gap-3 ${device === 'mobile' ? 'grid-cols-3' : device === 'tablet' ? 'grid-cols-4' : 'grid-cols-6'}`}>
+                        {sortedGroups.map((groupItem) => {
+                          const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
+                          const valuesStr = groupItem.terms.map(t => t.name).join(', ');
+
+                          return (
+                            <div
+                              key={groupItem._id}
+                              className="border rounded-xl p-3 text-center space-y-1 flex flex-col justify-center items-center min-h-[82px] md:min-h-[90px]"
+                              style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}
+                            >
+                              <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center mb-1">
+                                <IconComponent size={16} />
+                              </span>
+                              <span className="text-[10px] font-bold block uppercase tracking-wide truncate max-w-full" style={{ color: tokens.metaText }}>
+                                {groupItem.group.name}
+                              </span>
+                              <p className="text-xs font-bold truncate max-w-full" style={{ color: tokens.headingColor }}>
+                                {valuesStr}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
-                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>XUẤT XỨ</span>
-                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>Ý (Italia)</p>
-                </div>
-                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
-                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>DUNG TÍCH</span>
-                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>750ml</p>
-                </div>
-                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
-                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>NỒNG ĐỘ</span>
-                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>16% ABV</p>
-                </div>
-                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
-                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>HƯƠNG VỊ</span>
-                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>Gỗ sồi, Trái chín</p>
-                </div>
-                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
-                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>GIỐNG NHO</span>
-                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>Primitivo</p>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Dải banner cam kết động từ cài đặt - chân trang Premium */}
             {showPremiumBanner && premiumBannerItems && premiumBannerItems.length > 0 && (() => {
