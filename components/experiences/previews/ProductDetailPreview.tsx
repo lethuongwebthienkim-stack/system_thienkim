@@ -1843,11 +1843,11 @@ export function ProductDetailPreview({
             {/* Khối Attributes hàng ngang tinh tế ở chân trang */}
             {(() => {
               const attributesToRender = demoAttributes && demoAttributes.length > 0 ? demoAttributes : [
-                { _id: '1', group: { _id: 'g1', name: 'THƯƠNG HIỆU', iconPath: 'Wine', order: 1 }, name: 'Vedovato', slug: 'vedovato' },
+                { _id: '1', group: { _id: 'g1', name: 'THƯƠNG HIỆU', iconPath: 'Wine', order: 1 }, name: 'Vinicola Vedovato', slug: 'vedovato' },
                 { _id: '2', group: { _id: 'g2', name: 'XUẤT XỨ', iconPath: 'Globe', order: 2 }, name: 'Ý (Italia)', slug: 'y' },
                 { _id: '3', group: { _id: 'g3', name: 'DUNG TÍCH', iconPath: 'GlassWater', order: 3 }, name: '750ml', slug: '750ml' },
                 { _id: '4', group: { _id: 'g4', name: 'NỒNG ĐỘ', iconPath: 'Flame', order: 4 }, name: '16% ABV', slug: '16' },
-                { _id: '5', group: { _id: 'g5', name: 'HƯƠNG VỊ', iconPath: 'Utensils', order: 5 }, name: 'Gỗ sồi, Trái chín', slug: 'go-soi' },
+                { _id: '5', group: { _id: 'g5', name: 'HƯƠNG VỊ', iconPath: 'Utensils', order: 5 }, name: 'Gỗ sồi, Tiêu đen, Vani, Trái chín', slug: 'go-soi' },
                 { _id: '6', group: { _id: 'g6', name: 'GIỐNG NHO', iconPath: 'Grape', order: 6 }, name: 'Primitivo', slug: 'primitivo' }
               ];
 
@@ -1875,71 +1875,111 @@ export function ProductDetailPreview({
               const sortedGroups = mergedGroups.sort((a, b) => (a.group.order ?? 9999) - (b.group.order ?? 9999));
               if (sortedGroups.length === 0) return null;
 
-              const limit = device === 'mobile' ? 3 : device === 'tablet' ? 4 : 6;
+              const limit = device === 'mobile' ? 2 : device === 'tablet' ? 3 : 4;
               const hasOverflow = sortedGroups.length > limit;
 
               return (
                 <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
-                  <div className="relative">
-                    {/* Nút Prev/Next */}
-                    {hasOverflow && (
-                      <div className="absolute -top-11 right-0 flex gap-1.5 z-20">
-                        <button
-                          type="button"
-                          onClick={() => premiumAttrApi?.scrollPrev()}
-                          disabled={!canScrollAttrPrev}
-                          className="h-7 w-7 rounded-full border flex items-center justify-center transition-colors disabled:opacity-35"
-                          style={{ borderColor: tokens.border, backgroundColor: tokens.surface, color: tokens.headingColor }}
-                          aria-label="Thuộc tính trước"
-                        >
-                          <ChevronLeft size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => premiumAttrApi?.scrollNext()}
-                          disabled={!canScrollAttrNext}
-                          className="h-7 w-7 rounded-full border flex items-center justify-center transition-colors disabled:opacity-35"
-                          style={{ borderColor: tokens.border, backgroundColor: tokens.surface, color: tokens.headingColor }}
-                          aria-label="Thuộc tính tiếp theo"
-                        >
-                          <ChevronRight size={14} />
-                        </button>
-                      </div>
-                    )}
+                  <div 
+                    className="rounded-2xl p-4 md:p-5 relative overflow-hidden border"
+                    style={{ 
+                      backgroundColor: tokens.surfaceMuted || '#f8fafc',
+                      borderColor: tokens.border || '#e2e8f0'
+                    }}
+                  >
+                    <div className="relative">
+                      {/* Nút Prev/Next */}
+                      {hasOverflow && (
+                        <div className="absolute -top-11 right-0 flex gap-1.5 z-20">
+                          <button
+                            type="button"
+                            onClick={() => premiumAttrApi?.scrollPrev()}
+                            disabled={!canScrollAttrPrev}
+                            className="h-6 w-6 rounded-full border flex items-center justify-center transition-colors disabled:opacity-35"
+                            style={{ borderColor: tokens.border, backgroundColor: tokens.surface, color: tokens.headingColor }}
+                            aria-label="Thuộc tính trước"
+                          >
+                            <ChevronLeft size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => premiumAttrApi?.scrollNext()}
+                            disabled={!canScrollAttrNext}
+                            className="h-6 w-6 rounded-full border flex items-center justify-center transition-colors disabled:opacity-35"
+                            style={{ borderColor: tokens.border, backgroundColor: tokens.surface, color: tokens.headingColor }}
+                            aria-label="Thuộc tính tiếp theo"
+                          >
+                            <ChevronRight size={12} />
+                          </button>
+                        </div>
+                      )}
 
-                    {/* Carousel or Grid */}
-                    {hasOverflow ? (
-                      <div className="overflow-hidden" ref={premiumAttrRef}>
-                        <div className="flex gap-3">
+                      {/* Carousel or Grid */}
+                      {hasOverflow ? (
+                        <div className="overflow-hidden" ref={premiumAttrRef}>
+                          <div className="flex gap-0">
+                            {sortedGroups.map((groupItem, index) => {
+                              const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
+                              const valuesStr = groupItem.terms.map(t => t.name).join(', ');
+                              const isMobile = device === 'mobile';
+                              const isTablet = device === 'tablet';
+
+                              return (
+                                <div
+                                  key={groupItem._id}
+                                  className={`flex-shrink-0 select-none min-w-0 px-4 md:px-6 flex items-center gap-3.5 ${
+                                    index < sortedGroups.length - 1 ? 'border-r' : ''
+                                  }`}
+                                  style={{
+                                    borderColor: tokens.divider || '#e2e8f0',
+                                    flexBasis: isMobile
+                                      ? 'calc(100% / 2)'
+                                      : isTablet
+                                        ? 'calc(100% / 3)'
+                                        : 'calc(100% / 4)',
+                                  }}
+                                >
+                                  <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
+                                    <IconComponent size={24} className="md:w-[26px] md:h-[26px]" />
+                                  </span>
+                                  <div className="flex flex-col text-left min-w-0">
+                                    <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1" style={{ color: tokens.metaText }}>
+                                      {groupItem.group.name}
+                                    </span>
+                                    <p className="text-xs md:text-sm font-bold truncate leading-tight" style={{ color: tokens.headingColor }}>
+                                      {valuesStr}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : (
+                        <div 
+                          className="grid gap-0 divide-x"
+                          style={{ 
+                            borderColor: tokens.divider || '#e2e8f0',
+                            gridTemplateColumns: `repeat(${sortedGroups.length}, minmax(0, 1fr))` 
+                          }}
+                        >
                           {sortedGroups.map((groupItem) => {
                             const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
                             const valuesStr = groupItem.terms.map(t => t.name).join(', ');
-                            const isMobile = device === 'mobile';
-                            const isTablet = device === 'tablet';
 
                             return (
                               <div
                                 key={groupItem._id}
-                                className="flex-shrink-0 select-none min-w-0"
-                                style={{
-                                  flexBasis: isMobile
-                                    ? 'calc((100% - 2 * 12px) / 3)'
-                                    : isTablet
-                                      ? 'calc((100% - 3 * 12px) / 4)'
-                                      : 'calc((100% - 5 * 12px) / 6)',
-                                }}
+                                className="px-4 md:px-6 flex items-center gap-3.5 min-w-0 first:pl-0 last:pr-0"
                               >
-                                <div
-                                  className="border rounded-xl p-3 text-center space-y-1 h-full flex flex-col justify-center items-center min-h-[82px] md:min-h-[90px]"
-                                  style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}
-                                >
-                                  <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center mb-1">
-                                    <IconComponent size={16} />
-                                  </span>
-                                  <span className="text-[10px] font-bold block uppercase tracking-wide truncate max-w-full" style={{ color: tokens.metaText }}>
+                                <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
+                                  <IconComponent size={24} className="md:w-[26px] md:h-[26px]" />
+                                </span>
+                                <div className="flex flex-col text-left min-w-0">
+                                  <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1" style={{ color: tokens.metaText }}>
                                     {groupItem.group.name}
                                   </span>
-                                  <p className="text-xs font-bold truncate max-w-full" style={{ color: tokens.headingColor }}>
+                                  <p className="text-xs md:text-sm font-bold truncate leading-tight" style={{ color: tokens.headingColor }}>
                                     {valuesStr}
                                   </p>
                                 </div>
@@ -1947,33 +1987,8 @@ export function ProductDetailPreview({
                             );
                           })}
                         </div>
-                      </div>
-                    ) : (
-                      <div className={`grid gap-3 ${device === 'mobile' ? 'grid-cols-3' : device === 'tablet' ? 'grid-cols-4' : 'grid-cols-6'}`}>
-                        {sortedGroups.map((groupItem) => {
-                          const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
-                          const valuesStr = groupItem.terms.map(t => t.name).join(', ');
-
-                          return (
-                            <div
-                              key={groupItem._id}
-                              className="border rounded-xl p-3 text-center space-y-1 flex flex-col justify-center items-center min-h-[82px] md:min-h-[90px]"
-                              style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}
-                            >
-                              <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center mb-1">
-                                <IconComponent size={16} />
-                              </span>
-                              <span className="text-[10px] font-bold block uppercase tracking-wide truncate max-w-full" style={{ color: tokens.metaText }}>
-                                {groupItem.group.name}
-                              </span>
-                              <p className="text-xs font-bold truncate max-w-full" style={{ color: tokens.headingColor }}>
-                                {valuesStr}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               );
