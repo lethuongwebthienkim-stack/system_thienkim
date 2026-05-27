@@ -2953,7 +2953,17 @@ function PremiumStyle({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {product.combos.slice(0, 2).map((combo, index) => {
                     const isBestSeller = index === 1;
-                    const totalBottles = combo.products.reduce((acc: number, p: { quantity: number }) => acc + p.quantity, 0);
+                    
+                    let totalBottles = 1;
+                    if (combo.type === 'standard') {
+                      totalBottles = combo.standardConfig?.minQty || 1;
+                    } else if (combo.type === 'mix') {
+                      const mixItemsQty = combo.mixConfig?.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0;
+                      totalBottles = (combo.mixConfig?.currentProductQty || 1) + mixItemsQty;
+                    } else if (Array.isArray((combo as any).products)) {
+                      totalBottles = (combo as any).products.reduce((acc: number, p: { quantity: number }) => acc + p.quantity, 0);
+                    }
+
                     const avgPricePerBottle = combo.price ? Math.round(combo.price / totalBottles) : 0;
                     
                     return (
