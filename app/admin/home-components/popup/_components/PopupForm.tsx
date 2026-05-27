@@ -310,7 +310,7 @@ export function PopupForm({ config, onChange, defaultExpanded = true }: PopupFor
           <SettingsImageUploader
             label="Ảnh popup"
             value={config.imageUrl}
-            onChange={(url) => updateConfig(config, onChange, 'imageUrl', url ?? '')}
+            onChange={(url, storageId) => onChange({ ...config, imageUrl: url ?? '', storageId: storageId ?? null })}
             folder="home-components/popup"
             naming={{ entityName: config.heading || 'popup', field: 'image', index: 1 }}
             previewSize="md"

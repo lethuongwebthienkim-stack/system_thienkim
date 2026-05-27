@@ -3,7 +3,7 @@ import { mutation, query } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
 import { api } from "./_generated/api";
 import { v } from "convex/values";
-import { removeOwnerFileReferences, syncOwnerFileReferences } from "./lib/fileService";
+import { removeOwnerFileReferences, resolveStorageIdsFromLegacyUrls, syncOwnerFilesAndCleanup } from "./lib/fileService";
 
 const homeComponentDoc = v.object({
   _creationTime: v.number(),
@@ -74,18 +74,12 @@ function resolveConfigStorageIds(config: unknown) {
   return collectConfigStorageIds(config);
 }
 
-function collectStorageIdsFromStorageUrls(config: unknown) {
-  return collectConfigUrls(config)
-    .map((url) => {
-      const marker = "/api/storage/";
-      const markerIndex = url.indexOf(marker);
-      if (markerIndex === -1) {
-        return null;
-      }
-      const rawStorageId = url.slice(markerIndex + marker.length).split("?")[0]?.split("#")[0]?.trim();
-      return rawStorageId || null;
-    })
-    .filter((storageId): storageId is string => Boolean(storageId));
+async function resolveConfigFileStorageIds(ctx: MutationCtx, config: unknown) {
+  const urls = collectConfigUrls(config);
+  return [
+    ...resolveConfigStorageIds(config),
+    ...await resolveStorageIdsFromLegacyUrls(ctx, urls, { limit: 1000 }),
+  ];
 }
 
 async function syncHomeComponentFileReferences(
@@ -95,11 +89,11 @@ async function syncHomeComponentFileReferences(
   previousConfig?: unknown
 ) {
   const [nextStorageIds, previousStorageIds] = await Promise.all([
-    [...resolveConfigStorageIds(nextConfig), ...collectStorageIdsFromStorageUrls(nextConfig)],
-    [...resolveConfigStorageIds(previousConfig), ...collectStorageIdsFromStorageUrls(previousConfig)],
+    resolveConfigFileStorageIds(ctx, nextConfig),
+    resolveConfigFileStorageIds(ctx, previousConfig),
   ]);
 
-  const { removedStorageIds } = await syncOwnerFileReferences(ctx, {
+  await syncOwnerFilesAndCleanup(ctx, {
     ownerField: "config",
     ownerId,
     ownerTable: "homeComponents",
@@ -107,10 +101,6 @@ async function syncHomeComponentFileReferences(
   }, nextStorageIds, {
     previousStorageIds,
   });
-
-  await Promise.all(removedStorageIds.map(storageId =>
-    ctx.runMutation(api.storage.cleanupStorageIfUnreferenced, { storageId })
-  ));
 }
 
 // CRIT-002 FIX: Thêm limit
@@ -258,12 +248,13 @@ export const remove = mutation({
   handler: async (ctx, args) => {
     const component = await ctx.db.get(args.id);
     if (!component) {throw new Error("Component not found");}
+    const previousStorageIds = await resolveConfigFileStorageIds(ctx, component.config);
     
     const { removedStorageIds } = await removeOwnerFileReferences(ctx, {
       ownerId: args.id,
       ownerTable: "homeComponents",
     }, {
-      previousStorageIds: resolveConfigStorageIds(component.config),
+      previousStorageIds,
     });
     
     await ctx.db.delete(args.id);

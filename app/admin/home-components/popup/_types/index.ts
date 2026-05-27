@@ -38,6 +38,7 @@ export interface PopupConfig {
   secondaryButtonLink: string;
   secondaryButtonDisabled: boolean;
   imageUrl: string;
+  storageId?: string | null;
   trigger: PopupTrigger;
   delaySeconds: number;
   frequency: PopupFrequency;

@@ -652,6 +652,7 @@ export default defineSchema({
     uploadedBy: v.optional(v.id("users")),
     usageCheckedAt: v.optional(v.number()),
     usageCount: v.optional(v.number()),
+    urlStorageKey: v.optional(v.string()),
     usages: v.optional(v.array(v.object({
       field: v.string(),
       label: v.optional(v.string()),
@@ -663,6 +664,7 @@ export default defineSchema({
     .index("by_folder", ["folder"])
     .index("by_mimeType", ["mimeType"])
     .index("by_storageId", ["storageId"])
+    .index("by_urlStorageKey", ["urlStorageKey"])
     .index("by_uploadedBy", ["uploadedBy"]),
 
   // 14a. mediaStats - Counter table cho media statistics (tránh full scan)

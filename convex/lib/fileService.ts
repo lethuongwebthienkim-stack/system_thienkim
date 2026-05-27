@@ -16,6 +16,18 @@ export type FileUsage = {
   table: string;
 };
 
+export function extractStorageUrlKey(url?: string | null) {
+  if (!url) {
+    return null;
+  }
+  const marker = "/api/storage/";
+  const markerIndex = url.indexOf(marker);
+  if (markerIndex === -1) {
+    return null;
+  }
+  return url.slice(markerIndex + marker.length).split("?")[0]?.split("#")[0]?.trim() || null;
+}
+
 export function normalizeStorageId(ctx: QueryCtx | MutationCtx, value: unknown): Id<"_storage"> | null {
   if (typeof value !== "string" || !value.trim()) {
     return null;
@@ -232,21 +244,35 @@ export async function resolveStorageIdsFromLegacyUrls(
   urls: Array<string | null | undefined>,
   options?: { folder?: string; limit?: number }
 ) {
-  const targetUrls = new Set(urls.filter((url): url is string => Boolean(url)));
+  const targetUrls = new Set(urls.filter((url): url is string => Boolean(url && extractStorageUrlKey(url))));
   if (targetUrls.size === 0) {
     return [];
   }
 
-  const limit = options?.limit ?? 100;
+  const targetUrlKeys = Array.from(new Set(
+    Array.from(targetUrls)
+      .map(extractStorageUrlKey)
+      .filter((key): key is string => Boolean(key))
+  ));
+  const resolvedStorageIds: Id<"_storage">[] = [];
+
+  for (const urlStorageKey of targetUrlKeys) {
+    const matches = await ctx.db
+      .query("images")
+      .withIndex("by_urlStorageKey", q => q.eq("urlStorageKey", urlStorageKey))
+      .take(10);
+    matches.forEach((image) => resolvedStorageIds.push(image.storageId));
+  }
+
+  const limit = options?.limit ?? 1000;
   const folder = options?.folder;
   const images = folder
     ? await ctx.db.query("images").withIndex("by_folder", q => q.eq("folder", folder)).take(limit)
     : await ctx.db.query("images").take(limit);
 
-  const resolvedStorageIds: Id<"_storage">[] = [];
   for (const image of images) {
     const url = await ctx.storage.getUrl(image.storageId);
-    if (url && targetUrls.has(url)) {
+    if (url && (targetUrls.has(url) || targetUrlKeys.includes(extractStorageUrlKey(url) ?? ""))) {
       resolvedStorageIds.push(image.storageId);
     }
   }
