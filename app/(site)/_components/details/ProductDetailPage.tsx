@@ -3180,7 +3180,7 @@ function PremiumStyle({
           const sortedGroups = mergedGroups.sort((a, b) => (a.group.order ?? 9999) - (b.group.order ?? 9999));
           if (sortedGroups.length === 0) return null;
 
-          const limit = isMobileViewport ? 2 : isTabletViewport ? 3 : 4;
+          const limit = isMobileViewport ? 3 : isTabletViewport ? 3 : 4;
           const hasOverflow = sortedGroups.length > limit;
 
           return (
@@ -3230,26 +3230,26 @@ function PremiumStyle({
                           return (
                             <div
                               key={groupItem._id}
-                              className={`flex-shrink-0 select-none min-w-0 px-4 md:px-6 flex items-center gap-3.5 ${
+                              className={`flex-shrink-0 select-none min-w-0 px-2.5 md:px-6 flex items-center gap-2 md:gap-3.5 ${
                                 index < sortedGroups.length - 1 ? 'border-r' : ''
                               }`}
                               style={{
                                 borderColor: tokens.divider || '#e2e8f0',
                                 flexBasis: isMobileViewport
-                                  ? 'calc(100% / 2)'
+                                  ? 'calc(100% / 3)'
                                   : isTabletViewport
                                     ? 'calc(100% / 3)'
                                     : 'calc(100% / 4)',
                               }}
                             >
                               <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
-                                <IconComponent size={24} className="md:w-[26px] md:h-[26px]" />
+                                <IconComponent size={18} className="md:w-[26px] md:h-[26px] md:size-auto" />
                               </span>
                               <div className="flex flex-col text-left min-w-0 flex-1">
                                 <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1 break-words" style={{ color: tokens.metaText }}>
                                   {groupItem.group.name}
                                 </span>
-                                <p className="text-xs md:text-sm font-bold break-words leading-tight" style={{ color: tokens.headingColor }}>
+                                <p className="text-[11px] md:text-sm font-bold break-words leading-tight" style={{ color: tokens.headingColor }}>
                                   {valuesStr}
                                 </p>
                               </div>
@@ -3273,16 +3273,16 @@ function PremiumStyle({
                         return (
                           <div
                             key={groupItem._id}
-                            className="px-4 md:px-6 flex items-center gap-3.5 min-w-0 first:pl-0 last:pr-0"
+                            className="px-2.5 md:px-6 flex items-center gap-2 md:gap-3.5 min-w-0 first:pl-0 last:pr-0"
                           >
                             <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
-                              <IconComponent size={24} className="md:w-[26px] md:h-[26px]" />
+                              <IconComponent size={18} className="md:w-[26px] md:h-[26px] md:size-auto" />
                             </span>
                             <div className="flex flex-col text-left min-w-0 flex-1">
                               <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1 break-words" style={{ color: tokens.metaText }}>
                                 {groupItem.group.name}
                               </span>
-                              <p className="text-xs md:text-sm font-bold break-words leading-tight" style={{ color: tokens.headingColor }}>
+                              <p className="text-[11px] md:text-sm font-bold break-words leading-tight" style={{ color: tokens.headingColor }}>
                                 {valuesStr}
                               </p>
                             </div>
