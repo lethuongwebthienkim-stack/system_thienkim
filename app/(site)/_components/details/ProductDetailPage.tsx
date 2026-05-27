@@ -3184,7 +3184,7 @@ function PremiumStyle({
           const hasOverflow = sortedGroups.length > limit;
 
           return (
-            <div className="border-t pt-6 mt-8 md:mt-12" style={{ borderColor: tokens.divider }}>
+            <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
               <div 
                 className="rounded-2xl p-4 md:p-5 relative overflow-hidden border"
                 style={{ 
@@ -3195,26 +3195,26 @@ function PremiumStyle({
                 <div className="relative">
                   {/* Nút Prev/Next */}
                   {hasOverflow && (
-                    <div className="absolute -top-11 right-0 flex gap-1.5 z-20">
+                    <div className="absolute -top-11 right-0 flex gap-2 z-20">
                       <button
                         type="button"
                         onClick={() => premiumAttrApi?.scrollPrev()}
                         disabled={!canScrollAttrPrev}
-                        className="h-6 w-6 rounded-full border flex items-center justify-center transition-colors disabled:opacity-35"
-                        style={{ borderColor: tokens.border, backgroundColor: tokens.surface, color: tokens.headingColor }}
+                        className="h-5 w-5 rounded-full flex items-center justify-center transition-all opacity-40 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95"
+                        style={{ color: tokens.headingColor, backgroundColor: `${tokens.surface}aa` }}
                         aria-label="Thuộc tính trước"
                       >
-                        <ChevronLeft size={12} />
+                        <ChevronLeft size={10} />
                       </button>
                       <button
                         type="button"
                         onClick={() => premiumAttrApi?.scrollNext()}
                         disabled={!canScrollAttrNext}
-                        className="h-6 w-6 rounded-full border flex items-center justify-center transition-colors disabled:opacity-35"
-                        style={{ borderColor: tokens.border, backgroundColor: tokens.surface, color: tokens.headingColor }}
+                        className="h-5 w-5 rounded-full flex items-center justify-center transition-all opacity-40 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95"
+                        style={{ color: tokens.headingColor, backgroundColor: `${tokens.surface}aa` }}
                         aria-label="Thuộc tính tiếp theo"
                       >
-                        <ChevronRight size={12} />
+                        <ChevronRight size={10} />
                       </button>
                     </div>
                   )}
@@ -3245,11 +3245,11 @@ function PremiumStyle({
                               <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
                                 <IconComponent size={24} className="md:w-[26px] md:h-[26px]" />
                               </span>
-                              <div className="flex flex-col text-left min-w-0">
-                                <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1" style={{ color: tokens.metaText }}>
+                              <div className="flex flex-col text-left min-w-0 flex-1">
+                                <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1 break-words" style={{ color: tokens.metaText }}>
                                   {groupItem.group.name}
                                 </span>
-                                <p className="text-xs md:text-sm font-bold truncate leading-tight" style={{ color: tokens.headingColor }}>
+                                <p className="text-xs md:text-sm font-bold break-words leading-tight" style={{ color: tokens.headingColor }}>
                                   {valuesStr}
                                 </p>
                               </div>
@@ -3278,11 +3278,11 @@ function PremiumStyle({
                             <span style={{ color: tokens.primary }} className="flex shrink-0 items-center justify-center">
                               <IconComponent size={24} className="md:w-[26px] md:h-[26px]" />
                             </span>
-                            <div className="flex flex-col text-left min-w-0">
-                              <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1" style={{ color: tokens.metaText }}>
+                            <div className="flex flex-col text-left min-w-0 flex-1">
+                              <span className="text-[9px] font-bold block uppercase tracking-wider leading-none mb-1 break-words" style={{ color: tokens.metaText }}>
                                 {groupItem.group.name}
                               </span>
-                              <p className="text-xs md:text-sm font-bold truncate leading-tight" style={{ color: tokens.headingColor }}>
+                              <p className="text-xs md:text-sm font-bold break-words leading-tight" style={{ color: tokens.headingColor }}>
                                 {valuesStr}
                               </p>
                             </div>
