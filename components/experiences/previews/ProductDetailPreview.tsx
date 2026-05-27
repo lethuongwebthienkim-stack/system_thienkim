@@ -1557,16 +1557,19 @@ export function ProductDetailPreview({
               <div className="space-y-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
-                    <span
-                      className="inline-block px-2.5 py-0.5 text-[10px] md:text-xs font-semibold rounded-full border"
-                      style={{
-                        backgroundColor: categoryBadgeColors.bg,
-                        color: categoryBadgeColors.text,
-                        borderColor: categoryBadgeColors.border,
-                      }}
-                    >
-                      {categoryName}
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span
+                        className="inline-block px-2.5 py-0.5 text-[10px] md:text-xs font-semibold rounded-full border"
+                        style={{
+                          backgroundColor: categoryBadgeColors.bg,
+                          color: categoryBadgeColors.text,
+                          borderColor: categoryBadgeColors.border,
+                        }}
+                      >
+                        {categoryName}
+                      </span>
+                      {stockBadge}
+                    </div>
                     <h1 className="text-xl md:text-3xl font-bold" style={{ color: tokens.headingColor }}>{productName}</h1>
                   </div>
                   <div className="flex gap-2 shrink-0">
@@ -1597,8 +1600,6 @@ export function ProductDetailPreview({
                       ))}
                     </div>
                     <span>{rating} ({reviews} đánh giá)</span>
-                    <span style={{ color: tokens.divider }}>|</span>
-                    {stockBadge}
                   </div>
                 )}
 

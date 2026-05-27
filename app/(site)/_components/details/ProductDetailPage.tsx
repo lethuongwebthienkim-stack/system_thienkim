@@ -2852,15 +2852,18 @@ function PremiumStyle({
           <div className="space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                {product.categoryName && (
-                  <Link
-                    href={buildCategoryPath({ categorySlug: product.categorySlug ?? '', mode: routeMode, moduleKey: 'products' })}
-                    className="inline-block px-3 py-0.5 text-xs md:text-sm font-medium rounded-full border transition-colors hover:opacity-80"
-                    style={{ backgroundColor: categoryBadgeColors.bg, color: categoryBadgeColors.text, borderColor: categoryBadgeColors.border }}
-                  >
-                    {product.categoryName}
-                  </Link>
-                )}
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  {product.categoryName && (
+                    <Link
+                      href={buildCategoryPath({ categorySlug: product.categorySlug ?? '', mode: routeMode, moduleKey: 'products' })}
+                      className="inline-block px-3 py-0.5 text-xs md:text-sm font-medium rounded-full border transition-colors hover:opacity-80"
+                      style={{ backgroundColor: categoryBadgeColors.bg, color: categoryBadgeColors.text, borderColor: categoryBadgeColors.border }}
+                    >
+                      {product.categoryName}
+                    </Link>
+                  )}
+                  {stockStatus && <InlineStockBadge label={stockStatus.label} color={stockStatus.color} tokens={tokens} />}
+                </div>
                 <h1 className="text-xl md:text-3xl font-bold" style={{ color: tokens.headingColor }}>{product.name}</h1>
               </div>
               <div className="flex gap-2 shrink-0">
@@ -2890,11 +2893,11 @@ function PremiumStyle({
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: tokens.ratingText }}>
-              {showRating && <RatingInline summary={ratingSummary} tokens={tokens} />}
-              {showRating && ratingSummary.count > 0 && <span style={{ color: tokens.divider }}>|</span>}
-              {stockStatus && <InlineStockBadge label={stockStatus.label} color={stockStatus.color} tokens={tokens} />}
-            </div>
+            {showRating && (
+              <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: tokens.ratingText }}>
+                <RatingInline summary={ratingSummary} tokens={tokens} />
+              </div>
+            )}
 
             {/* Box Giá Premium sử dụng dynamic brand colors từ Tokens */}
             {showPrice && (
