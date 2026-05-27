@@ -52,7 +52,7 @@ import {
 import { ProductImageLightbox } from '@/components/site/products/detail/_components/ProductImageLightbox';
 
 type ProductDetailPreviewProps = {
-  layoutStyle: 'classic' | 'modern' | 'minimal';
+  layoutStyle: 'classic' | 'modern' | 'minimal' | 'premium';
   showRating: boolean;
   showComments?: boolean;
   showCommentLikes?: boolean;
@@ -1447,6 +1447,352 @@ export function ProductDetailPreview({
                 </div>
               )}
             </section>
+          </div>
+        )}
+
+        {layoutStyle === 'premium' && (
+          <div className="space-y-6">
+            <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-8'}`}>
+              {/* Cột trái: Gallery Ảnh */}
+              <div className="space-y-4">
+                <div className="flex gap-4">
+                  {/* Thumbnail dạng dọc bên trái trên Desktop */}
+                  {PREVIEW_IMAGES.length > 1 && isDesktop && (
+                    <div className="hidden md:block w-20 shrink-0">
+                      <PreviewThumbnailRail
+                        images={PREVIEW_IMAGES}
+                        activeIndex={activeImageIndex}
+                        orientation="vertical"
+                        visibleSlots={4}
+                        tokens={tokens}
+                        thumbnailAspectRatio={imageFrame.thumbnailAspectRatio}
+                        onActiveIndexChange={setActiveImageIndex}
+                        itemClassName="w-full rounded-lg"
+                      />
+                    </div>
+                  )}
+
+                  {/* Ảnh chính */}
+                  <div className="flex-1">
+                    <div
+                      className={`relative rounded-2xl overflow-hidden ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                      style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
+                      onClick={canOpenLightbox ? () => openLightboxAt(activeImageIndex) : undefined}
+                      onKeyDown={handleLightboxKeyDown}
+                      role={canOpenLightbox ? 'button' : undefined}
+                      tabIndex={canOpenLightbox ? 0 : -1}
+                    >
+                      {PREVIEW_IMAGES.length > 0 ? (
+                        <>
+                          {isMobile ? (
+                            <PreviewMobileCarousel
+                              images={PREVIEW_IMAGES}
+                              alt={productName}
+                              activeIndex={activeImageIndex}
+                              onActiveIndexChange={setActiveImageIndex}
+                            />
+                          ) : (
+                            <BlurredPreviewImage src={PREVIEW_IMAGES[activeImageIndex]} alt={productName} />
+                          )}
+                          {discountPercent > 0 && (
+                            <span
+                              className="absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold rounded-lg z-30"
+                              style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}
+                            >
+                              -{discountPercent}%
+                            </span>
+                          )}
+                          {isMobile && PREVIEW_IMAGES.length > 1 && (
+                            <span className="absolute bottom-3 right-3 px-2 py-0.5 text-[11px] font-semibold rounded-full backdrop-blur-sm" style={{ backgroundColor: tokens.surface, color: tokens.headingColor }}>
+                              {activeImageIndex + 1}/{PREVIEW_IMAGES.length}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <div className="w-32 h-32 rounded-lg" style={{ backgroundColor: tokens.surfaceSoft }} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Thumbnail ngang cho Tablet/Mobile */}
+                {PREVIEW_IMAGES.length > 1 && !isDesktop && (
+                  <div className="grid grid-cols-4 gap-2">
+                    {PREVIEW_IMAGES.slice(0, 4).map((img, index) => (
+                      <div
+                        key={img}
+                        onClick={() => setActiveImageIndex(index)}
+                        className="rounded-lg border-2 overflow-hidden cursor-pointer"
+                        style={{
+                          ...thumbnailFrameStyle,
+                          borderColor: index === activeImageIndex ? tokens.thumbnailBorderActive : tokens.thumbnailBorder,
+                          backgroundColor: tokens.surfaceMuted,
+                        }}
+                      >
+                        <img src={img} alt="" className="h-full w-full object-contain" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 3 Cam kết vàng dưới ảnh */}
+                <div className="grid grid-cols-3 gap-2 border-t pt-4" style={{ borderColor: tokens.divider }}>
+                  <div className="flex flex-col items-center text-center p-2 rounded-xl" style={{ backgroundColor: tokens.surfaceMuted }}>
+                    <BadgeCheck size={18} style={{ color: tokens.primary }} />
+                    <span className="text-[10px] md:text-xs font-medium mt-1" style={{ color: tokens.bodyText }}>100% Chính hãng</span>
+                  </div>
+                  <div className="flex flex-col items-center text-center p-2 rounded-xl" style={{ backgroundColor: tokens.surfaceMuted }}>
+                    <RotateCcw size={18} style={{ color: tokens.primary }} />
+                    <span className="text-[10px] md:text-xs font-medium mt-1" style={{ color: tokens.bodyText }}>Đổi trả 7 ngày</span>
+                  </div>
+                  <div className="flex flex-col items-center text-center p-2 rounded-xl" style={{ backgroundColor: tokens.surfaceMuted }}>
+                    <Truck size={18} style={{ color: tokens.primary }} />
+                    <span className="text-[10px] md:text-xs font-medium mt-1" style={{ color: tokens.bodyText }}>Giao hàng toàn quốc</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cột phải: Thông tin & Giá */}
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <span
+                      className="inline-block px-2.5 py-0.5 text-[10px] md:text-xs font-semibold rounded-full border"
+                      style={{
+                        backgroundColor: categoryBadgeColors.bg,
+                        color: categoryBadgeColors.text,
+                        borderColor: categoryBadgeColors.border,
+                      }}
+                    >
+                      {categoryName}
+                    </span>
+                    <h1 className="text-xl md:text-3xl font-bold" style={{ color: tokens.headingColor }}>{productName}</h1>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    {showWishlist && (
+                      <button className="p-2.5 rounded-full border transition-colors" style={{ borderColor: tokens.wishlistBorder, backgroundColor: tokens.wishlistBg }}>
+                        <Heart size={16} style={{ color: tokens.wishlistIcon }} />
+                      </button>
+                    )}
+                    {showShare && (
+                      <button className="p-2.5 rounded-full border transition-colors" style={{ borderColor: tokens.shareBorder, backgroundColor: tokens.shareBg }}>
+                        <Share2 size={16} style={{ color: tokens.shareIcon }} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {showRating && hasRatingData && (
+                  <div className="flex items-center gap-1.5 text-xs" style={{ color: tokens.ratingText }}>
+                    <div className="flex">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={14}
+                          style={i < Math.floor(rating)
+                            ? { color: RATING_STAR_ACTIVE_COLOR, fill: RATING_STAR_ACTIVE_COLOR }
+                            : { color: tokens.ratingStarInactive }}
+                        />
+                      ))}
+                    </div>
+                    <span>{rating} ({reviews} đánh giá)</span>
+                    <span style={{ color: tokens.divider }}>|</span>
+                    {stockBadge}
+                  </div>
+                )}
+
+                {/* Box Giá Premium sử dụng Dynamic Color từ Tokens */}
+                <div
+                  className="rounded-2xl border p-4 relative overflow-hidden"
+                  style={{
+                    backgroundColor: tokens.surfaceMuted,
+                    borderColor: tokens.border,
+                  }}
+                >
+                  <div className="absolute -right-6 -bottom-6 opacity-5 pointer-events-none" style={{ color: tokens.primary }}>
+                    <Gift size={120} />
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg" style={{ backgroundColor: tokens.surface, color: tokens.primary }}>
+                      <Award size={18} />
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>GIÁ ƯU ĐÃI HÔM NAY</p>
+                      <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
+                        <span className="text-2xl md:text-3xl font-extrabold" style={{ color: tokens.priceColor }}>{formatVND(price)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm line-through italic" style={{ color: tokens.priceOriginalText }}>{formatVND(originalPrice)}</span>
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded" style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}>-{discountPercent}%</span>
+                        </div>
+                      </div>
+                      <p className="text-xs font-semibold" style={{ color: tokens.priceColor }}>
+                        Tiết kiệm {formatVND(originalPrice - price)} so với giá gốc
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {showVariants && <VariantPreview tokens={tokens} />}
+
+                {/* Box Combo dạng so sánh song song chuyên nghiệp */}
+                {enableCombos && (
+                  <div className="space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>ƯU ĐÃI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Combo 6 Chai */}
+                      <div
+                        className="rounded-xl border p-3 flex flex-col justify-between transition-all cursor-pointer relative"
+                        style={{
+                          backgroundColor: tokens.surface,
+                          borderColor: tokens.border,
+                        }}
+                      >
+                        <div>
+                          <div className="inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full text-white" style={{ backgroundColor: brandColor }}>
+                            COMBO 6 CHAI
+                          </div>
+                          <p className="text-[10px] mt-1.5" style={{ color: tokens.metaText }}>Phù hợp dùng thử / biếu tặng</p>
+                          <p className="text-sm font-bold mt-2" style={{ color: tokens.headingColor }}>{formatVND(1450000)}</p>
+                          <p className="text-[10px] font-semibold" style={{ color: tokens.priceColor }}>Chi ~241.000đ / chai</p>
+                        </div>
+                        <div className="border-t pt-2 mt-3 flex items-center gap-1 text-[9px] font-medium" style={{ borderColor: tokens.divider, color: tokens.priceColor }}>
+                          <Gift size={10} />
+                          <span>Tiết kiệm 340.000đ</span>
+                        </div>
+                        <div className="absolute right-2 top-2 h-4 w-4 rounded-full border flex items-center justify-center" style={{ borderColor: tokens.border }}>
+                          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: 'transparent' }} />
+                        </div>
+                      </div>
+
+                      {/* Combo 12 Chai - Best Seller */}
+                      <div
+                        className="rounded-xl border-2 p-3 flex flex-col justify-between transition-all cursor-pointer relative shadow-sm"
+                        style={{
+                          backgroundColor: tokens.surface,
+                          borderColor: brandColor,
+                        }}
+                      >
+                        <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-0.5" style={{ backgroundColor: '#eab308' }}>
+                          ★ BÁN CHẠY
+                        </div>
+                        <div>
+                          <div className="inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full text-white" style={{ backgroundColor: '#eab308' }}>
+                            COMBO 12 CHAI
+                          </div>
+                          <p className="text-[10px] mt-1.5" style={{ color: tokens.metaText }}>Lời nhất – Tiết kiệm nhiều nhất</p>
+                          <p className="text-sm font-bold mt-2" style={{ color: tokens.headingColor }}>{formatVND(2800000)}</p>
+                          <p className="text-[10px] font-semibold" style={{ color: tokens.priceColor }}>Chi ~233.000đ / chai</p>
+                        </div>
+                        <div className="border-t pt-2 mt-3 flex items-center gap-1 text-[9px] font-medium" style={{ borderColor: tokens.divider, color: tokens.priceColor }}>
+                          <Gift size={10} />
+                          <span>Tiết kiệm 680.000đ</span>
+                        </div>
+                        <div className="absolute right-2 top-2 h-4 w-4 rounded-full border-2 flex items-center justify-center" style={{ borderColor: brandColor }}>
+                          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: brandColor }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Bộ nút CTA */}
+                <div className="space-y-2 pt-2">
+                  <div className="flex gap-2">
+                    <button className="flex-1 h-11 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 text-white transition-transform hover:scale-[1.01]" style={{ backgroundColor: brandColor }}>
+                      <Send size={14} className="rotate-[320deg] -mt-0.5" />
+                      MUA QUA ZALO
+                    </button>
+                    <button className="flex-1 h-11 text-xs font-bold rounded-xl border flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]" style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}>
+                      <Phone size={14} />
+                      GỌI TƯ VẤN
+                    </button>
+                  </div>
+                  {showAddToCart && (
+                    <button className="w-full h-11 text-xs font-bold rounded-xl border flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]" style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}>
+                      <ShoppingCart size={14} />
+                      THÊM VÀO GIỎ HÀNG
+                    </button>
+                  )}
+                </div>
+
+                {showSocialButtons && (
+                  <PreviewSocialButtons
+                    buttons={socialButtons}
+                    tokens={tokens}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Khối Attributes hàng ngang tinh tế ở chân trang */}
+            <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
+              <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: tokens.metaText }}>THÔNG TIN CHI TIẾT SẢN PHẨM</p>
+              <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
+                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
+                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>THƯƠNG HIỆU</span>
+                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>Vedovato</p>
+                </div>
+                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
+                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>XUẤT XỨ</span>
+                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>Ý (Italia)</p>
+                </div>
+                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
+                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>DUNG TÍCH</span>
+                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>750ml</p>
+                </div>
+                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
+                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>NỒNG ĐỘ</span>
+                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>16% ABV</p>
+                </div>
+                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
+                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>HƯƠNG VỊ</span>
+                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>Gỗ sồi, Trái chín</p>
+                </div>
+                <div className="border rounded-xl p-2.5 text-center space-y-1" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
+                  <span className="text-[10px] font-medium" style={{ color: tokens.metaText }}>GIỐNG NHO</span>
+                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>Primitivo</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Dải banner chính sách màu đỏ đô/màu thương hiệu chân trang */}
+            <div className="rounded-2xl p-4 text-white grid grid-cols-2 md:grid-cols-4 gap-4 text-center" style={{ backgroundColor: brandColor }}>
+              <div className="space-y-0.5">
+                <p className="text-xs font-extrabold uppercase tracking-wide">FREESHIP TOÀN QUỐC</p>
+                <p className="text-[10px] opacity-80">Đơn từ 1.000.000đ</p>
+              </div>
+              <div className="space-y-0.5 border-l md:border-l border-white/20">
+                <p className="text-xs font-extrabold uppercase tracking-wide">ĐÓNG GÓI AN TOÀN</p>
+                <p className="text-[10px] opacity-80">Chống sốc 100%</p>
+              </div>
+              <div className="space-y-0.5 border-l border-white/20">
+                <p className="text-xs font-extrabold uppercase tracking-wide">GIAO HÀNG NHANH</p>
+                <p className="text-[10px] opacity-80">Chỉ từ 2 - 3 ngày</p>
+              </div>
+              <div className="space-y-0.5 border-l border-white/20">
+                <p className="text-xs font-extrabold uppercase tracking-wide">QUÀ TẶNG HẤP DẪN</p>
+                <p className="text-[10px] opacity-80">Khi mua combo</p>
+              </div>
+            </div>
+
+            <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
+              <h3 className="font-semibold mb-4" style={{ color: tokens.headingColor }}>Mô tả sản phẩm</h3>
+              <ExpandablePreviewDescriptionBlock buttonStyle={{ color: tokens.primary }}>
+                <div className="prose prose-sm max-w-none" style={{ color: tokens.bodyText }}>
+                  {PREVIEW_DESCRIPTION}
+                </div>
+                {renderPreviewDescriptionImages()}
+              </ExpandablePreviewDescriptionBlock>
+            </div>
+
+            <CommentsPreview
+              showComments={showComments}
+              showLikes={showCommentLikes}
+              showReplies={showCommentReplies}
+              brandColor={brandColor}
+            />
           </div>
         )}
       </div>

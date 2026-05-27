@@ -156,7 +156,7 @@ const renderSocialIcon = (value: string, size = 16) => {
   return <Icon size={size} />;
 };
 
-type ProductsDetailStyle = 'classic' | 'modern' | 'minimal';
+type ProductsDetailStyle = 'classic' | 'modern' | 'minimal' | 'premium';
 type RelatedProductsMode = 'fixed' | 'infiniteScroll' | 'pagination';
 type ProductImageAspectRatioSource = 'module' | 'custom';
 type ComboAnimateType = 'none' | 'luxury-sheen' | 'typing' | 'letter-wave' | 'fire' | 'sparkle' | 'text-highlight' | 'border-rainbow';
@@ -179,6 +179,7 @@ type ProductDetailExperienceConfig = {
     classic: ClassicLayoutConfig;
     modern: ModernLayoutConfig;
     minimal: MinimalLayoutConfig;
+    premium: BaseImageLayoutConfig;
   };
   showBuyNow: boolean;
   relatedProductsMode: RelatedProductsMode;
@@ -246,6 +247,7 @@ const LAYOUT_STYLES: LayoutOption<ProductsDetailStyle>[] = [
   { description: 'Layout 2 cột với gallery và info', id: 'classic', label: 'Classic' },
   { description: 'Full-width hero, landing page style', id: 'modern', label: 'Modern' },
   { description: 'Tối giản, tập trung sản phẩm', id: 'minimal', label: 'Minimal' },
+  { description: 'Đẳng cấp, sang trọng, tối ưu Combo & Attributes', id: 'premium', label: 'Premium' },
 ];
 
 const DEFAULT_CONFIG: ProductDetailExperienceConfig = {
@@ -258,6 +260,7 @@ const DEFAULT_CONFIG: ProductDetailExperienceConfig = {
     classic: { showRating: true, showComments: true, showCommentLikes: true, showCommentReplies: true, showWishlist: true, showShare: true, showAddToCart: true, showClassicHighlights: true },
     modern: { showRating: true, showComments: true, showCommentLikes: true, showCommentReplies: true, showWishlist: true, showShare: true, showAddToCart: true, heroStyle: 'full' },
     minimal: { showRating: true, showComments: true, showCommentLikes: true, showCommentReplies: true, showWishlist: true, showShare: true, showAddToCart: true, contentWidth: 'medium' },
+    premium: { showRating: true, showComments: true, showCommentLikes: true, showCommentReplies: true, showWishlist: true, showShare: true, showAddToCart: true },
   },
   showBuyNow: true,
   relatedProductsMode: 'fixed',
@@ -580,7 +583,7 @@ export default function ProductDetailExperiencePage() {
       accentColors?: ProductDetailAccentColorConfig;
       showSocialButtons?: boolean;
       socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
-      layouts?: Partial<Record<ProductsDetailStyle, Partial<ClassicLayoutConfig & ModernLayoutConfig & MinimalLayoutConfig & {
+      layouts?: Partial<Record<ProductsDetailStyle, Partial<ClassicLayoutConfig & ModernLayoutConfig & MinimalLayoutConfig & BaseImageLayoutConfig & {
         imageAspectRatio?: ProductImageAspectRatio;
       }>>>;
     }> | undefined;
@@ -622,15 +625,19 @@ export default function ProductDetailExperiencePage() {
           showClassicHighlights: classicHighlightsSetting,
           ...raw?.layouts?.classic,
         },
-        modern: {
-          ...DEFAULT_CONFIG.layouts.modern,
-          ...raw?.layouts?.modern,
-        },
-        minimal: {
-          ...DEFAULT_CONFIG.layouts.minimal,
-          ...raw?.layouts?.minimal,
-        },
-      },
+         modern: {
+           ...DEFAULT_CONFIG.layouts.modern,
+           ...raw?.layouts?.modern,
+         },
+         minimal: {
+           ...DEFAULT_CONFIG.layouts.minimal,
+           ...raw?.layouts?.minimal,
+         },
+         premium: {
+           ...DEFAULT_CONFIG.layouts.premium,
+           ...raw?.layouts?.premium,
+         },
+       },
       showBuyNow: raw?.showBuyNow ?? true,
       relatedProductsMode: raw?.relatedProductsMode === 'infiniteScroll' || raw?.relatedProductsMode === 'pagination'
         ? raw.relatedProductsMode
@@ -720,35 +727,44 @@ export default function ProductDetailExperiencePage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const normalizedLayouts = {
-        classic: {
-          ...config.layouts.classic,
-          showRating: canUseComments ? config.layouts.classic.showRating : false,
-          showComments: canUseComments ? config.layouts.classic.showComments : false,
-          showCommentLikes: canUseCommentLikes ? config.layouts.classic.showCommentLikes : false,
-          showCommentReplies: canUseCommentReplies ? config.layouts.classic.showCommentReplies : false,
-          showWishlist: canUseWishlist ? config.layouts.classic.showWishlist : false,
-          showAddToCart: canUseCart ? config.layouts.classic.showAddToCart : false,
-        },
-        modern: {
-          ...config.layouts.modern,
-          showRating: canUseComments ? config.layouts.modern.showRating : false,
-          showComments: canUseComments ? config.layouts.modern.showComments : false,
-          showCommentLikes: canUseCommentLikes ? config.layouts.modern.showCommentLikes : false,
-          showCommentReplies: canUseCommentReplies ? config.layouts.modern.showCommentReplies : false,
-          showWishlist: canUseWishlist ? config.layouts.modern.showWishlist : false,
-          showAddToCart: canUseCart ? config.layouts.modern.showAddToCart : false,
-        },
-        minimal: {
-          ...config.layouts.minimal,
-          showRating: canUseComments ? config.layouts.minimal.showRating : false,
-          showComments: canUseComments ? config.layouts.minimal.showComments : false,
-          showCommentLikes: canUseCommentLikes ? config.layouts.minimal.showCommentLikes : false,
-          showCommentReplies: canUseCommentReplies ? config.layouts.minimal.showCommentReplies : false,
-          showWishlist: canUseWishlist ? config.layouts.minimal.showWishlist : false,
-          showAddToCart: canUseCart ? config.layouts.minimal.showAddToCart : false,
-        },
-      };
+       const normalizedLayouts = {
+         classic: {
+           ...config.layouts.classic,
+           showRating: canUseComments ? config.layouts.classic.showRating : false,
+           showComments: canUseComments ? config.layouts.classic.showComments : false,
+           showCommentLikes: canUseCommentLikes ? config.layouts.classic.showCommentLikes : false,
+           showCommentReplies: canUseCommentReplies ? config.layouts.classic.showCommentReplies : false,
+           showWishlist: canUseWishlist ? config.layouts.classic.showWishlist : false,
+           showAddToCart: canUseCart ? config.layouts.classic.showAddToCart : false,
+         },
+         modern: {
+           ...config.layouts.modern,
+           showRating: canUseComments ? config.layouts.modern.showRating : false,
+           showComments: canUseComments ? config.layouts.modern.showComments : false,
+           showCommentLikes: canUseCommentLikes ? config.layouts.modern.showCommentLikes : false,
+           showCommentReplies: canUseCommentReplies ? config.layouts.modern.showCommentReplies : false,
+           showWishlist: canUseWishlist ? config.layouts.modern.showWishlist : false,
+           showAddToCart: canUseCart ? config.layouts.modern.showAddToCart : false,
+         },
+         minimal: {
+           ...config.layouts.minimal,
+           showRating: canUseComments ? config.layouts.minimal.showRating : false,
+           showComments: canUseComments ? config.layouts.minimal.showComments : false,
+           showCommentLikes: canUseCommentLikes ? config.layouts.minimal.showCommentLikes : false,
+           showCommentReplies: canUseCommentReplies ? config.layouts.minimal.showCommentReplies : false,
+           showWishlist: canUseWishlist ? config.layouts.minimal.showWishlist : false,
+           showAddToCart: canUseCart ? config.layouts.minimal.showAddToCart : false,
+         },
+         premium: {
+           ...config.layouts.premium,
+           showRating: canUseComments ? config.layouts.premium.showRating : false,
+           showComments: canUseComments ? config.layouts.premium.showComments : false,
+           showCommentLikes: canUseCommentLikes ? config.layouts.premium.showCommentLikes : false,
+           showCommentReplies: canUseCommentReplies ? config.layouts.premium.showCommentReplies : false,
+           showWishlist: canUseWishlist ? config.layouts.premium.showWishlist : false,
+           showAddToCart: canUseCart ? config.layouts.premium.showAddToCart : false,
+         },
+       };
 
       const normalizedConfig = {
         ...config,

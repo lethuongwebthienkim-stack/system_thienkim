@@ -42,7 +42,7 @@ import { ProductAttributesBadges } from '../products/ProductsPage';
 import { buildCategoryPath, buildDetailPath, normalizeRouteMode } from '@/lib/ia/route-mode';
 import { useProductFrameConfig } from '@/components/shared/ProductImageFrameBox';
 
-type ProductDetailStyle = 'classic' | 'modern' | 'minimal';
+type ProductDetailStyle = 'classic' | 'modern' | 'minimal' | 'premium';
 type ModernHeroStyle = 'full' | 'split' | 'minimal';
 type MinimalContentWidth = 'narrow' | 'medium' | 'wide';
 type ProductsSaleMode = 'cart' | 'contact' | 'affiliate';
@@ -980,6 +980,62 @@ export default function ProductDetailPage({ params }: PageProps) {
 
   return (
     <>
+      {experienceConfig.layoutStyle === 'premium' && (
+        <PremiumStyle
+          product={productData}
+          brandColor={brandColor}
+          tokens={tokens}
+          enableImageLightbox={experienceConfig.enableImageLightbox}
+          onOpenLightbox={handleOpenLightbox}
+          relatedProducts={relatedProducts}
+          enabledFields={enabledFields}
+          variants={variants ?? []}
+          variantOptions={variantOptions}
+          highlights={classicHighlights}
+          highlightsEnabled={classicHighlightsEnabled}
+          ratingSummary={ratingSummary}
+          saleMode={saleMode}
+          showAddToCart={canUseCartActions ? experienceConfig.showAddToCart : false}
+          showRating={canShowRating}
+          showWishlist={canUseWishlist}
+          showShare={experienceConfig.showShare}
+          showBuyNow={canUseCartActions ? canBuyNow : true}
+          buyNowLabel={buyNowLabel}
+          imageAspectRatio={experienceConfig.imageAspectRatio}
+          showAllProductImagesSection={experienceConfig.showAllProductImagesSection}
+          requireStockForBuyNow={requireStockForBuyNow}
+          isWishlisted={isWishlisted}
+          onToggleWishlist={handleWishlistToggle}
+          onShare={handleShare}
+          onAddToCart={handleAddToCart}
+          onBuyNow={handlePrimaryAction}
+          commentsSection={commentsSection}
+          supplementalContent={supplementalContent}
+          relatedProductsMode={relatedProductsMode}
+          relatedProductsPerPage={relatedProductsPerPage}
+          relatedProductsPage={relatedPage}
+          relatedProductsTotalCount={relatedTotalCount}
+          onRelatedProductsPageChange={setRelatedPage}
+          relatedLoadMoreRef={relatedLoadMoreRef}
+          relatedInfiniteStatus={relatedInfiniteStatus}
+          relatedIsLoading={relatedIsLoading}
+          routeMode={routeMode}
+          categorySlugMap={categorySlugMap}
+          productImagePlaceholder={productImagePlaceholder}
+          category={category}
+          enableCategoryProductDetailSuffix={enableCategoryProductDetailSuffix}
+          enableCategoryProductDetailFaq={enableCategoryProductDetailFaq}
+          enableCombos={enableCombos}
+          comboProductsMap={comboProductsMap}
+          comboAnimateType={experienceConfig.comboAnimateType}
+          comboEffectColor={experienceConfig.comboEffectColor}
+          accentColors={experienceConfig.accentColors}
+          showSocialButtons={experienceConfig.showSocialButtons}
+          socialButtons={experienceConfig.socialButtons}
+          productAttributesMap={productAttributesMap}
+          productTypeId={(product as any)?.productTypeId}
+        />
+      )}
       {experienceConfig.layoutStyle === 'classic' && (
         <ClassicStyle
           product={productData}
@@ -2385,6 +2441,738 @@ function ClassicStyle({
         ) : null}
 
       {commentsSection}
+
+        <RelatedProductsSection
+          products={relatedProducts}
+          categorySlug={product.categorySlug}
+          brandColor={brandColor}
+          tokens={tokens}
+          imageAspectRatio={imageAspectRatio}
+          showPrice={enabledFields.has('price') || enabledFields.size === 0}
+          showSalePrice={enabledFields.has('salePrice')}
+          saleMode={saleMode}
+          mode={relatedProductsMode}
+          page={relatedProductsPage}
+          perPage={relatedProductsPerPage}
+          totalCount={relatedProductsTotalCount}
+          onPageChange={onRelatedProductsPageChange}
+          loadMoreRef={relatedLoadMoreRef}
+          infiniteStatus={relatedInfiniteStatus}
+          isLoading={relatedIsLoading}
+          routeMode={routeMode}
+          categorySlugMap={categorySlugMap}
+          productImagePlaceholder={productImagePlaceholder}
+        />
+
+        {enableCategoryProductDetailFaq && category?.productDetailFaqEnabled !== false && category?.productDetailFaqItems && category.productDetailFaqItems.length > 0 && (
+          <div className="mt-16 border-t pt-8" style={{ borderColor: tokens.divider }}>
+            <FaqSectionShared
+              items={category.productDetailFaqItems.map((item: any) => ({
+                id: item.id,
+                question: item.question,
+                answer: item.answer,
+              }))}
+              style={(category.productDetailFaqStyle as any) ?? 'accordion'}
+              title="Câu hỏi thường gặp"
+              suppressInternalHeader={false}
+              context="site"
+              tokens={getFaqColors({
+                primary: brandColor,
+                secondary: brandColor,
+                mode: 'single',
+                style: (category.productDetailFaqStyle as any) ?? 'accordion',
+              })}
+            />
+          </div>
+        )}
+
+        <div className="mt-12 pt-8 border-t" style={{ borderColor: tokens.divider }}>
+          <Link href="/products" className="inline-flex items-center gap-2 text-sm font-medium transition-colors hover:opacity-80" style={{ color: tokens.primary }}>
+            <ArrowLeft size={16} /> Quay lại danh sách sản phẩm
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ====================================================================================
+// STYLE 4: PREMIUM - Elegant premium product page with dynamic layouts & colors
+// ====================================================================================
+interface PremiumStyleProps extends StyleProps, ExperienceBlocksProps {
+  highlights: ClassicHighlightItem[];
+  highlightsEnabled: boolean;
+}
+
+function PremiumStyle({
+  product,
+  brandColor,
+  tokens,
+  enableImageLightbox,
+  onOpenLightbox,
+  relatedProducts,
+  relatedProductsMode,
+  relatedProductsPerPage,
+  relatedProductsPage,
+  relatedProductsTotalCount,
+  onRelatedProductsPageChange,
+  relatedLoadMoreRef,
+  relatedInfiniteStatus,
+  relatedIsLoading,
+  enabledFields,
+  variants,
+  variantOptions,
+  highlights,
+  highlightsEnabled,
+  ratingSummary,
+  saleMode,
+  showAddToCart,
+  showRating,
+  showWishlist,
+  showShare,
+  showBuyNow,
+  buyNowLabel,
+  imageAspectRatio,
+  showAllProductImagesSection,
+  requireStockForBuyNow,
+  isWishlisted,
+  onToggleWishlist,
+  onShare,
+  onAddToCart,
+  onBuyNow,
+  commentsSection,
+  supplementalContent,
+  routeMode,
+  categorySlugMap,
+  productImagePlaceholder,
+  category,
+  enableCategoryProductDetailSuffix,
+  enableCategoryProductDetailFaq,
+  enableCombos,
+  comboProductsMap,
+  comboAnimateType,
+  comboEffectColor,
+  accentColors,
+  showSocialButtons,
+  socialButtons,
+  productAttributesMap,
+  productTypeId,
+}: PremiumStyleProps) {
+  const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [selectedOptions, setSelectedOptions] = useState<VariantSelectionMap>({});
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    
+    const onSelect = () => {
+      const index = emblaApi.selectedScrollSnap();
+      setSelectedIndex(index);
+      setSelectedImage(index);
+      setCanScrollPrev(emblaApi.canScrollPrev());
+      setCanScrollNext(emblaApi.canScrollNext());
+    };
+
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+    onSelect();
+
+    return () => {
+      emblaApi.off('select', onSelect);
+      emblaApi.off('reInit', onSelect);
+    };
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (emblaApi && selectedImage !== emblaApi.selectedScrollSnap()) {
+      emblaApi.scrollTo(selectedImage);
+    }
+  }, [emblaApi, selectedImage]);
+
+  const hasVariants = Boolean(product.hasVariants && variants.length > 0 && variantOptions.length > 0);
+  const imageFrame = getProductImageFrameConfig(imageAspectRatio, 'classic');
+  const mainImageFrameStyle: React.CSSProperties = { aspectRatio: imageFrame.frameAspectRatio };
+  const resolvedDescription = useMemo(() => resolveProductContent(product), [product]);
+
+  useEffect(() => {
+    if (!hasVariants) {
+      setSelectedOptions({});
+      return;
+    }
+    setSelectedOptions(buildSelectionFromVariant(variants[0]));
+  }, [hasVariants, variants]);
+
+  const selectedVariant = useMemo(
+    () => (hasVariants ? findExactVariant(variants, selectedOptions) : null),
+    [hasVariants, variants, selectedOptions]
+  );
+
+  const handleSelectOption = (optionId: Id<'productOptions'>, valueId: Id<'productOptionValues'>) => {
+    if (!hasVariants) {
+      return;
+    }
+    const nextSelection = { ...selectedOptions, [optionId]: valueId };
+    const matching = findMatchingVariant(variants, nextSelection);
+    setSelectedOptions(matching ? buildSelectionFromVariant(matching) : nextSelection);
+  };
+
+  const isOptionValueAvailable = (optionId: Id<'productOptions'>, valueId: Id<'productOptionValues'>) =>
+    variants.some((variant) =>
+      variant.optionValues.every((optionValue) => {
+        if (optionValue.optionId === optionId) {
+          return optionValue.valueId === valueId;
+        }
+        const selected = selectedOptions[optionValue.optionId];
+        return !selected || selected === optionValue.valueId;
+      })
+    );
+
+  const showPrice = enabledFields.has('price') || enabledFields.size === 0;
+  const showSalePrice = enabledFields.has('salePrice');
+  const showStock = enabledFields.has('stock');
+  const showDescription = enabledFields.has('description');
+
+  const images = buildProductImages(product);
+  const displayImages = images.length > 0 ? images : [productImagePlaceholder];
+  const safeSelectedImage = Math.min(selectedImage, Math.max(displayImages.length - 1, 0));
+  const canOpenLightbox = enableImageLightbox && images.length > 0;
+
+  const handleOpenLightbox = () => {
+    if (!canOpenLightbox) {
+      return;
+    }
+    onOpenLightbox(safeSelectedImage);
+  };
+
+  const handleLightboxKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!canOpenLightbox) {
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleOpenLightbox();
+    }
+  };
+
+  useEffect(() => {
+    if (displayImages.length === 0 && selectedImage !== 0) {
+      setSelectedImage(0);
+      return;
+    }
+    if (displayImages.length > 0 && selectedImage >= displayImages.length) {
+      setSelectedImage(displayImages.length - 1);
+    }
+  }, [displayImages.length, selectedImage]);
+
+  useEffect(() => {
+    preloadNeighborImages(displayImages, safeSelectedImage);
+  }, [displayImages, safeSelectedImage]);
+
+  const basePrice = selectedVariant?.price ?? product.price;
+  const salePrice = selectedVariant ? selectedVariant.salePrice : product.salePrice;
+  const isRangeFromVariant = Boolean(product.hasVariants && !selectedVariant);
+  const priceDisplay = getPublicPriceLabel({ saleMode, price: basePrice, salePrice, isRangeFromVariant });
+  const discountPercent = priceDisplay.comparePrice
+    ? Math.round((1 - basePrice / priceDisplay.comparePrice) * 100)
+    : 0;
+  const stockValue = selectedVariant?.stock ?? product.stock;
+  const inStock = !showStock || stockValue > 0;
+  const buyNowDisabled = requireStockForBuyNow && !inStock;
+  const stockStatus = showStock
+    ? stockValue > 10
+      ? { label: 'Còn hàng', color: tokens.stockSuccessText }
+      : stockValue > 0
+        ? { label: `Chỉ còn ${stockValue} sản phẩm`, color: tokens.stockWarningText }
+        : { label: 'Hết hàng', color: tokens.stockDangerText }
+    : null;
+
+  const categoryBadgeColors = resolveProductDetailElementColor(accentColors?.categoryBadge ?? 'secondary', tokens);
+  const discountBadgeColors = resolveProductDetailElementColor(accentColors?.discountBadge ?? 'primary', tokens);
+  const primaryButtonColors = resolveProductDetailElementColor(accentColors?.primaryButton ?? 'primary', tokens);
+
+  // Lấy các attributes thật của sản phẩm để render
+  const rawAttributes = productAttributesMap && productAttributesMap.has(product._id)
+    ? productAttributesMap.get(product._id)!
+    : [];
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: tokens.surface }}>
+      {/* Breadcrumb */}
+      <div className="border-b" style={{ borderColor: tokens.divider }}>
+        <div className="max-w-6xl mx-auto px-4 py-2 md:py-3">
+          <nav className="flex items-center gap-1 text-[11px] md:hidden" style={{ color: tokens.breadcrumbText }}>
+            {product.categorySlug && product.categoryName ? (
+              <>
+                <Link href={buildCategoryPath({ categorySlug: product.categorySlug, mode: routeMode, moduleKey: 'products' })} className="transition-colors">{product.categoryName}</Link>
+                <ChevronRight size={10} />
+              </>
+            ) : (
+              <>
+                <Link href="/products" className="transition-colors">Sản phẩm</Link>
+                <ChevronRight size={10} />
+              </>
+            )}
+            <span className="font-medium truncate max-w-[180px]" style={{ color: tokens.breadcrumbActive }}>{product.name}</span>
+          </nav>
+          <nav className="hidden md:flex items-center gap-2 text-sm" style={{ color: tokens.breadcrumbText }}>
+            <Link href="/" className="transition-colors">Trang chủ</Link>
+            <ChevronRight size={14} />
+            <Link href="/products" className="transition-colors">Sản phẩm</Link>
+            <ChevronRight size={14} />
+            {product.categorySlug && (
+              <>
+                <Link href={buildCategoryPath({ categorySlug: product.categorySlug, mode: routeMode, moduleKey: 'products' })} className="transition-colors">{product.categoryName}</Link>
+                <ChevronRight size={14} />
+              </>
+            )}
+            <span className="font-medium truncate max-w-[200px]" style={{ color: tokens.breadcrumbActive }}>{product.name}</span>
+          </nav>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 py-5 md:py-8 space-y-8">
+        <div className="lg:grid lg:grid-cols-2 lg:gap-12">
+          {/* Cột trái: Gallery & Cam kết */}
+          <div className="mb-6 lg:mb-0 space-y-4">
+            <div className="flex gap-4">
+              {/* Thumbnail dọc bên trái cho Desktop */}
+              {images.length > 1 && (
+                <div className="hidden md:block w-20 shrink-0">
+                  <ThumbnailRail
+                    images={images}
+                    selectedIndex={safeSelectedImage}
+                    onSelect={setSelectedImage}
+                    orientation="vertical"
+                    visibleSlots={4}
+                    tokens={tokens}
+                    thumbnailAspectRatio={imageFrame.thumbnailAspectRatio}
+                    itemClassName="w-full rounded-lg"
+                    fallbackSrc={productImagePlaceholder}
+                  />
+                </div>
+              )}
+
+              {/* Ảnh chính */}
+              <div className="flex-1">
+                <div className={`${imageFrame.frameWidthClassName} group/carousel relative`}>
+                  <div
+                    className={`relative rounded-2xl overflow-hidden ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                    style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
+                    role={canOpenLightbox ? 'button' : undefined}
+                    tabIndex={canOpenLightbox ? 0 : -1}
+                    onKeyDown={handleLightboxKeyDown}
+                  >
+                    <div className="embla overflow-hidden h-full w-full" ref={emblaRef}>
+                      <div className="embla__container flex h-full w-full">
+                        {displayImages.map((img, idx) => (
+                          <div 
+                            className="embla__slide flex-[0_0_100%] min-w-0 relative h-full w-full cursor-pointer" 
+                            key={idx}
+                            onClick={canOpenLightbox ? handleOpenLightbox : undefined}
+                          >
+                            <BlurredProductImage src={img} fallbackSrc={productImagePlaceholder} alt={product.name} sizes="(max-width: 1024px) 100vw, 50vw" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {images.length > 1 && (
+                      <>
+                        <button
+                          type="button"
+                          disabled={!canScrollPrev}
+                          onClick={(e) => { e.stopPropagation(); emblaApi?.scrollPrev(); }}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-800 flex items-center justify-center shadow transition-all opacity-0 group-hover/carousel:opacity-100 disabled:opacity-0 pointer-events-auto z-30"
+                          aria-label="Ảnh trước"
+                        >
+                          <ChevronLeft size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={!canScrollNext}
+                          onClick={(e) => { e.stopPropagation(); emblaApi?.scrollNext(); }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-800 flex items-center justify-center shadow transition-all opacity-0 group-hover/carousel:opacity-100 disabled:opacity-0 pointer-events-auto z-30"
+                          aria-label="Ảnh sau"
+                        >
+                          <ChevronRight size={16} />
+                        </button>
+                      </>
+                    )}
+                    {images.length > 1 && (
+                      <span className="absolute bottom-3 right-3 px-2 py-0.5 text-[11px] font-semibold rounded-full backdrop-blur-sm z-30" style={{ backgroundColor: tokens.surface, color: tokens.headingColor }}>
+                        {selectedIndex + 1}/{images.length}
+                      </span>
+                    )}
+                    {showSalePrice && priceDisplay.comparePrice && (
+                      <span className="absolute top-3 left-3 px-3 py-1.5 text-sm font-bold rounded-lg z-30" style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}>-{discountPercent}%</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Thumbnail ngang cho Tablet/Mobile */}
+            {images.length > 1 && (
+              <div className="block md:hidden">
+                <ThumbnailRail
+                  images={images}
+                  selectedIndex={safeSelectedImage}
+                  onSelect={setSelectedImage}
+                  orientation="horizontal"
+                  visibleSlots={5}
+                  tokens={tokens}
+                  thumbnailAspectRatio={imageFrame.thumbnailAspectRatio}
+                  itemClassName="w-16 rounded-lg"
+                  fallbackSrc={productImagePlaceholder}
+                />
+              </div>
+            )}
+
+            {/* 3 Cam kết uy tín dưới ảnh sản phẩm */}
+            <div className="grid grid-cols-3 gap-2 border-t pt-4" style={{ borderColor: tokens.divider }}>
+              <div className="flex flex-col items-center text-center p-2.5 rounded-2xl" style={{ backgroundColor: tokens.surfaceMuted }}>
+                <BadgeCheck size={20} style={{ color: tokens.primary }} />
+                <span className="text-[10px] md:text-xs font-semibold mt-1" style={{ color: tokens.bodyText }}>100% Chính hãng</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-2.5 rounded-2xl" style={{ backgroundColor: tokens.surfaceMuted }}>
+                <RotateCcw size={20} style={{ color: tokens.primary }} />
+                <span className="text-[10px] md:text-xs font-semibold mt-1" style={{ color: tokens.bodyText }}>Đổi trả 7 ngày</span>
+              </div>
+              <div className="flex flex-col items-center text-center p-2.5 rounded-2xl" style={{ backgroundColor: tokens.surfaceMuted }}>
+                <Truck size={20} style={{ color: tokens.primary }} />
+                <span className="text-[10px] md:text-xs font-semibold mt-1" style={{ color: tokens.bodyText }}>Giao hàng toàn quốc</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Cột phải: Thông tin sản phẩm */}
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                {product.categoryName && (
+                  <Link
+                    href={buildCategoryPath({ categorySlug: product.categorySlug ?? '', mode: routeMode, moduleKey: 'products' })}
+                    className="inline-block px-3 py-0.5 text-xs md:text-sm font-medium rounded-full border transition-colors hover:opacity-80"
+                    style={{ backgroundColor: categoryBadgeColors.bg, color: categoryBadgeColors.text, borderColor: categoryBadgeColors.border }}
+                  >
+                    {product.categoryName}
+                  </Link>
+                )}
+                <h1 className="text-xl md:text-3xl font-bold" style={{ color: tokens.headingColor }}>{product.name}</h1>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                {showWishlist && (
+                  <button
+                    onClick={onToggleWishlist}
+                    className="p-3 rounded-full border transition-colors group"
+                    style={isWishlisted
+                      ? { borderColor: tokens.stockDangerText, backgroundColor: tokens.discountBadgeBg }
+                      : { borderColor: tokens.wishlistBorder, backgroundColor: tokens.wishlistBg }}
+                    aria-label="Thêm vào yêu thích"
+                  >
+                    <Heart size={16} className={isWishlisted ? 'fill-current' : ''} style={{ color: isWishlisted ? tokens.stockDangerText : tokens.wishlistIcon }} />
+                  </button>
+                )}
+                {showShare && (
+                  <button
+                    type="button"
+                    onClick={onShare}
+                    className="p-3 rounded-full border transition-colors"
+                    style={{ borderColor: tokens.shareBorder, backgroundColor: tokens.shareBg }}
+                    aria-label="Chia sẻ"
+                  >
+                    <Share2 size={16} style={{ color: tokens.shareIcon }} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 text-xs" style={{ color: tokens.ratingText }}>
+              {showRating && <RatingInline summary={ratingSummary} tokens={tokens} />}
+              {showRating && ratingSummary.count > 0 && <span style={{ color: tokens.divider }}>|</span>}
+              {stockStatus && <InlineStockBadge label={stockStatus.label} color={stockStatus.color} tokens={tokens} />}
+            </div>
+
+            {/* Box Giá Premium sử dụng dynamic brand colors từ Tokens */}
+            {showPrice && (
+              <div
+                className="rounded-2xl border p-4 relative overflow-hidden"
+                style={{
+                  backgroundColor: tokens.surfaceMuted,
+                  borderColor: tokens.border,
+                }}
+              >
+                <div className="absolute -right-6 -bottom-6 opacity-[0.03] pointer-events-none" style={{ color: tokens.primary }}>
+                  <Gift size={120} />
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl" style={{ backgroundColor: tokens.surface, color: tokens.primary }}>
+                    <Award size={20} />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>GIÁ ƯU ĐÃI HÔM NAY</p>
+                    <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
+                      <span className="text-2xl md:text-3xl font-extrabold" style={{ color: tokens.priceColor }}>{priceDisplay.label}</span>
+                      {showSalePrice && priceDisplay.comparePrice && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm line-through italic" style={{ color: tokens.priceOriginalText }}>{formatPrice(priceDisplay.comparePrice)}</span>
+                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded" style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}>-{discountPercent}%</span>
+                        </div>
+                      )}
+                    </div>
+                    {showSalePrice && priceDisplay.comparePrice && (
+                      <p className="text-xs font-semibold" style={{ color: tokens.priceColor }}>
+                        Tiết kiệm {formatPrice(priceDisplay.comparePrice - basePrice)} so với giá gốc
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {hasVariants && (
+              <div className="mb-4 md:mb-6">
+                <VariantSelector
+                  options={variantOptions}
+                  selectedOptions={selectedOptions}
+                  onSelect={handleSelectOption}
+                  isOptionValueAvailable={isOptionValueAvailable}
+                  accentColor={brandColor}
+                />
+              </div>
+            )}
+
+            {/* Box Combo dạng so sánh song song chuyên nghiệp - DỮ LIỆU THỰC */}
+            {enableCombos && saleMode === 'contact' && !product.hasVariants && product.combos && product.combos.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>ƯU ĐÃI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {product.combos.slice(0, 2).map((combo, index) => {
+                    const isBestSeller = index === 1;
+                    const totalBottles = combo.products.reduce((acc: number, p: { quantity: number }) => acc + p.quantity, 0);
+                    const avgPricePerBottle = combo.price ? Math.round(combo.price / totalBottles) : 0;
+                    
+                    return (
+                      <div
+                        key={combo.id || index}
+                        onClick={() => setQuantity(totalBottles)}
+                        className={`rounded-xl p-3 flex flex-col justify-between transition-all cursor-pointer relative ${isBestSeller ? 'border-2' : 'border'}`}
+                        style={{
+                          backgroundColor: tokens.surface,
+                          borderColor: isBestSeller ? brandColor : tokens.border,
+                        }}
+                      >
+                        {isBestSeller && (
+                          <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-0.5" style={{ backgroundColor: '#eab308' }}>
+                            ★ BÁN CHẠY
+                          </div>
+                        )}
+                        <div>
+                          <div
+                            className="inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full text-white"
+                            style={{ backgroundColor: isBestSeller ? '#eab308' : brandColor }}
+                          >
+                            {combo.name.toUpperCase()}
+                          </div>
+                          <p className="text-[10px] mt-1.5 line-clamp-1" style={{ color: tokens.metaText }}>
+                            {combo.description || 'Tiết kiệm tối đa khi mua gói'}
+                          </p>
+                          <p className="text-sm font-bold mt-2" style={{ color: tokens.headingColor }}>
+                            {combo.price ? formatPrice(combo.price) : 'Liên hệ'}
+                          </p>
+                          {avgPricePerBottle > 0 && (
+                            <p className="text-[10px] font-semibold" style={{ color: tokens.priceColor }}>
+                              Chi ~{formatPrice(avgPricePerBottle)} / chai
+                            </p>
+                          )}
+                        </div>
+                        {combo.price && (
+                          <div className="border-t pt-2 mt-3 flex items-center gap-1 text-[9px] font-medium" style={{ borderColor: tokens.divider, color: tokens.priceColor }}>
+                            <Gift size={10} />
+                            <span>Tiết kiệm nhiều hơn</span>
+                          </div>
+                        )}
+                        <div
+                          className={`absolute right-2 top-2 h-4 w-4 rounded-full flex items-center justify-center ${isBestSeller ? 'border-2' : 'border'}`}
+                          style={{ borderColor: isBestSeller ? brandColor : tokens.border }}
+                        >
+                          <div
+                            className="h-2.5 w-2.5 rounded-full"
+                            style={{ backgroundColor: quantity === totalBottles ? brandColor : 'transparent' }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Bộ điều khiển số lượng và các nút CTA */}
+            <div className="flex flex-wrap items-center gap-4 mb-4 md:mb-8 pt-2">
+              <div className="flex items-center border rounded-lg" style={{ borderColor: tokens.quantityBorder }}>
+                <button
+                  onClick={() =>{  setQuantity(q => Math.max(1, q - 1)); }}
+                  className="p-3 transition-colors"
+                  disabled={quantity <= 1}
+                >
+                  <Minus size={18} style={{ color: quantity <= 1 ? tokens.quantityIconMuted : tokens.quantityIcon }} />
+                </button>
+                <span className="w-12 text-center font-medium" style={{ color: tokens.quantityText }}>{quantity}</span>
+                <button
+                  onClick={() =>{  setQuantity(q => Math.min(showStock ? stockValue : 99, q + 1)); }}
+                  className="p-3 transition-colors"
+                  disabled={showStock && quantity >= stockValue}
+                >
+                  <Plus size={18} style={{ color: showStock && quantity >= stockValue ? tokens.quantityIconMuted : tokens.quantityIcon }} />
+                </button>
+              </div>
+
+              {/* Nút CTA - Đóng gói mượt mà */}
+              <div className="flex flex-1 flex-col gap-2">
+                <div className="flex gap-2">
+                  {showSocialButtons && (
+                    <button
+                      className="flex-1 py-3.5 px-4 rounded-xl font-bold flex items-center justify-center gap-1.5 text-white transition-all hover:shadow-lg hover:scale-[1.01]"
+                      style={{ backgroundColor: brandColor }}
+                      onClick={() => {
+                        const zaloBtn = socialButtons?.find(b => b.icon.toLowerCase().includes('zalo') || b.icon.toLowerCase().includes('phone'));
+                        if (zaloBtn?.url) { window.open(zaloBtn.url, '_blank'); } else { onShare(); }
+                      }}
+                    >
+                      <Send size={16} className="rotate-[320deg] -mt-0.5" />
+                      MUA QUA ZALO
+                    </button>
+                  )}
+                  <button
+                    className="flex-1 py-3.5 px-4 rounded-xl font-bold border flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:scale-[1.01]"
+                    style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}
+                    onClick={onShare}
+                  >
+                    <Phone size={16} />
+                    GỌI TƯ VẤN
+                  </button>
+                </div>
+                {showAddToCart && (
+                  <button
+                    className={`py-3.5 px-8 rounded-xl font-semibold flex items-center justify-center gap-2 border transition-all ${inStock ? 'hover:shadow-lg hover:scale-[1.01]' : 'opacity-50 cursor-not-allowed'}`}
+                    style={{
+                      borderColor: primaryButtonColors.border,
+                      color: primaryButtonColors.text,
+                      backgroundColor: primaryButtonColors.bg,
+                    }}
+                    disabled={!inStock}
+                    onClick={() => { if (inStock) { onAddToCart(quantity, selectedVariant?._id); } }}
+                  >
+                    <ShoppingCart size={20} />
+                    {inStock ? 'THÊM VÀO GIỎ HÀNG' : 'Hết hàng'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {showSocialButtons && (
+              <ProductSocialButtons
+                buttons={socialButtons || []}
+                tokens={tokens}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Khối Attributes (Phân mục/Bộ lọc/Thông số) thiết kế nằm ngang sang trọng ở dưới cùng - DỮ LIỆU THỰC */}
+        {rawAttributes.length > 0 && (
+          <div className="border-t pt-6 mt-8 md:mt-12" style={{ borderColor: tokens.divider }}>
+            <p className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: tokens.metaText }}>THÔNG TIN CHI TIẾT SẢN PHẨM</p>
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+              {rawAttributes.map((attr: any, index: number) => (
+                <div
+                  key={attr.attributeId || index}
+                  className="border rounded-xl p-3 text-center space-y-1"
+                  style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}
+                >
+                  <span className="text-[10px] font-medium block uppercase" style={{ color: tokens.metaText }}>
+                    {attr.attributeName}
+                  </span>
+                  <p className="text-xs font-bold truncate" style={{ color: tokens.headingColor }}>
+                    {attr.valueName || attr.value || 'Đang cập nhật'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Dải banner chính sách màu đỏ đô/màu thương hiệu dynamic chân trang */}
+        <div className="rounded-2xl p-5 text-white grid grid-cols-2 md:grid-cols-4 gap-4 text-center mt-8" style={{ backgroundColor: brandColor }}>
+          <div className="space-y-0.5">
+            <p className="text-sm font-extrabold uppercase tracking-wide">FREESHIP TOÀN QUỐC</p>
+            <p className="text-[11px] opacity-80">Đơn từ 1.000.000đ</p>
+          </div>
+          <div className="space-y-0.5 border-l md:border-l border-white/20">
+            <p className="text-sm font-extrabold uppercase tracking-wide">ĐÓNG GÓI AN TOÀN</p>
+            <p className="text-[11px] opacity-80">Chống sốc 100%</p>
+          </div>
+          <div className="space-y-0.5 border-l border-white/20">
+            <p className="text-sm font-extrabold uppercase tracking-wide">GIAO HÀNG NHANH</p>
+            <p className="text-[11px] opacity-80">Chỉ từ 2 - 3 ngày</p>
+          </div>
+          <div className="space-y-0.5 border-l border-white/20">
+            <p className="text-sm font-extrabold uppercase tracking-wide">QUÀ TẶNG HẤP DẪN</p>
+            <p className="text-[11px] opacity-80">Khi mua combo</p>
+          </div>
+        </div>
+
+        {(showDescription && resolvedDescription) || showAllProductImagesSection || supplementalContent?.preContent || supplementalContent?.postContent ? (
+          <div className="border-t pt-6 mt-8 md:mt-12" style={{ borderColor: tokens.divider }}>
+            <ExpandableProductDescriptionBlock buttonStyle={{ color: tokens.primary }}>
+              {supplementalContent?.preContent ? (
+                <RichContent
+                  content={toRichTextContent(supplementalContent.preContent)}
+                  className="max-w-none"
+                  style={{ color: tokens.bodyText }}
+                />
+              ) : null}
+              {showDescription && resolvedDescription && (
+                <RichContent
+                  content={resolvedDescription}
+                  className="max-w-none"
+                  style={{ color: tokens.bodyText }}
+                />
+              )}
+              {showAllProductImagesSection && images.length > 0 && (
+                <div className="mt-6 border-t pt-6" style={{ borderColor: tokens.divider }}>
+                  <ProductDescriptionImages
+                    images={images}
+                    tokens={tokens}
+                    frameAspectRatio={imageFrame.frameAspectRatio}
+                    fallbackSrc={productImagePlaceholder}
+                  />
+                </div>
+              )}
+              {enableCategoryProductDetailSuffix && category?.productDetailSuffixContent && (
+                <RichContent
+                  content={toRichTextContent(category.productDetailSuffixContent)}
+                  className="max-w-none mt-4 pt-4 border-t border-dashed border-slate-100 dark:border-slate-800"
+                  style={{ color: tokens.bodyText }}
+                />
+              )}
+              {supplementalContent?.postContent ? (
+                <RichContent
+                  content={toRichTextContent(supplementalContent.postContent)}
+                  className="max-w-none mt-4 pt-4 border-t border-dashed border-slate-100 dark:border-slate-800"
+                  style={{ color: tokens.bodyText }}
+                />
+              ) : null}
+            </ExpandableProductDescriptionBlock>
+          </div>
+        ) : null}
+
+        {commentsSection}
 
         <RelatedProductsSection
           products={relatedProducts}
