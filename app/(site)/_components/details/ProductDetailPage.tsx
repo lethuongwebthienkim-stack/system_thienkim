@@ -2832,21 +2832,20 @@ function PremiumStyle({
               </div>
             )}
 
-            {/* 3 Cam kết uy tín dưới ảnh sản phẩm */}
-            <div className="grid grid-cols-3 gap-2 border-t pt-4" style={{ borderColor: tokens.divider }}>
-              <div className="flex flex-col items-center text-center p-2.5 rounded-2xl" style={{ backgroundColor: tokens.surfaceMuted }}>
-                <BadgeCheck size={20} style={{ color: tokens.primary }} />
-                <span className="text-[10px] md:text-xs font-semibold mt-1" style={{ color: tokens.bodyText }}>100% Chính hãng</span>
+            {/* Highlights động từ cài đặt dưới ảnh sản phẩm */}
+            {highlightsEnabled && highlights && highlights.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 border-t pt-4" style={{ borderColor: tokens.divider }}>
+                {highlights.map((item, index) => {
+                  const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || BadgeCheck;
+                  return (
+                    <div key={`${item.icon}-${index}`} className="flex flex-col items-center text-center p-2.5 rounded-2xl" style={{ backgroundColor: tokens.surfaceMuted }}>
+                      <Icon size={20} style={{ color: tokens.primary }} />
+                      <span className="text-[10px] md:text-xs font-semibold mt-1 line-clamp-1" style={{ color: tokens.bodyText }}>{item.text}</span>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="flex flex-col items-center text-center p-2.5 rounded-2xl" style={{ backgroundColor: tokens.surfaceMuted }}>
-                <RotateCcw size={20} style={{ color: tokens.primary }} />
-                <span className="text-[10px] md:text-xs font-semibold mt-1" style={{ color: tokens.bodyText }}>Đổi trả 7 ngày</span>
-              </div>
-              <div className="flex flex-col items-center text-center p-2.5 rounded-2xl" style={{ backgroundColor: tokens.surfaceMuted }}>
-                <Truck size={20} style={{ color: tokens.primary }} />
-                <span className="text-[10px] md:text-xs font-semibold mt-1" style={{ color: tokens.bodyText }}>Giao hàng toàn quốc</span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Cột phải: Thông tin sản phẩm */}
@@ -3092,11 +3091,7 @@ function PremiumStyle({
               />
             )}
 
-            {highlightsEnabled && highlights && highlights.length > 0 && (
-              <div className="mt-4">
-                <HighlightsGrid highlights={highlights} tokens={tokens} />
-              </div>
-            )}
+
           </div>
         </div>
 

@@ -1537,21 +1537,20 @@ export function ProductDetailPreview({
                   </div>
                 )}
 
-                {/* 3 Cam kết vàng dưới ảnh */}
-                <div className="grid grid-cols-3 gap-2 border-t pt-4" style={{ borderColor: tokens.divider }}>
-                  <div className="flex flex-col items-center text-center p-2 rounded-xl" style={{ backgroundColor: tokens.surfaceMuted }}>
-                    <BadgeCheck size={18} style={{ color: tokens.primary }} />
-                    <span className="text-[10px] md:text-xs font-medium mt-1" style={{ color: tokens.bodyText }}>100% Chính hãng</span>
+                {/* Highlights cài đặt dưới ảnh */}
+                {showHighlightBlock && (
+                  <div className="grid grid-cols-3 gap-2 border-t pt-4" style={{ borderColor: tokens.divider }}>
+                    {highlightItems.map((item, index) => {
+                      const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || Star;
+                      return (
+                        <div key={`${item.icon}-${index}`} className="flex flex-col items-center text-center p-2 rounded-xl" style={{ backgroundColor: tokens.surfaceMuted }}>
+                          <Icon size={18} style={{ color: tokens.primary }} />
+                          <span className="text-[10px] md:text-xs font-medium mt-1 line-clamp-1" style={{ color: tokens.bodyText }}>{item.text}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="flex flex-col items-center text-center p-2 rounded-xl" style={{ backgroundColor: tokens.surfaceMuted }}>
-                    <RotateCcw size={18} style={{ color: tokens.primary }} />
-                    <span className="text-[10px] md:text-xs font-medium mt-1" style={{ color: tokens.bodyText }}>Đổi trả 7 ngày</span>
-                  </div>
-                  <div className="flex flex-col items-center text-center p-2 rounded-xl" style={{ backgroundColor: tokens.surfaceMuted }}>
-                    <Truck size={18} style={{ color: tokens.primary }} />
-                    <span className="text-[10px] md:text-xs font-medium mt-1" style={{ color: tokens.bodyText }}>Giao hàng toàn quốc</span>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Cột phải: Thông tin & Giá */}
@@ -1724,11 +1723,7 @@ export function ProductDetailPreview({
                   />
                 )}
 
-                {showHighlightBlock && (
-                  <div className="mt-4">
-                    {renderHighlights()}
-                  </div>
-                )}
+
               </div>
             </div>
 
