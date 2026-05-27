@@ -1881,7 +1881,7 @@ export function ProductDetailPreview({
               return (
                 <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
                   <div 
-                    className="rounded-2xl p-4 md:p-5 relative overflow-hidden border"
+                    className="rounded-2xl p-4 md:p-5 relative border"
                     style={{ 
                       backgroundColor: tokens.surfaceMuted || '#f8fafc',
                       borderColor: tokens.border || '#e2e8f0'
@@ -1890,33 +1890,33 @@ export function ProductDetailPreview({
                     <div className="relative">
                       {/* Nút Prev/Next */}
                       {hasOverflow && (
-                        <div className="absolute -top-11 right-0 flex gap-2 z-20">
+                        <>
                           <button
                             type="button"
                             onClick={() => premiumAttrApi?.scrollPrev()}
                             disabled={!canScrollAttrPrev}
-                            className="h-5 w-5 rounded-full flex items-center justify-center transition-all opacity-40 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95"
+                            className="absolute left-1 md:left-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full flex items-center justify-center transition-all opacity-70 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95 z-20"
                             style={{ color: tokens.headingColor, backgroundColor: `${tokens.surface}aa` }}
                             aria-label="Thuộc tính trước"
                           >
-                            <ChevronLeft size={10} />
+                            <ChevronLeft size={14} strokeWidth={3} />
                           </button>
                           <button
                             type="button"
                             onClick={() => premiumAttrApi?.scrollNext()}
                             disabled={!canScrollAttrNext}
-                            className="h-5 w-5 rounded-full flex items-center justify-center transition-all opacity-40 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95"
+                            className="absolute right-1 md:right-2 top-1/2 -translate-y-1/2 h-6 w-6 rounded-full flex items-center justify-center transition-all opacity-70 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95 z-20"
                             style={{ color: tokens.headingColor, backgroundColor: `${tokens.surface}aa` }}
                             aria-label="Thuộc tính tiếp theo"
                           >
-                            <ChevronRight size={10} />
+                            <ChevronRight size={14} strokeWidth={3} />
                           </button>
-                        </div>
+                        </>
                       )}
 
                       {/* Carousel or Grid */}
                       {hasOverflow ? (
-                        <div className="overflow-hidden" ref={premiumAttrRef}>
+                        <div className="overflow-hidden mx-8 md:mx-10" ref={premiumAttrRef}>
                           <div className="flex gap-0">
                             {sortedGroups.map((groupItem, index) => {
                               const IconComponent = getAttributeIconComponent(groupItem.group.iconPath);
