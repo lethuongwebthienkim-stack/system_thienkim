@@ -3159,8 +3159,8 @@ function PremiumStyle({
                   )}
                 </div>
 
-                <div className="overflow-hidden" ref={comboRef}>
-                  <div className="flex gap-3">
+                <div className="overflow-hidden py-3 -my-3" ref={comboRef}>
+                  <div className="flex gap-3 pt-3">
                     {product.combos.map((combo, index) => {
                       const isBestSeller = index === 0; // Combo đầu tiên là bán chạy
                       
@@ -3206,7 +3206,7 @@ function PremiumStyle({
                           }}
                         >
                           {isBestSeller && (
-                            <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-0.5" style={{ backgroundColor: '#eab308' }}>
+                            <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-0.5 z-10" style={{ backgroundColor: '#eab308' }}>
                               ★ BÁN CHẠY
                             </div>
                           )}

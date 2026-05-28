@@ -1788,7 +1788,7 @@ export function ProductDetailPreview({
                 {enableCombos && (
                   <div className="space-y-3">
                     <p className="text-xs font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>ƯU ĐÃI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN</p>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 gap-3 pt-3">
                       {/* Combo 6 Chai */}
                       <div
                         className="rounded-xl border p-4 flex flex-col justify-between transition-all cursor-pointer relative"
@@ -1822,7 +1822,7 @@ export function ProductDetailPreview({
                           borderColor: brandColor,
                         }}
                       >
-                        <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-0.5" style={{ backgroundColor: '#eab308' }}>
+                        <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-0.5 z-10" style={{ backgroundColor: '#eab308' }}>
                           ★ BÁN CHẠY
                         </div>
                         <div>
