@@ -1791,14 +1791,14 @@ export function ProductDetailPreview({
                     <div className="grid grid-cols-2 gap-3">
                       {/* Combo 6 Chai */}
                       <div
-                        className="rounded-xl border p-3 flex flex-col justify-between transition-all cursor-pointer relative"
+                        className="rounded-xl border p-4 flex flex-col justify-between transition-all cursor-pointer relative"
                         style={{
                           backgroundColor: tokens.surface,
                           borderColor: tokens.border,
                         }}
                       >
                         <div>
-                          <div className="inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full text-white" style={{ backgroundColor: brandColor }}>
+                          <div className="inline-block px-2 py-0.5 text-[11px] font-bold rounded-md text-white" style={{ backgroundColor: brandColor }}>
                             COMBO 6 CHAI
                           </div>
                           <p className="text-[10px] mt-1.5" style={{ color: tokens.metaText }}>Phù hợp dùng thử / biếu tặng</p>
@@ -1816,7 +1816,7 @@ export function ProductDetailPreview({
 
                       {/* Combo 12 Chai - Best Seller */}
                       <div
-                        className="rounded-xl border-2 p-3 flex flex-col justify-between transition-all cursor-pointer relative shadow-sm"
+                        className="rounded-xl border-2 p-4 flex flex-col justify-between transition-all cursor-pointer relative shadow-sm"
                         style={{
                           backgroundColor: tokens.surface,
                           borderColor: brandColor,
@@ -1826,7 +1826,7 @@ export function ProductDetailPreview({
                           ★ BÁN CHẠY
                         </div>
                         <div>
-                          <div className="inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full text-white" style={{ backgroundColor: '#eab308' }}>
+                          <div className="inline-block px-2 py-0.5 text-[11px] font-bold rounded-md text-white" style={{ backgroundColor: '#eab308' }}>
                             COMBO 12 CHAI
                           </div>
                           <p className="text-[10px] mt-1.5" style={{ color: tokens.metaText }}>Lời nhất – Tiết kiệm nhiều nhất</p>
@@ -1849,14 +1849,16 @@ export function ProductDetailPreview({
                 <div className="space-y-2 pt-2">
                   <div className="flex gap-2">
                     <button className={cn(
-                      "flex-1 h-11 font-bold rounded-xl flex items-center justify-center gap-1.5 text-white transition-transform hover:scale-[1.01]",
+                      "flex-1 font-bold rounded-xl flex items-center justify-center gap-1.5 text-white transition-transform hover:scale-[1.01]",
+                      isMobile ? "h-9 px-2.5" : "h-11 px-4",
                       isMobile && (mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm') || 'text-xs'
                     )} style={{ backgroundColor: brandColor }}>
-                      {renderPremiumIcon(zaloIcon, 14, "rotate-[320deg] -mt-0.5") || <Send size={14} className="rotate-[320deg] -mt-0.5" />}
+                      {renderPremiumIcon(zaloIcon, 14, "-mt-0.5") || <Send size={14} className="-mt-0.5" />}
                       {zaloText}
                     </button>
                     <button className={cn(
-                      "flex-1 h-11 font-bold rounded-xl border flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]",
+                      "flex-1 font-bold rounded-xl border flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]",
+                      isMobile ? "h-9 px-2.5" : "h-11 px-4",
                       isMobile && (mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm') || 'text-xs'
                     )} style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}>
                       {renderPremiumIcon(phoneIcon, 14) || <Phone size={14} />}

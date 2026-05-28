@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { Check, Copy, ExternalLink, Loader2, Trash, Trash2, Plus, Sparkles, GripVertical } from 'lucide-react';
+import { Check, Copy, ExternalLink, Loader2, Trash, Trash2, Plus, Sparkles, GripVertical, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, cn } from '../../../components/ui';
@@ -236,6 +236,14 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
       setDragOverComboIndex(null);
     },
   });
+
+  const [collapsedCombos, setCollapsedCombos] = useState<Record<number, boolean>>({});
+  const toggleComboCollapse = (index: number) => {
+    setCollapsedCombos(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
   const selectedCategorySlug = useMemo(
     () => categoriesData?.find((category) => category._id === categoryId)?.slug,
@@ -1422,6 +1430,8 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      const newIndex = combos.length;
+                      setCollapsedCombos(prev => ({ ...prev, [newIndex]: false }));
                       setCombos(prev => [
                         ...prev,
                         {
@@ -1444,6 +1454,8 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      const newIndex = combos.length;
+                      setCollapsedCombos(prev => ({ ...prev, [newIndex]: false }));
                       setCombos(prev => [
                         ...prev,
                         {
@@ -1471,53 +1483,98 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                 ) : (
                   <div className="space-y-4">
                     <AnimatePresence initial={false}>
-                      {combos.map((combo, index) => (
-                        <motion.div
-                          key={combo.syncId || `combo-${index}`}
-                          initial={{ opacity: 0, height: 0, y: 15 }}
-                          animate={{ opacity: 1, height: 'auto', y: 0 }}
-                          exit={{ opacity: 0, height: 0, y: -15 }}
-                          transition={{ duration: 0.25, ease: 'easeInOut' }}
-                          layout
-                          className={cn(
-                            "border rounded-lg p-4 space-y-4 relative overflow-hidden transition-all duration-200",
-                            draggedComboIndex === index ? "opacity-40" : "opacity-100",
-                            dragOverComboIndex === index ? "border-orange-400 bg-orange-50/20 dark:bg-orange-950/10 scale-[1.01]" : "border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30"
-                          )}
-                          {...getDragPropsCombo(index)}
-                        >
-                          {/* Header của Combo Card */}
-                          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="text-slate-400 cursor-grab active:cursor-grabbing hover:text-slate-600 transition-colors p-1" title="Kéo thả để sắp xếp">
-                                <GripVertical size={16} />
-                              </div>
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                                combo.type === 'standard' 
-                                  ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400' 
-                                  : 'bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400'
-                              }`}>
-                                {combo.type === 'standard' ? 'Combo thường' : 'Combo mix'}
-                              </span>
-                              {combo.type === 'mix' && combo.isSynced && (
-                                <span className="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-0.5 rounded text-[10px] font-semibold">
-                                  Đã đồng bộ
-                                </span>
+                      {combos.map((combo, index) => {
+                        const isCollapsed = collapsedCombos[index] ?? true;
+                        return (
+                          <motion.div
+                            key={combo.syncId || `combo-${index}`}
+                            initial={{ opacity: 0, height: 0, y: 15 }}
+                            animate={{ opacity: 1, height: 'auto', y: 0 }}
+                            exit={{ opacity: 0, height: 0, y: -15 }}
+                            transition={{ duration: 0.25, ease: 'easeInOut' }}
+                            layout
+                            className={cn(
+                              "border rounded-lg relative overflow-hidden transition-all duration-200",
+                              isCollapsed ? "p-3 space-y-0" : "p-4 space-y-4",
+                              draggedComboIndex === index ? "opacity-40" : "opacity-100",
+                              dragOverComboIndex === index ? "border-orange-400 bg-orange-50/20 dark:bg-orange-950/10 scale-[1.01]" : "border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30"
+                            )}
+                            {...getDragPropsCombo(index)}
+                          >
+                            {/* Header của Combo Card */}
+                            <div 
+                              className={cn(
+                                "flex items-center justify-between cursor-pointer select-none",
+                                isCollapsed ? "" : "border-b border-slate-100 dark:border-slate-800 pb-3"
                               )}
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md p-0 flex items-center justify-center"
-                              onClick={() => {
-                                setCombos(prev => prev.filter((_, i) => i !== index));
-                              }}
-                              title="Xóa combo"
+                              onClick={() => toggleComboCollapse(index)}
                             >
-                              <Trash2 size={16} />
-                            </Button>
-                          </div>
+                              <div className="flex items-center gap-2 min-w-0" onClick={(e) => e.stopPropagation()}>
+                                <div className="text-slate-400 cursor-grab active:cursor-grabbing hover:text-slate-600 transition-colors p-1" title="Kéo thả để sắp xếp">
+                                  <GripVertical size={16} />
+                                </div>
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold shrink-0 ${
+                                  combo.type === 'standard' 
+                                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400' 
+                                    : 'bg-purple-50 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400'
+                                }`}>
+                                  {combo.type === 'standard' ? 'Combo thường' : 'Combo mix'}
+                                </span>
+                                {combo.type === 'mix' && combo.isSynced && (
+                                  <span className="bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-0.5 rounded text-[10px] font-semibold shrink-0">
+                                    Đã đồng bộ
+                                  </span>
+                                )}
+                                
+                                {/* Tóm tắt thông tin khi thu gọn */}
+                                {isCollapsed && (
+                                  <div className="flex items-center gap-2 ml-2 min-w-0 truncate text-xs text-slate-500">
+                                    <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">
+                                      {combo.name || '(Trống tên)'}
+                                    </span>
+                                    <span className="text-slate-300">|</span>
+                                    <span className="text-emerald-600 font-bold shrink-0">
+                                      {combo.price ? `${combo.price.toLocaleString('vi-VN')} đ` : 'Liên hệ'}
+                                    </span>
+                                    {combo.type === 'standard' && combo.standardConfig && (
+                                      <>
+                                        <span className="text-slate-300">|</span>
+                                        <span className="shrink-0">
+                                          Mua tối thiểu {combo.standardConfig.minQty} chai
+                                        </span>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 text-slate-400 hover:text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md p-0 flex items-center justify-center"
+                                  onClick={() => toggleComboCollapse(index)}
+                                  title={isCollapsed ? "Mở rộng chi tiết" : "Thu gọn"}
+                                >
+                                  {isCollapsed ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-md p-0 flex items-center justify-center"
+                                  onClick={() => {
+                                    setCombos(prev => prev.filter((_, i) => i !== index));
+                                  }}
+                                  title="Xóa combo"
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            {!isCollapsed && (
+                              <>
 
                           {/* Nội dung Form tên và giá */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1898,9 +1955,12 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                                 )}
                               </div>
                             </div>
-                          )}
-                        </motion.div>
-                      ))}
+                            )}
+                          </>
+                        )}
+                      </motion.div>
+                    );
+                  })}
                     </AnimatePresence>
                   </div>
                 )}

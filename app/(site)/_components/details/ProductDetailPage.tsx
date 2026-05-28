@@ -3196,9 +3196,9 @@ function PremiumStyle({
                           key={combo.id || index}
                           onClick={handleComboClick}
                           className={cn(
-                            "rounded-xl p-3 flex flex-col justify-between transition-all cursor-pointer relative border select-none shrink-0 flex-grow-0",
+                            "rounded-xl p-4 flex flex-col justify-between transition-all cursor-pointer relative border select-none shrink-0 flex-grow-0",
                             isBestSeller ? "border-2" : "border",
-                            (product.combos?.length ?? 0) > 2 ? "w-[240px] md:w-[280px]" : "flex-1 min-w-[200px]"
+                            (product.combos?.length ?? 0) > 2 ? "w-[260px] md:w-[290px]" : "flex-1 min-w-[210px]"
                           )}
                           style={{
                             backgroundColor: tokens.surface,
@@ -3212,14 +3212,16 @@ function PremiumStyle({
                           )}
                           <div>
                             <div
-                              className="inline-block px-2.5 py-0.5 text-[9px] font-extrabold rounded-full text-white leading-none uppercase"
+                              className="inline-block px-2.5 py-0.5 text-[11px] font-bold rounded-md text-white leading-none uppercase"
                               style={{ backgroundColor: isBestSeller ? '#eab308' : brandColor }}
                             >
                               {cleanName}
                             </div>
-                            <p className="text-[10px] mt-1.5 line-clamp-1" style={{ color: tokens.metaText }}>
-                              {combo.description || 'Tiết kiệm tối đa khi mua gói'}
-                            </p>
+                            {combo.description && (
+                              <p className="text-[10px] mt-1.5 line-clamp-1" style={{ color: tokens.metaText }}>
+                                {combo.description}
+                              </p>
+                            )}
                             <p className="text-sm font-bold mt-2" style={{ color: tokens.headingColor }}>
                               {combo.price ? formatPrice(combo.price) : 'Liên hệ'}
                             </p>
@@ -3285,7 +3287,7 @@ function PremiumStyle({
                 <div className="flex gap-2">
                   <button
                     className={cn(
-                      "flex-1 py-3.5 px-4 rounded-xl font-bold flex items-center justify-center gap-1.5 text-white transition-all hover:shadow-lg hover:scale-[1.01]",
+                      "flex-1 py-2 px-2.5 md:py-3.5 md:px-4 rounded-xl font-bold flex items-center justify-center gap-1.5 text-white transition-all hover:shadow-lg hover:scale-[1.01]",
                       mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm',
                       "md:text-sm"
                     )}
@@ -3298,12 +3300,12 @@ function PremiumStyle({
                       }
                     }}
                   >
-                    {renderPremiumIcon(zaloIcon, 16, "rotate-[320deg] -mt-0.5") || <Send size={16} className="rotate-[320deg] -mt-0.5" />}
+                    {renderPremiumIcon(zaloIcon, 16, "-mt-0.5") || <Send size={16} className="-mt-0.5" />}
                     {zaloText}
                   </button>
                   <button
                     className={cn(
-                      "flex-1 py-3.5 px-4 rounded-xl font-bold border flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:scale-[1.01]",
+                      "flex-1 py-2 px-2.5 md:py-3.5 md:px-4 rounded-xl font-bold border flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:scale-[1.01]",
                       mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm',
                       "md:text-sm"
                     )}

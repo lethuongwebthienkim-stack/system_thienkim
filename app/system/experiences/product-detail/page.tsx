@@ -81,23 +81,51 @@ import {
 import type { ProductDetailElementColorChoice } from '@/components/site/products/detail/_lib/colors';
 import { resolveProductImageAspectRatio } from '@/lib/products/image-aspect-ratio';
 
-const PREMIUM_ICON_OPTIONS = [
-  { value: 'Send', label: 'Send / Zalo', Icon: Send },
-  { value: 'Phone', label: 'Điện thoại', Icon: Phone },
-  { value: 'MessageCircle', label: 'Message Circle', Icon: MessageCircle },
-  { value: 'MessageSquare', label: 'Message Square', Icon: MessageSquare },
-  { value: 'Award', label: 'Ribbon / Medal', Icon: Award },
-  { value: 'Gift', label: 'Quà tặng', Icon: Gift },
-  { value: 'Sparkles', label: 'Sparkles', Icon: Sparkles },
-  { value: 'Star', label: 'Star', Icon: Star },
-  { value: 'Heart', label: 'Heart', Icon: Heart },
-  { value: 'CheckCircle2', label: 'Tích xanh', Icon: CheckCircle2 },
-  { value: 'Shield', label: 'Bảo mật', Icon: Shield },
-  { value: 'Truck', label: 'Vận chuyển', Icon: Truck },
-  { value: 'Package', label: 'Package', Icon: Package },
-  { value: 'ShoppingBag', label: 'Shopping Bag', Icon: ShoppingBag },
-  { value: 'HelpCircle', label: 'Help', Icon: HelpCircle },
+import * as LucideIcons from 'lucide-react';
+
+const POPULAR_ICON_NAMES = [
+  // CTA & Phổ biến hàng đầu
+  'Send', 'Phone', 'PhoneCall', 'MessageCircle', 'MessageSquare', 'Mail', 'Globe', 'Sparkles', 'Star', 'Award', 
+  'Heart', 'Gift', 'ShoppingCart', 'ShoppingBag', 'Truck', 'MapPin', 'Shield', 'CheckCircle2', 'BadgeCheck', 'ThumbsUp',
+  // Nhóm Bán hàng & Ưu đãi
+  'Store', 'Tag', 'Compass', 'CreditCard', 'Badge', 'Banknote', 'Landmark', 'Percent', 'Zap', 'Wallet', 
+  'HandCoins', 'Receipt', 'PiggyBank', 'Trophy', 'Crown', 'Gem', 'Diamond', 'Medal', 'Verified', 'ShieldCheck',
+  'HeartHandshake', 'Leaf', 'Flame', 'Activity', 'Clock', 'Calendar', 'Bell', 'Bolt', 'Settings', 'Package', 
+  // Giao nhận & Du lịch
+  'Map', 'Navigation', 'Navigation2', 'Anchor', 'Flag', 'Plane', 'Train', 'Bus', 'Bike', 'Car',
+  // Giao tiếp & Thông tin
+  'HelpCircle', 'AlertCircle', 'Info', 'Share2', 'Eye', 'EyeOff', 'Search', 'User', 'Users', 'UserCheck', 
+  'UserPlus', 'Lock', 'Unlock', 'Key', 'KeyRound', 'Fingerprint', 'FileText', 'FileCheck2', 'Clipboard', 'List', 
+  // Biểu tượng & Phong cách sống
+  'Coffee', 'GlassWater', 'Wine', 'Beer', 'Utensils', 'ChefHat', 'Pizza', 'Cake', 'Cookie', 'Apple', 
+  'Banana', 'Citrus', 'Strawberry', 'TreePine', 'Trees', 'Flower2', 'Sprout', 'Sun', 'Moon', 'Cloud', 
+  'CloudRain', 'Wind', 'Umbrella', 'Smile', 'Laugh', 'Music', 'Volume2', 'Video', 'Tv', 'Laptop', 
+  // Công nghệ & Kinh doanh
+  'Smartphone', 'Tablet', 'Monitor', 'Cpu', 'Server', 'Database', 'HardDrive', 'Network', 'Wifi', 'Battery', 
+  'Briefcase', 'Folder', 'FolderOpen', 'Archive', 'Book', 'BookOpen', 'GraduationCap', 'Bookmark', 'Scissors', 'Wrench', 
+  'Hammer', 'Nut', 'Screwdriver', 'Paintbrush', 'Palette', 'PenTool', 'Pencil', 'Eraser', 'Ruler', 'StickyNote', 
+  // Mở rộng thêm cho đủ 200+ icon
+  'AlertTriangle', 'BookmarkCheck', 'Boxes', 'CalendarClock', 'CalendarDays', 'Camera', 'CircleDollarSign', 'CirclePercent', 'Coins', 'ConciergeBell',
+  'DollarSign', 'Download', 'Euro', 'ExternalLink', 'FileCode2', 'FileHeart', 'FileImage', 'FileSpreadsheet', 'FolderHeart', 'GiftCard',
+  'HammerIcon', 'HandHeart', 'History', 'Home', 'Hourglass', 'Inbox', 'Languages', 'Layers', 'LifeBuoy', 'Lightbulb',
+  'Link2', 'Link', 'Megaphone', 'Menu', 'MessagesSquare', 'Mic', 'MonitorCheck', 'MonitorPlay', 'MonitorSmartphone', 'Newspaper',
+  'Package2', 'PackageCheck', 'PackagePlus', 'PackageSearch', 'PackageX', 'PartyPopper', 'PhoneForwarded', 'PhoneIncoming', 'PhoneMissed', 'PhoneOutgoing',
+  'Plug', 'Power', 'QrCode', 'Radio', 'ReceiptCent', 'ReceiptText', 'RefreshCw', 'RotateCcw', 'Scale', 'Scan',
+  'ScanFace', 'ScanLine', 'SearchCode', 'SendHorizontal', 'ServerCog', 'ShoppingBag2', 'ShoppingCart2', 'Shuffle', 'Sigma', 'Signpost',
+  'Siren', 'Sliders', 'Sparkle', 'Speaker', 'Speech', 'SquareAsterisk', 'SquareDollarSign', 'SquarePercent', 'Stamp', 'StarHalf',
+  'Subscription', 'Tag2', 'Tags', 'Target', 'Telescope', 'Ticket', 'TrendingDown', 'TrendingUp', 'Truck2', 'Tv2',
+  'Undo2', 'Upload', 'User2', 'UserCog', 'VideoOff', 'Voicemail', 'VolumeX', 'Warehouse', 'Watch', 'Webcam',
+  'Wrench2', 'Youtube', 'ZapOff', 'CircleDot', 'Check', 'Plus', 'Minus', 'Trash2', 'ChevronRight', 'ChevronLeft'
 ];
+
+const PREMIUM_ICON_OPTIONS = POPULAR_ICON_NAMES.map((name) => {
+  const IconComp = (LucideIcons as any)[name];
+  return {
+    value: name,
+    label: name,
+    Icon: IconComp || LucideIcons.Star
+  };
+});
 
 const ZaloSvg = ({ size = 18 }: { size?: number }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor">
@@ -1480,15 +1508,36 @@ export default function ProductDetailExperiencePage() {
                           />
                         </div>
                       </div>
-                      <div>
+                      <div className="flex items-center justify-between">
                         <label className="text-[10px] text-slate-400">Link Zalo (Để trống để tự động lấy từ Settings hệ thống)</label>
-                        <Input
-                          value={premiumLayoutConfig.zaloUrl ?? ''}
-                          onChange={(e) => updateLayoutConfig('zaloUrl' as keyof typeof currentLayoutConfig, e.target.value as never)}
-                          placeholder="VD: 0912345678 hoặc link Zalo"
-                          className="h-8 text-xs px-2"
-                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 text-[10px] text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded px-1.5 flex items-center gap-1"
+                          onClick={() => {
+                            if (!systemSettingsForSocial) {
+                              toast.error('Cấu hình hệ thống chưa tải xong.');
+                              return;
+                            }
+                            const val = (systemSettingsForSocial as any)?.contact_zalo?.trim() || '';
+                            if (!val) {
+                              toast.warning('Zalo hệ thống trống.');
+                              return;
+                            }
+                            updateLayoutConfig('zaloUrl' as keyof typeof currentLayoutConfig, val as never);
+                            toast.success('Đã tải Zalo cấu hình chung');
+                          }}
+                        >
+                          Tải từ cấu hình chung
+                        </Button>
                       </div>
+                      <Input
+                        value={premiumLayoutConfig.zaloUrl ?? ''}
+                        onChange={(e) => updateLayoutConfig('zaloUrl' as keyof typeof currentLayoutConfig, e.target.value as never)}
+                        placeholder="VD: 0912345678 hoặc link Zalo"
+                        className="h-8 text-xs px-2"
+                      />
                     </div>
 
                     {/* Phone Button Settings */}
@@ -1514,15 +1563,36 @@ export default function ProductDetailExperiencePage() {
                           />
                         </div>
                       </div>
-                      <div>
+                      <div className="flex items-center justify-between">
                         <label className="text-[10px] text-slate-400">Số điện thoại (Để trống để lấy từ Settings hệ thống)</label>
-                        <Input
-                          value={premiumLayoutConfig.phoneUrl ?? ''}
-                          onChange={(e) => updateLayoutConfig('phoneUrl' as keyof typeof currentLayoutConfig, e.target.value as never)}
-                          placeholder="VD: 0912345678"
-                          className="h-8 text-xs px-2"
-                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 text-[10px] text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded px-1.5 flex items-center gap-1"
+                          onClick={() => {
+                            if (!systemSettingsForSocial) {
+                              toast.error('Cấu hình hệ thống chưa tải xong.');
+                              return;
+                            }
+                            const val = (systemSettingsForSocial as any)?.contact_phone?.trim() || '';
+                            if (!val) {
+                              toast.warning('Số điện thoại hệ thống trống.');
+                              return;
+                            }
+                            updateLayoutConfig('phoneUrl' as keyof typeof currentLayoutConfig, val as never);
+                            toast.success('Đã tải SĐT cấu hình chung');
+                          }}
+                        >
+                          Tải từ cấu hình chung
+                        </Button>
                       </div>
+                      <Input
+                        value={premiumLayoutConfig.phoneUrl ?? ''}
+                        onChange={(e) => updateLayoutConfig('phoneUrl' as keyof typeof currentLayoutConfig, e.target.value as never)}
+                        placeholder="VD: 0912345678"
+                        className="h-8 text-xs px-2"
+                      />
                     </div>
 
                     {/* Font Size & Price Box Icons Settings */}
