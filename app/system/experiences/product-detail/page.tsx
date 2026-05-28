@@ -35,7 +35,6 @@ import {
   Shield,
   ShoppingCart,
   Star,
-  Sparkles,
   ThumbsUp,
   Trash2,
   Truck,
@@ -67,9 +66,7 @@ import {
   type LayoutOption,
 } from '@/components/experiences/editor';
 import { IconPopoverPicker } from '@/app/admin/home-components/_shared/components/IconPopoverPicker';
-import { 
-  MessageCircle, HelpCircle, ShoppingBag, 
-} from 'lucide-react';
+
 import { useExperienceConfig, useExampleProduct, useExampleProductSlug, EXPERIENCE_GROUP, EXPERIENCE_NAMES, MESSAGES } from '@/lib/experiences';
 import { useBrandColors } from '@/components/site/hooks';
 import {

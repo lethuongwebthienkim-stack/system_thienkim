@@ -361,7 +361,7 @@ function useProductDetailExperienceConfig(): ProductDetailExperienceConfig {
       premiumBannerText: (raw?.layouts?.premium as any)?.premiumBannerText ?? 'white',
       showPremiumBanner: (raw?.layouts?.premium as any)?.showPremiumBanner ?? true,
       premiumBannerItems: Array.isArray((raw?.layouts?.premium as any)?.premiumBannerItems)
-        ? (raw?.layouts?.premium as any).premiumBannerItems as { title: string; subtitle: string }[]
+        ? (raw?.layouts?.premium as any)?.premiumBannerItems as { title: string; subtitle: string }[]
         : undefined,
       zaloText: (raw?.layouts?.premium as any)?.zaloText ?? 'MUA QUA ZALO',
       zaloIcon: (raw?.layouts?.premium as any)?.zaloIcon ?? 'Send',
@@ -2617,16 +2617,12 @@ function PremiumStyle({
   showRating,
   showWishlist,
   showShare,
-  showBuyNow,
-  buyNowLabel,
   imageAspectRatio,
   showAllProductImagesSection,
-  requireStockForBuyNow,
   isWishlisted,
   onToggleWishlist,
   onShare,
   onAddToCart,
-  onBuyNow,
   commentsSection,
   supplementalContent,
   routeMode,
@@ -2637,8 +2633,6 @@ function PremiumStyle({
   enableCategoryProductDetailFaq,
   enableCombos,
   comboProductsMap,
-  comboAnimateType,
-  comboEffectColor,
   accentColors,
   showSocialButtons,
   socialButtons,
@@ -2684,7 +2678,7 @@ function PremiumStyle({
     return `tel:${rawUrl.replace(/\s+/g, '')}`;
   }, [phoneUrl, systemPhone]);
 
-  const [activeMixCombo, setActiveMixCombo] = useState<any | null>(null);
+  const [activeMixCombo, setActiveMixCombo] = useState<any>(null);
 
   const [comboRef, comboApi] = useEmblaCarousel({
     align: 'start',
@@ -2858,7 +2852,6 @@ function PremiumStyle({
     : 0;
   const stockValue = selectedVariant?.stock ?? product.stock;
   const inStock = !showStock || stockValue > 0;
-  const buyNowDisabled = requireStockForBuyNow && !inStock;
   const stockStatus = showStock
     ? stockValue > 10
       ? { label: 'Còn hàng', color: tokens.stockSuccessText }
@@ -3944,7 +3937,7 @@ function ProductAttributesBadgesModernMinimal({
             <span className="truncate" title={`${groupItem.group.name}: ${valuesStr}`}>
               <span className="opacity-60 font-normal uppercase text-[10px] mr-1">{groupItem.group.name}:</span>
               <span className="font-semibold">
-                {groupItem.terms.map((term, tIdx) => (
+                {groupItem.terms.map((term) => (
                   <span
                     key={term._id}
                     onClick={(e) => {
