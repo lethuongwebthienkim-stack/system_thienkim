@@ -1,6 +1,15 @@
 'use client';
 
 import React, { use, useEffect, useMemo, useRef, useState } from 'react';
+import * as LucideReact from 'lucide-react';
+
+const renderPremiumIcon = (iconName: string | undefined, size = 16, className = '', style = {}) => {
+  if (!iconName) return null;
+  const IconComponent = (LucideReact as any)[iconName];
+  if (!IconComponent) return null;
+  return <IconComponent size={size} className={className} style={style} />;
+};
+import { cn } from '@/app/admin/components/ui';
 import useEmblaCarousel from 'embla-carousel-react';
 import { getAttributeIconComponent } from '@/app/admin/attribute-groups/_lib/iconRegistry';
 import Link from 'next/link';
@@ -354,6 +363,17 @@ function useProductDetailExperienceConfig(): ProductDetailExperienceConfig {
       premiumBannerItems: Array.isArray((raw?.layouts?.premium as any)?.premiumBannerItems)
         ? (raw?.layouts?.premium as any).premiumBannerItems as { title: string; subtitle: string }[]
         : undefined,
+      zaloText: (raw?.layouts?.premium as any)?.zaloText ?? 'MUA QUA ZALO',
+      zaloIcon: (raw?.layouts?.premium as any)?.zaloIcon ?? 'Send',
+      zaloUrl: (raw?.layouts?.premium as any)?.zaloUrl ?? '',
+      phoneText: (raw?.layouts?.premium as any)?.phoneText ?? 'GỌI TƯ VẤN',
+      phoneIcon: (raw?.layouts?.premium as any)?.phoneIcon ?? 'Phone',
+      phoneUrl: (raw?.layouts?.premium as any)?.phoneUrl ?? '',
+      mobileFontSize: (raw?.layouts?.premium as any)?.mobileFontSize ?? 'xs',
+      priceLeftIcon: (raw?.layouts?.premium as any)?.priceLeftIcon ?? 'Award',
+      priceRightIcon: (raw?.layouts?.premium as any)?.priceRightIcon ?? 'Gift',
+      showPriceLeftIcon: (raw?.layouts?.premium as any)?.showPriceLeftIcon !== false,
+      showPriceRightIcon: (raw?.layouts?.premium as any)?.showPriceRightIcon !== false,
     };
   }, [experienceSetting?.value, legacyHighlightsEnabled, legacyStyle, cartAvailable, canUseComments, canUseCommentLikes, canUseCommentReplies, canUseWishlist, ordersEnabled, moduleDefaultAspectRatio]);
 }
@@ -1063,6 +1083,17 @@ export default function ProductDetailPage({ params }: PageProps) {
           showPremiumBanner={experienceConfig.showPremiumBanner}
           enableProductTypes={enableProductTypes}
           productTypeSlugMap={productTypeSlugMap}
+          zaloText={(experienceConfig as any).zaloText}
+          zaloIcon={(experienceConfig as any).zaloIcon}
+          zaloUrl={(experienceConfig as any).zaloUrl}
+          phoneText={(experienceConfig as any).phoneText}
+          phoneIcon={(experienceConfig as any).phoneIcon}
+          phoneUrl={(experienceConfig as any).phoneUrl}
+          mobileFontSize={(experienceConfig as any).mobileFontSize}
+          priceLeftIcon={(experienceConfig as any).priceLeftIcon}
+          priceRightIcon={(experienceConfig as any).priceRightIcon}
+          showPriceLeftIcon={(experienceConfig as any).showPriceLeftIcon}
+          showPriceRightIcon={(experienceConfig as any).showPriceRightIcon}
         />
       )}
       {experienceConfig.layoutStyle === 'classic' && (
@@ -2547,6 +2578,17 @@ interface PremiumStyleProps extends StyleProps, ExperienceBlocksProps {
   showPremiumBanner?: boolean;
   enableProductTypes?: boolean;
   productTypeSlugMap?: Map<string, string>;
+  zaloText?: string;
+  zaloIcon?: string;
+  zaloUrl?: string;
+  phoneText?: string;
+  phoneIcon?: string;
+  phoneUrl?: string;
+  mobileFontSize?: 'xs' | 'sm' | 'base';
+  priceLeftIcon?: string;
+  priceRightIcon?: string;
+  showPriceLeftIcon?: boolean;
+  showPriceRightIcon?: boolean;
 }
 
 function PremiumStyle({
@@ -2608,11 +2650,61 @@ function PremiumStyle({
   showPremiumBanner = true,
   enableProductTypes,
   productTypeSlugMap,
+  zaloText = 'MUA QUA ZALO',
+  zaloIcon = 'Send',
+  zaloUrl = '',
+  phoneText = 'GỌI TƯ VẤN',
+  phoneIcon = 'Phone',
+  phoneUrl = '',
+  mobileFontSize = 'xs',
+  priceLeftIcon = 'Award',
+  priceRightIcon = 'Gift',
+  showPriceLeftIcon = true,
+  showPriceRightIcon = true,
 }: PremiumStyleProps) {
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<VariantSelectionMap>({});
+
+  const systemZalo = useQuery(api.settings.getValue, { key: 'contact_zalo', defaultValue: '' });
+  const systemPhone = useQuery(api.settings.getValue, { key: 'contact_phone', defaultValue: '' });
+
+  const realZaloLink = useMemo(() => {
+    const rawUrl = zaloUrl || (systemZalo as string) || '';
+    if (!rawUrl) return '';
+    if (/^https?:\/\//.test(rawUrl)) return rawUrl;
+    return `https://zalo.me/${rawUrl.replace(/\s+/g, '')}`;
+  }, [zaloUrl, systemZalo]);
+
+  const realPhoneLink = useMemo(() => {
+    const rawUrl = phoneUrl || (systemPhone as string) || '';
+    if (!rawUrl) return '';
+    if (rawUrl.startsWith('tel:')) return rawUrl;
+    return `tel:${rawUrl.replace(/\s+/g, '')}`;
+  }, [phoneUrl, systemPhone]);
+
+  const [activeMixCombo, setActiveMixCombo] = useState<any | null>(null);
+
+  const [comboRef, comboApi] = useEmblaCarousel({
+    align: 'start',
+    containScroll: 'trimSnaps',
+    dragFree: true,
+    loop: false
+  });
+  const [canScrollComboPrev, setCanScrollComboPrev] = useState(false);
+  const [canScrollComboNext, setCanScrollComboNext] = useState(false);
+
+  useEffect(() => {
+    if (!comboApi) return;
+    const onSelect = () => {
+      setCanScrollComboPrev(comboApi.canScrollPrev());
+      setCanScrollComboNext(comboApi.canScrollNext());
+    };
+    comboApi.on('select', onSelect);
+    comboApi.on('reInit', onSelect);
+    onSelect();
+  }, [comboApi]);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false });
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -2992,13 +3084,17 @@ function PremiumStyle({
                   borderColor: tokens.border,
                 }}
               >
-                <div className="absolute -right-6 -bottom-6 opacity-[0.03] pointer-events-none" style={{ color: tokens.primary }}>
-                  <Gift size={120} />
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl" style={{ backgroundColor: tokens.surface, color: tokens.primary }}>
-                    <Award size={20} />
+                {showPriceRightIcon !== false && (
+                  <div className="absolute -right-6 -bottom-6 opacity-[0.03] pointer-events-none" style={{ color: tokens.primary }}>
+                    {renderPremiumIcon(priceRightIcon, 120) || <Gift size={120} />}
                   </div>
+                )}
+                <div className="flex items-start gap-3">
+                  {showPriceLeftIcon !== false && (
+                    <div className="p-2 rounded-xl" style={{ backgroundColor: tokens.surface, color: tokens.primary }}>
+                      {renderPremiumIcon(priceLeftIcon, 20) || <Award size={20} />}
+                    </div>
+                  )}
                   <div className="flex-1 space-y-1">
                     <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>GIÁ ƯU ĐÃI HÔM NAY</p>
                     <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
@@ -3032,78 +3128,134 @@ function PremiumStyle({
               </div>
             )}
 
-            {/* Box Combo dạng so sánh song song chuyên nghiệp - DỮ LIỆU THỰC */}
-            {enableCombos && saleMode === 'contact' && !product.hasVariants && product.combos && product.combos.length > 0 && (
-              <div className="space-y-3">
-                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>ƯU ĐÃI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {product.combos.slice(0, 2).map((combo, index) => {
-                    const isBestSeller = index === 1;
-                    
-                    let totalBottles = 1;
-                    if (combo.type === 'standard') {
-                      totalBottles = combo.standardConfig?.minQty || 1;
-                    } else if (combo.type === 'mix') {
-                      const mixItemsQty = combo.mixConfig?.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0;
-                      totalBottles = (combo.mixConfig?.currentProductQty || 1) + mixItemsQty;
-                    } else if (Array.isArray((combo as any).products)) {
-                      totalBottles = (combo as any).products.reduce((acc: number, p: { quantity: number }) => acc + p.quantity, 0);
-                    }
-
-                    const avgPricePerBottle = combo.price ? Math.round(combo.price / totalBottles) : 0;
-                    
-                    return (
-                      <div
-                        key={combo.id || index}
-                        onClick={() => setQuantity(totalBottles)}
-                        className={`rounded-xl p-3 flex flex-col justify-between transition-all cursor-pointer relative ${isBestSeller ? 'border-2' : 'border'}`}
-                        style={{
-                          backgroundColor: tokens.surface,
-                          borderColor: isBestSeller ? brandColor : tokens.border,
-                        }}
+            {/* Box Combo dạng trượt Carousel chuyên nghiệp - DỮ LIỆU THỰC */}
+            {enableCombos && product.combos && product.combos.length > 0 && (
+              <div className="space-y-3 relative">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-extrabold uppercase tracking-wider animate-pulse" style={{ color: tokens.metaText }}>
+                    ƯU ĐÃI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN
+                  </p>
+                  {product.combos.length > 2 && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => comboApi?.scrollPrev()}
+                        disabled={!canScrollComboPrev}
+                        className="h-6 w-6 rounded-full flex items-center justify-center transition-all opacity-70 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95 border"
+                        style={{ color: tokens.headingColor, backgroundColor: tokens.surface, borderColor: tokens.border }}
                       >
-                        {isBestSeller && (
-                          <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-0.5" style={{ backgroundColor: '#eab308' }}>
-                            ★ BÁN CHẠY
-                          </div>
-                        )}
-                        <div>
-                          <div
-                            className="inline-block px-2.5 py-0.5 text-[10px] font-bold rounded-full text-white"
-                            style={{ backgroundColor: isBestSeller ? '#eab308' : brandColor }}
-                          >
-                            {combo.name.toUpperCase()}
-                          </div>
-                          <p className="text-[10px] mt-1.5 line-clamp-1" style={{ color: tokens.metaText }}>
-                            {combo.description || 'Tiết kiệm tối đa khi mua gói'}
-                          </p>
-                          <p className="text-sm font-bold mt-2" style={{ color: tokens.headingColor }}>
-                            {combo.price ? formatPrice(combo.price) : 'Liên hệ'}
-                          </p>
-                          {avgPricePerBottle > 0 && (
-                            <p className="text-[10px] font-semibold" style={{ color: tokens.priceColor }}>
-                              Chi ~{formatPrice(avgPricePerBottle)} / chai
+                        <ChevronLeft size={12} strokeWidth={3} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => comboApi?.scrollNext()}
+                        disabled={!canScrollComboNext}
+                        className="h-6 w-6 rounded-full flex items-center justify-center transition-all opacity-70 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95 border"
+                        style={{ color: tokens.headingColor, backgroundColor: tokens.surface, borderColor: tokens.border }}
+                      >
+                        <ChevronRight size={12} strokeWidth={3} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="overflow-hidden" ref={comboRef}>
+                  <div className="flex gap-3">
+                    {product.combos.map((combo, index) => {
+                      const isBestSeller = index === 0; // Combo đầu tiên là bán chạy
+                      
+                      let totalBottles = 1;
+                      if (combo.type === 'standard') {
+                        totalBottles = combo.standardConfig?.minQty || 1;
+                      } else if (combo.type === 'mix') {
+                        const mixItemsQty = combo.mixConfig?.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0;
+                        totalBottles = (combo.mixConfig?.currentProductQty || 1) + mixItemsQty;
+                      } else if (Array.isArray((combo as any).products)) {
+                        totalBottles = (combo as any).products.reduce((acc: number, p: { quantity: number }) => acc + p.quantity, 0);
+                      }
+
+                      const avgPricePerBottle = combo.price ? Math.round(combo.price / totalBottles) : 0;
+                      
+                      // Sửa lỗi gạch ngang thô
+                      const rawComboName = typeof combo.name === 'string' ? combo.name.trim() : '';
+                      const hasCleanName = rawComboName && rawComboName !== '-' && rawComboName !== '--';
+                      const cleanName = hasCleanName
+                        ? combo.name.toUpperCase()
+                        : (combo.type === 'mix' ? 'COMBO ĐẶC BIỆT' : `COMBO ${totalBottles} CHAI`);
+
+                      const handleComboClick = () => {
+                        if (combo.type === 'mix') {
+                          setActiveMixCombo(combo);
+                        } else {
+                          setQuantity(totalBottles);
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={combo.id || index}
+                          onClick={handleComboClick}
+                          className={cn(
+                            "rounded-xl p-3 flex flex-col justify-between transition-all cursor-pointer relative border select-none shrink-0 flex-grow-0",
+                            isBestSeller ? "border-2" : "border",
+                            (product.combos?.length ?? 0) > 2 ? "w-[240px] md:w-[280px]" : "flex-1 min-w-[200px]"
+                          )}
+                          style={{
+                            backgroundColor: tokens.surface,
+                            borderColor: isBestSeller ? brandColor : tokens.border,
+                          }}
+                        >
+                          {isBestSeller && (
+                            <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-0.5" style={{ backgroundColor: '#eab308' }}>
+                              ★ BÁN CHẠY
+                            </div>
+                          )}
+                          <div>
+                            <div
+                              className="inline-block px-2.5 py-0.5 text-[9px] font-extrabold rounded-full text-white leading-none uppercase"
+                              style={{ backgroundColor: isBestSeller ? '#eab308' : brandColor }}
+                            >
+                              {cleanName}
+                            </div>
+                            <p className="text-[10px] mt-1.5 line-clamp-1" style={{ color: tokens.metaText }}>
+                              {combo.description || 'Tiết kiệm tối đa khi mua gói'}
                             </p>
+                            <p className="text-sm font-bold mt-2" style={{ color: tokens.headingColor }}>
+                              {combo.price ? formatPrice(combo.price) : 'Liên hệ'}
+                            </p>
+                            {avgPricePerBottle > 0 && (
+                              <p className="text-[10px] font-semibold" style={{ color: tokens.priceColor }}>
+                                Chi ~{formatPrice(avgPricePerBottle)} / chai
+                              </p>
+                            )}
+                          </div>
+                          {combo.price && (
+                            <div className="border-t pt-2 mt-3 flex items-center justify-between text-[9px] font-medium" style={{ borderColor: tokens.divider, color: tokens.priceColor }}>
+                              <span className="flex items-center gap-1">
+                                <Gift size={10} />
+                                <span>{combo.type === 'mix' ? 'Xem chi tiết bộ sản phẩm' : 'Tiết kiệm nhiều hơn'}</span>
+                              </span>
+                              {combo.type === 'mix' && <ChevronRight size={10} />}
+                            </div>
+                          )}
+                          {combo.type !== 'mix' && (
+                            <div
+                              className={cn(
+                                "absolute right-2 top-2 h-4 w-4 rounded-full flex items-center justify-center",
+                                isBestSeller ? "border-2" : "border"
+                              )}
+                              style={{ borderColor: isBestSeller ? brandColor : tokens.border }}
+                            >
+                              <div
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: quantity === totalBottles ? brandColor : 'transparent' }}
+                              />
+                            </div>
                           )}
                         </div>
-                        {combo.price && (
-                          <div className="border-t pt-2 mt-3 flex items-center gap-1 text-[9px] font-medium" style={{ borderColor: tokens.divider, color: tokens.priceColor }}>
-                            <Gift size={10} />
-                            <span>Tiết kiệm nhiều hơn</span>
-                          </div>
-                        )}
-                        <div
-                          className={`absolute right-2 top-2 h-4 w-4 rounded-full flex items-center justify-center ${isBestSeller ? 'border-2' : 'border'}`}
-                          style={{ borderColor: isBestSeller ? brandColor : tokens.border }}
-                        >
-                          <div
-                            className="h-2.5 w-2.5 rounded-full"
-                            style={{ backgroundColor: quantity === totalBottles ? brandColor : 'transparent' }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
@@ -3112,7 +3264,7 @@ function PremiumStyle({
             <div className="flex flex-wrap items-center gap-4 mb-4 md:mb-8 pt-2">
               <div className="flex items-center border rounded-lg" style={{ borderColor: tokens.quantityBorder }}>
                 <button
-                  onClick={() =>{  setQuantity(q => Math.max(1, q - 1)); }}
+                  onClick={() => { setQuantity(q => Math.max(1, q - 1)); }}
                   className="p-3 transition-colors"
                   disabled={quantity <= 1}
                 >
@@ -3120,7 +3272,7 @@ function PremiumStyle({
                 </button>
                 <span className="w-12 text-center font-medium" style={{ color: tokens.quantityText }}>{quantity}</span>
                 <button
-                  onClick={() =>{  setQuantity(q => Math.min(showStock ? stockValue : 99, q + 1)); }}
+                  onClick={() => { setQuantity(q => Math.min(showStock ? stockValue : 99, q + 1)); }}
                   className="p-3 transition-colors"
                   disabled={showStock && quantity >= stockValue}
                 >
@@ -3131,26 +3283,41 @@ function PremiumStyle({
               {/* Nút CTA - Đóng gói mượt mà */}
               <div className="flex flex-1 flex-col gap-2">
                 <div className="flex gap-2">
-                  {showSocialButtons && (
-                    <button
-                      className="flex-1 py-3.5 px-4 rounded-xl font-bold flex items-center justify-center gap-1.5 text-white transition-all hover:shadow-lg hover:scale-[1.01]"
-                      style={{ backgroundColor: brandColor }}
-                      onClick={() => {
-                        const zaloBtn = socialButtons?.find(b => b.icon.toLowerCase().includes('zalo') || b.icon.toLowerCase().includes('phone'));
-                        if (zaloBtn?.url) { window.open(zaloBtn.url, '_blank'); } else { onShare(); }
-                      }}
-                    >
-                      <Send size={16} className="rotate-[320deg] -mt-0.5" />
-                      MUA QUA ZALO
-                    </button>
-                  )}
                   <button
-                    className="flex-1 py-3.5 px-4 rounded-xl font-bold border flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:scale-[1.01]"
-                    style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}
-                    onClick={onShare}
+                    className={cn(
+                      "flex-1 py-3.5 px-4 rounded-xl font-bold flex items-center justify-center gap-1.5 text-white transition-all hover:shadow-lg hover:scale-[1.01]",
+                      mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm',
+                      "md:text-sm"
+                    )}
+                    style={{ backgroundColor: brandColor }}
+                    onClick={() => {
+                      if (realZaloLink) {
+                        window.open(realZaloLink, '_blank');
+                      } else {
+                        onShare();
+                      }
+                    }}
                   >
-                    <Phone size={16} />
-                    GỌI TƯ VẤN
+                    {renderPremiumIcon(zaloIcon, 16, "rotate-[320deg] -mt-0.5") || <Send size={16} className="rotate-[320deg] -mt-0.5" />}
+                    {zaloText}
+                  </button>
+                  <button
+                    className={cn(
+                      "flex-1 py-3.5 px-4 rounded-xl font-bold border flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:scale-[1.01]",
+                      mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm',
+                      "md:text-sm"
+                    )}
+                    style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}
+                    onClick={() => {
+                      if (realPhoneLink) {
+                        window.location.href = realPhoneLink;
+                      } else {
+                        onShare();
+                      }
+                    }}
+                  >
+                    {renderPremiumIcon(phoneIcon, 16) || <Phone size={16} />}
+                    {phoneText}
                   </button>
                 </div>
                 {showAddToCart && (
@@ -3553,6 +3720,152 @@ function PremiumStyle({
           </Link>
         </div>
       </div>
+
+      {/* Modal Glassmorphism Combo Mix */}
+      {activeMixCombo && (() => {
+        const mixConfig = activeMixCombo.mixConfig;
+        const curQty = mixConfig?.currentProductQty || 1;
+        const rewardText = mixConfig?.rewardType === 'discount_percent'
+          ? `Giảm ${mixConfig.rewardValue}%`
+          : mixConfig?.rewardType === 'discount_amount'
+            ? `Giảm ${formatPrice(mixConfig.rewardValue || 0)}`
+            : `Tặng quà kèm theo`;
+
+        const totalQty = curQty + (mixConfig?.items?.reduce((acc: number, item: any) => acc + (item.quantity || 0), 0) || 0);
+
+        return (
+          <div 
+            className="fixed inset-0 bg-black/75 backdrop-blur-md z-[99999] flex items-center justify-center p-4"
+            onClick={() => setActiveMixCombo(null)}
+          >
+            <div 
+              className="rounded-3xl p-6 md:p-8 max-w-lg w-full border text-left relative shadow-2xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200"
+              style={{ 
+                backgroundColor: `${tokens.surface}f0`,
+                borderColor: tokens.border,
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Trang trí background chìm sang trọng */}
+              <div className="absolute -right-16 -bottom-16 opacity-[0.04] pointer-events-none" style={{ color: brandColor }}>
+                <Gift size={260} />
+              </div>
+              
+              <button 
+                className="absolute top-4 right-4 h-8 w-8 rounded-full border flex items-center justify-center opacity-60 hover:opacity-100 hover:scale-105 active:scale-95 transition-all text-sm font-bold bg-slate-50 dark:bg-slate-900"
+                style={{ color: tokens.bodyText, borderColor: tokens.border }}
+                onClick={() => setActiveMixCombo(null)}
+              >
+                ✕
+              </button>
+
+              <div className="space-y-6">
+                <div>
+                  <div className="inline-block px-3 py-1 bg-purple-50 text-purple-600 dark:bg-purple-950/40 dark:text-purple-400 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2">
+                    ★ GÓI COMBO MIX ĐẶC BIỆT
+                  </div>
+                  <h3 className="text-xl font-extrabold" style={{ color: tokens.headingColor }}>
+                    {activeMixCombo.name || 'Combo Trọn Bộ'}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {activeMixCombo.description || 'Sự kết hợp hoàn hảo từ chuyên gia Thiên Kim Wine.'}
+                  </p>
+                </div>
+
+                <div className="border-t border-b py-4 space-y-3" style={{ borderColor: tokens.divider }}>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Danh sách sản phẩm trong combo:</p>
+                  
+                  {/* Sản phẩm chủ thể hiện tại */}
+                  <div className="flex items-center justify-between p-2.5 rounded-xl border" style={{ backgroundColor: tokens.surfaceMuted, borderColor: tokens.border }}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      {product.image ? (
+                        <img src={product.image} alt={product.name} className="h-10 w-10 object-cover rounded-lg border shrink-0 bg-white" />
+                      ) : (
+                        <div className="h-10 w-10 rounded-lg border shrink-0 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                          <Package size={16} />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-bold text-xs truncate" style={{ color: tokens.headingColor }}>{product.name}</p>
+                        <p className="text-[10px] text-slate-400">Sản phẩm chính</p>
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-slate-600 font-extrabold px-2.5 py-1 bg-slate-200/50 dark:bg-slate-800 rounded-lg text-xs">x{curQty}</span>
+                  </div>
+
+                  {/* Các sản phẩm mua kèm thêm */}
+                  {mixConfig?.items?.map((item: any, idx: number) => {
+                    const pInfo = comboProductsMap?.get(item.productId);
+                    return (
+                      <div key={idx} className="flex items-center justify-between p-2.5 rounded-xl border" style={{ backgroundColor: tokens.surfaceMuted, borderColor: tokens.border }}>
+                        {pInfo ? (
+                          <div className="flex items-center gap-3 min-w-0">
+                            {pInfo.image ? (
+                              <img src={pInfo.image} alt={pInfo.name} className="h-10 w-10 object-cover rounded-lg border shrink-0 bg-white" />
+                            ) : (
+                              <div className="h-10 w-10 rounded-lg border shrink-0 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                                <Package size={16} />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="font-bold text-xs truncate" style={{ color: tokens.headingColor }}>{pInfo.name}</p>
+                              <p className="text-[10px] text-slate-400">Sản phẩm đi kèm</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-10 w-10 rounded-lg border shrink-0 bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                              <Package size={16} />
+                            </div>
+                            <span className="font-medium text-slate-400 text-xs truncate">Sản phẩm đi kèm</span>
+                          </div>
+                        )}
+                        <span className="shrink-0 text-slate-600 font-extrabold px-2.5 py-1 bg-slate-200/50 dark:bg-slate-800 rounded-lg text-xs">x{item.quantity}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between bg-emerald-50/40 dark:bg-emerald-950/10 p-4 rounded-2xl border border-emerald-500/20">
+                  <div>
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 uppercase tracking-wide block">Ưu đãi đặc biệt</span>
+                    <span className="text-sm font-extrabold text-emerald-700 dark:text-emerald-400">{rewardText}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide block">Giá trọn bộ</span>
+                    <span className="text-lg font-extrabold" style={{ color: tokens.primary }}>
+                      {activeMixCombo.price ? formatPrice(activeMixCombo.price) : 'Liên hệ'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button 
+                    type="button"
+                    className="flex-1 py-3 px-4 rounded-xl text-xs font-bold border flex items-center justify-center gap-1.5 transition-all hover:bg-slate-50"
+                    style={{ color: tokens.bodyText, borderColor: tokens.border }}
+                    onClick={() => setActiveMixCombo(null)}
+                  >
+                    Đóng lại
+                  </button>
+                  <button 
+                    type="button"
+                    className="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-white transition-all hover:shadow-lg active:scale-95"
+                    style={{ backgroundColor: brandColor }}
+                    onClick={() => {
+                      setQuantity(totalQty);
+                      setActiveMixCombo(null);
+                      toast.success(`Đã chọn mua trọn bộ combo: ${activeMixCombo.name || 'Combo Mix'}`);
+                    }}
+                  >
+                    Chọn mua combo này
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

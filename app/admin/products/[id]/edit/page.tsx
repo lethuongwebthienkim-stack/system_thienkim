@@ -7,10 +7,10 @@ import { useRouter } from 'next/navigation';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
-import { Check, Copy, ExternalLink, Loader2, Trash, Trash2, Plus, Sparkles } from 'lucide-react';
+import { Check, Copy, ExternalLink, Loader2, Trash, Trash2, Plus, Sparkles, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { getAdminMutationErrorMessage } from '@/app/admin/lib/mutation-error';
-import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label } from '../../../components/ui';
+import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, cn } from '../../../components/ui';
 import { LexicalEditor } from '../../../components/LexicalEditor';
 import { ImageUploader } from '../../../components/ImageUploader';
 import type { ImageItem } from '../../../components/MultiImageUploader';
@@ -197,7 +197,45 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
   const [variantSelections, setVariantSelections] = useState<VariantOptionSelection[]>([]);
   const [variantRows, setVariantRows] = useState<VariantRow[]>([]);
   const [productType, setProductType] = useState<'physical' | 'digital'>('physical');
-  const [combos, setCombos] = useState<any[]>([]);
+  const [combos, setCombosState] = useState<any[]>([]);
+  const setCombos = React.useCallback((nextValue: any[] | ((prev: any[]) => any[])) => {
+    if (typeof nextValue === 'function') {
+      setCombosState(prev => {
+        const res = nextValue(prev);
+        return JSON.parse(JSON.stringify(res));
+      });
+    } else {
+      setCombosState(JSON.parse(JSON.stringify(nextValue)));
+    }
+  }, []);
+
+  const [draggedComboIndex, setDraggedComboIndex] = useState<number | null>(null);
+  const [dragOverComboIndex, setDragOverComboIndex] = useState<number | null>(null);
+
+  const getDragPropsCombo = (index: number) => ({
+    draggable: true,
+    onDragStart: () => setDraggedComboIndex(index),
+    onDragOver: (e: React.DragEvent) => {
+      e.preventDefault();
+      if (draggedComboIndex !== index) {
+        setDragOverComboIndex(index);
+      }
+    },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      if (draggedComboIndex === null || draggedComboIndex === index) return;
+      const nextCombos = [...combos];
+      const [moved] = nextCombos.splice(draggedComboIndex, 1);
+      nextCombos.splice(index, 0, moved);
+      setCombos(nextCombos);
+      setDraggedComboIndex(null);
+      setDragOverComboIndex(null);
+    },
+    onDragEnd: () => {
+      setDraggedComboIndex(null);
+      setDragOverComboIndex(null);
+    },
+  });
 
   const selectedCategorySlug = useMemo(
     () => categoriesData?.find((category) => category._id === categoryId)?.slug,
@@ -486,7 +524,7 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
     productTypeId,
     attributeTermIds,
     rangeInputs,
-    combos,
+    combos: JSON.parse(JSON.stringify(combos)),
   }), [
     affiliateLink,
     categoryId,
@@ -775,7 +813,7 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
         productTypeId: productData.productTypeId ?? '',
         attributeTermIds: normalizedTerms.attributeTermIds,
         rangeInputs: normalizedTerms.rangeInputs,
-        combos: (productData as any).combos ?? [],
+        combos: JSON.parse(JSON.stringify((productData as any).combos ?? [])),
       };
       setSnapshotVersion((prev) => prev + 1);
       setIsDataLoaded(true);
@@ -1041,7 +1079,7 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
         htmlRender: htmlRender.trim(),
         metaDescription: resolvedMetaDescriptionValue,
         metaTitle: resolvedMetaTitleValue,
-        combos,
+        combos: JSON.parse(JSON.stringify(combos)),
       };
       if (enabledFields.has('metaTitle')) {
         setMetaTitle(resolvedMetaTitleValue);
@@ -1441,11 +1479,19 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
                           exit={{ opacity: 0, height: 0, y: -15 }}
                           transition={{ duration: 0.25, ease: 'easeInOut' }}
                           layout
-                          className="border border-slate-100 dark:border-slate-800 rounded-lg p-4 bg-slate-50/50 dark:bg-slate-900/30 space-y-4 relative overflow-hidden"
+                          className={cn(
+                            "border rounded-lg p-4 space-y-4 relative overflow-hidden transition-all duration-200",
+                            draggedComboIndex === index ? "opacity-40" : "opacity-100",
+                            dragOverComboIndex === index ? "border-orange-400 bg-orange-50/20 dark:bg-orange-950/10 scale-[1.01]" : "border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30"
+                          )}
+                          {...getDragPropsCombo(index)}
                         >
                           {/* Header của Combo Card */}
                           <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
                             <div className="flex items-center gap-2">
+                              <div className="text-slate-400 cursor-grab active:cursor-grabbing hover:text-slate-600 transition-colors p-1" title="Kéo thả để sắp xếp">
+                                <GripVertical size={16} />
+                              </div>
                               <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                                 combo.type === 'standard' 
                                   ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400' 

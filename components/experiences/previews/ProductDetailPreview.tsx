@@ -1,4 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { cn } from '@/app/admin/components/ui';
+import * as LucideReact from 'lucide-react';
 import {
   Award,
   BadgeCheck,
@@ -40,6 +42,13 @@ import {
 } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { getAttributeIconComponent } from '@/app/admin/attribute-groups/_lib/iconRegistry';
+
+const renderPremiumIcon = (iconName: string | undefined, size = 16, className = '', style = {}) => {
+  if (!iconName) return null;
+  const IconComponent = (LucideReact as any)[iconName];
+  if (!IconComponent) return null;
+  return <IconComponent size={size} className={className} style={style} />;
+};
 import { CommentsPreview } from './DetailPreview';
 import {
   getProductDetailColors,
@@ -94,6 +103,17 @@ type ProductDetailPreviewProps = {
   socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
   demoAttributes?: any[];
   productTypeId?: string;
+  zaloText?: string;
+  zaloIcon?: string;
+  zaloUrl?: string;
+  phoneText?: string;
+  phoneIcon?: string;
+  phoneUrl?: string;
+  mobileFontSize?: 'xs' | 'sm' | 'base';
+  priceLeftIcon?: string;
+  priceRightIcon?: string;
+  showPriceLeftIcon?: boolean;
+  showPriceRightIcon?: boolean;
 };
 
 const formatVND = (price: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -626,6 +646,17 @@ export function ProductDetailPreview({
   socialButtons = [],
   demoAttributes = [],
   productTypeId,
+  zaloText = 'MUA QUA ZALO',
+  zaloIcon = 'Send',
+  zaloUrl = '',
+  phoneText = 'GỌI TƯ VẤN',
+  phoneIcon = 'Phone',
+  phoneUrl = '',
+  mobileFontSize = 'xs',
+  priceLeftIcon = 'Award',
+  priceRightIcon = 'Gift',
+  showPriceLeftIcon = true,
+  showPriceRightIcon = true,
 }: ProductDetailPreviewProps) {
   const tokens = getProductDetailColors(brandColor, secondaryColor, colorMode);
   const categoryBadgeColors = resolveProductDetailElementColor(accentColors?.categoryBadge ?? 'secondary', tokens);
@@ -1724,13 +1755,17 @@ export function ProductDetailPreview({
                     borderColor: tokens.border,
                   }}
                 >
-                  <div className="absolute -right-6 -bottom-6 opacity-5 pointer-events-none" style={{ color: tokens.primary }}>
-                    <Gift size={120} />
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: tokens.surface, color: tokens.primary }}>
-                      <Award size={18} />
+                  {showPriceRightIcon !== false && (
+                    <div className="absolute -right-6 -bottom-6 opacity-5 pointer-events-none" style={{ color: tokens.primary }}>
+                      {renderPremiumIcon(priceRightIcon, 120) || <Gift size={120} />}
                     </div>
+                  )}
+                  <div className="flex items-start gap-3">
+                    {showPriceLeftIcon !== false && (
+                      <div className="p-2 rounded-lg" style={{ backgroundColor: tokens.surface, color: tokens.primary }}>
+                        {renderPremiumIcon(priceLeftIcon, 18) || <Award size={18} />}
+                      </div>
+                    )}
                     <div className="flex-1 space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>GIÁ ƯU ĐÃI HÔM NAY</p>
                       <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
@@ -1813,13 +1848,19 @@ export function ProductDetailPreview({
                 {/* Bộ nút CTA */}
                 <div className="space-y-2 pt-2">
                   <div className="flex gap-2">
-                    <button className="flex-1 h-11 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 text-white transition-transform hover:scale-[1.01]" style={{ backgroundColor: brandColor }}>
-                      <Send size={14} className="rotate-[320deg] -mt-0.5" />
-                      MUA QUA ZALO
+                    <button className={cn(
+                      "flex-1 h-11 font-bold rounded-xl flex items-center justify-center gap-1.5 text-white transition-transform hover:scale-[1.01]",
+                      isMobile && (mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm') || 'text-xs'
+                    )} style={{ backgroundColor: brandColor }}>
+                      {renderPremiumIcon(zaloIcon, 14, "rotate-[320deg] -mt-0.5") || <Send size={14} className="rotate-[320deg] -mt-0.5" />}
+                      {zaloText}
                     </button>
-                    <button className="flex-1 h-11 text-xs font-bold rounded-xl border flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]" style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}>
-                      <Phone size={14} />
-                      GỌI TƯ VẤN
+                    <button className={cn(
+                      "flex-1 h-11 font-bold rounded-xl border flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]",
+                      isMobile && (mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm') || 'text-xs'
+                    )} style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}>
+                      {renderPremiumIcon(phoneIcon, 14) || <Phone size={14} />}
+                      {phoneText}
                     </button>
                   </div>
                   {showAddToCart && (
