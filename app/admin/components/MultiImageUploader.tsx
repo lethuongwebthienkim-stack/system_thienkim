@@ -94,7 +94,7 @@ export function MultiImageUploader<T extends ImageItem>({
   const itemsRef = useRef(items);
   const [uploadingIds, setUploadingIds] = useState<Set<string | number>>(new Set());
   const [urlModeIds, setUrlModeIds] = useState<Set<string | number>>(new Set());
-  const [brokenIds, setBrokenIds] = useState<Set<string | number>>(new Set());
+  const [brokenImageUrls, setBrokenImageUrls] = useState<Map<string | number, string>>(new Map());
   const [isDragging, setIsDragging] = useState(false);
   const [dragOverItemId, setDragOverItemId] = useState<string | number | null>(null);
   const [draggedItemId, setDraggedItemId] = useState<string | number | null>(null);
@@ -111,16 +111,16 @@ export function MultiImageUploader<T extends ImageItem>({
   const deleteImage = useMutation(api.storage.deleteImage);
   const { trackDraftUpload } = useFileDraftUploads(`multi-image-uploader:${folder}`);
 
-  const markBroken = useCallback((itemId: string | number) => {
-    setBrokenIds(prev => new Set(prev).add(itemId));
+  const markBroken = useCallback((itemId: string | number, imageUrl: string) => {
+    setBrokenImageUrls(prev => new Map(prev).set(itemId, imageUrl));
   }, []);
 
   const clearBroken = useCallback((itemId: string | number) => {
-    setBrokenIds(prev => {
+    setBrokenImageUrls(prev => {
       if (!prev.has(itemId)) {
         return prev;
       }
-      const next = new Set(prev);
+      const next = new Map(prev);
       next.delete(itemId);
       return next;
     });
@@ -473,7 +473,8 @@ export function MultiImageUploader<T extends ImageItem>({
       return;
     }
 
-    const item = items.find(i => i.id === itemId);
+    const currentItems = itemsRef.current;
+    const item = currentItems.find(i => i.id === itemId);
     if (deleteMode === 'immediate' && item?.storageId) {
       try {
         await deleteImage({ storageId: item.storageId as Id<"_storage"> });
@@ -482,8 +483,11 @@ export function MultiImageUploader<T extends ImageItem>({
       }
     }
 
-    onChange(items.filter(i => i.id !== itemId));
-  }, [items, minItems, deleteImage, onChange, deleteMode]);
+    const nextItems = currentItems.filter(i => i.id !== itemId);
+    itemsRef.current = nextItems;
+    clearBroken(itemId);
+    onChange(nextItems);
+  }, [items, minItems, deleteImage, onChange, deleteMode, clearBroken]);
 
   const handleItemDragStart = useCallback((e: React.DragEvent, itemId: string | number) => {
     e.dataTransfer.effectAllowed = 'move';
@@ -704,7 +708,7 @@ export function MultiImageUploader<T extends ImageItem>({
             const isDraggedItem = draggedItemId === item.id;
             const isDragOverItem = dragOverItemId === item.id && draggedItemId !== null;
             const isFileDragOver = fileDragOverItemId === item.id;
-            const isBroken = brokenIds.has(item.id);
+            const isBroken = brokenImageUrls.get(item.id) === imageUrl;
             const itemCropAspectRatio = resolveCropAspectRatio(item, _idx);
             const itemCropRatioLabel = getProductImageAspectRatioLabel(itemCropAspectRatio);
 
@@ -753,7 +757,7 @@ export function MultiImageUploader<T extends ImageItem>({
                         fill
                         sizes="(max-width: 768px) 100vw, 320px"
                         className={cn(imageClassName, isFileDragOver && "opacity-50")}
-                        onError={() => markBroken(item.id)}
+                        onError={() => markBroken(item.id, imageUrl)}
                       />
                       )
                     ) : (
@@ -915,7 +919,7 @@ export function MultiImageUploader<T extends ImageItem>({
                         fill
                         sizes="(max-width: 768px) 100vw, 320px"
                         className={cn(imageClassName, isFileDragOver && "opacity-50")}
-                        onError={() => markBroken(item.id)}
+                        onError={() => markBroken(item.id, imageUrl)}
                       />
                       )
                     ) : (
