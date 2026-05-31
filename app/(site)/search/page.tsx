@@ -37,6 +37,17 @@ const formatPrice = (value: number) => {
   return new Intl.NumberFormat('vi-VN', { currency: 'VND', style: 'currency' }).format(value);
 };
 
+const toPlainText = (value?: string) => (value ?? '')
+  .replace(/<[^>]*>/g, ' ')
+  .replace(/&nbsp;/g, ' ')
+  .replace(/&amp;/g, '&')
+  .replace(/&quot;/g, '"')
+  .replace(/&#39;|&apos;/g, "'")
+  .replace(/&lt;/g, '<')
+  .replace(/&gt;/g, '>')
+  .replace(/\s+/g, ' ')
+  .trim();
+
 // Component Skeleton
 function SearchPageSkeleton() {
   return (
@@ -821,6 +832,7 @@ function SearchContent() {
                       isRangeFromVariant: product.hasVariants 
                     });
                     const isWishlisted = wishlistIdSet.has(product._id);
+                    const description = toPlainText(product.description) || 'Không có mô tả chi tiết cho sản phẩm này.';
                     
                     return (
                       <Link
@@ -870,7 +882,7 @@ function SearchContent() {
                               {product.name}
                             </h3>
                             <p className="text-slate-400 text-xs line-clamp-2 hidden md:block">
-                              {product.description || 'Không có mô tả chi tiết cho sản phẩm này.'}
+                              {description}
                             </p>
                           </div>
 
