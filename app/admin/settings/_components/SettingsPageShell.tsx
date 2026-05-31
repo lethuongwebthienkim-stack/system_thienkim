@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { LayoutTemplate, Loader2, Palette, Save } from 'lucide-react';
+import { Eye, LayoutTemplate, Loader2, Palette, Save, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMutation, useQuery } from 'convex/react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -17,10 +17,12 @@ import { HomeComponentStickyFooter } from '@/app/admin/home-components/_shared/c
 import { AiSeoImportDialog } from './AiSeoImportDialog';
 import { SeoBuilderDialog } from './SeoBuilderDialog';
 import { ProductSupplementalContentManager } from './ProductSupplementalContentManager';
+import { ShopConfigAdminContainer } from '@/components/modules/orders/ShopConfigAdminContainer';
 
 type SettingsSection = 'site' | 'contact' | 'seo' | 'advanced';
 type SettingsFormValue = string | boolean;
-type AdvancedTab = 'product-placeholder' | 'product-frame' | 'watermark' | 'header' | 'product-supplemental';
+type AdvancedTab = 'product-placeholder' | 'product-frame' | 'watermark' | 'header' | 'product-supplemental' | 'shop-config' | 'email-config';
+const ADVANCED_TAB_ORDER: AdvancedTab[] = ['product-placeholder', 'product-frame', 'watermark', 'header', 'product-supplemental', 'shop-config', 'email-config'];
 type HeaderConfig = {
   showBrandName?: boolean;
   logoSizeLevel?: number;
@@ -44,6 +46,7 @@ type SettingsToSave = {
 };
 
 const MODULE_KEY = 'settings';
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const SECTION_LABELS: Record<SettingsSection, string> = {
   contact: 'Thông tin liên hệ',
@@ -136,7 +139,25 @@ const REMOVED_CONTACT_KEYS = new Set([
 ]);
 
 const SETTING_STORAGE_ID_SUFFIX = '__storageId';
+const PRODUCT_IMAGE_ADVANCED_FEATURE = 'enableProductImageAdvanced';
+const PRODUCT_FRAME_ADVANCED_FEATURE = 'enableProductFrameAdvanced';
+const PRODUCT_WATERMARK_ADVANCED_FEATURE = 'enableProductWatermarkAdvanced';
 const HEADER_MENU_ADVANCED_FEATURE = 'enableHeaderMenuAdvanced';
+const PRODUCT_SUPPLEMENTAL_ADVANCED_FEATURE = 'enableProductSupplementalAdvanced';
+const SHOP_CONFIG_ADVANCED_FEATURE = 'enableShopConfigAdvanced';
+const EMAIL_CONFIG_ADVANCED_FEATURE = 'enableMail';
+const EMAIL_SETTING_KEYS = [
+  'mail_driver',
+  'mail_from_email',
+  'mail_from_name',
+  'order_notification_emails',
+] as const;
+const EMAIL_DEFAULTS: Record<(typeof EMAIL_SETTING_KEYS)[number], string> = {
+  mail_driver: 'resend',
+  mail_from_email: 'onboarding@resend.dev',
+  mail_from_name: 'Thanshoes',
+  order_notification_emails: '',
+};
 const DEFAULT_HEADER_CONFIG: HeaderConfig = {
   showBrandName: true,
   logoSizeLevel: 2,
@@ -217,6 +238,8 @@ function SettingsContent({ section }: { section: SettingsSection }) {
   const [headerConfigDraft, setHeaderConfigDraft] = useState<HeaderConfig>(DEFAULT_HEADER_CONFIG);
   const [initialHeaderConfig, setInitialHeaderConfig] = useState<HeaderConfig>(DEFAULT_HEADER_CONFIG);
   const [activeDrag, setActiveDrag] = useState<'image-move' | 'image-resize' | 'text-move' | null>(null);
+  const [testEmail, setTestEmail] = useState('');
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
   const previewCanvasRef = React.useRef<HTMLDivElement>(null);
 
   // Queries
@@ -224,19 +247,73 @@ function SettingsContent({ section }: { section: SettingsSection }) {
   const featuresData = useQuery(api.admin.modules.listModuleFeatures, { moduleKey: MODULE_KEY });
   const fieldsData = useQuery(api.admin.modules.listModuleFields, { moduleKey: MODULE_KEY });
   const defaultImageAspectRatio = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'defaultImageAspectRatio' });
-  const productsSettings = useQuery(api.admin.modules.listModuleSettings, { moduleKey: 'products' });
   const [selectedFrameAR, setSelectedFrameAR] = useState<string>('');
+  const [shopConfigDirty, setShopConfigDirty] = useState(false);
+  const [shopConfigSaving, setShopConfigSaving] = useState(false);
+  const saveShopConfigRef = React.useRef<{ save: () => Promise<void> } | null>(null);
+ 
+  // Parse enabled features
+  const enabledFeatures = useMemo(() => {
+    const features: Record<string, boolean> = {};
+    featuresData?.forEach(f => { features[f.featureKey] = f.enabled; });
+    return features;
+  }, [featuresData]);
 
-  const enableSupplementalContent = useMemo(
-    () => productsSettings?.find(s => s.settingKey === 'enableProductSupplementalContent')?.value === true,
-    [productsSettings]
+  const isFeatureEnabled = (featureKey: string, fallback = false) => (
+    featuresData?.some(feature => feature.featureKey === featureKey)
+      ? Boolean(enabledFeatures[featureKey])
+      : fallback
   );
 
+  const canEditProductImage = isFeatureEnabled(PRODUCT_IMAGE_ADVANCED_FEATURE, true);
+  const canEditProductFrame = isFeatureEnabled(PRODUCT_FRAME_ADVANCED_FEATURE, true);
+  const canEditProductWatermark = isFeatureEnabled(PRODUCT_WATERMARK_ADVANCED_FEATURE, true);
+ 
+  const canEditHeaderMenu = isFeatureEnabled(HEADER_MENU_ADVANCED_FEATURE, false);
+ 
+  const canEditShopConfig = isFeatureEnabled(SHOP_CONFIG_ADVANCED_FEATURE, false);
+
+  const canEditEmailConfig = isFeatureEnabled(EMAIL_CONFIG_ADVANCED_FEATURE, false);
+ 
+  const canEditProductSupplemental = isFeatureEnabled(PRODUCT_SUPPLEMENTAL_ADVANCED_FEATURE, true);
+  const enabledAdvancedTabs = useMemo<AdvancedTab[]>(() => ADVANCED_TAB_ORDER.filter((tab) => {
+    switch (tab) {
+      case 'product-placeholder': return canEditProductImage;
+      case 'product-frame': return canEditProductFrame;
+      case 'watermark': return canEditProductWatermark;
+      case 'header': return canEditHeaderMenu;
+      case 'product-supplemental': return canEditProductSupplemental;
+      case 'shop-config': return canEditShopConfig;
+      case 'email-config': return canEditEmailConfig;
+      default: return false;
+    }
+  }), [
+    canEditEmailConfig,
+    canEditHeaderMenu,
+    canEditProductFrame,
+    canEditProductImage,
+    canEditProductSupplemental,
+    canEditProductWatermark,
+    canEditShopConfig,
+  ]);
+
   useEffect(() => {
-    if (tabParam === 'product-supplemental' && enableSupplementalContent) {
+    if (tabParam === 'product-supplemental' && canEditProductSupplemental) {
       setAdvancedTab('product-supplemental');
     }
-  }, [tabParam, enableSupplementalContent]);
+  }, [tabParam, canEditProductSupplemental]);
+ 
+  useEffect(() => {
+    if (tabParam === 'shop-config' && canEditShopConfig) {
+      setAdvancedTab('shop-config');
+    }
+  }, [tabParam, canEditShopConfig]);
+
+  useEffect(() => {
+    if (tabParam === 'email-config' && canEditEmailConfig) {
+      setAdvancedTab('email-config');
+    }
+  }, [tabParam, canEditEmailConfig]);
 
   const handlePreviewPointerDown = (e: React.PointerEvent<HTMLDivElement>, type: 'image-move' | 'image-resize' | 'text-move') => {
     e.preventDefault();
@@ -293,16 +370,6 @@ function SettingsContent({ section }: { section: SettingsSection }) {
   const isLoading = settingsData === undefined
     || featuresData === undefined
     || fieldsData === undefined;
-
-  // Parse enabled features
-  const enabledFeatures = useMemo(() => {
-    const features: Record<string, boolean> = {};
-    featuresData?.forEach(f => { features[f.featureKey] = f.enabled; });
-    return features;
-  }, [featuresData]);
-  const canEditHeaderMenu = featuresData?.some(feature => feature.featureKey === HEADER_MENU_ADVANCED_FEATURE)
-    ? Boolean(enabledFeatures[HEADER_MENU_ADVANCED_FEATURE])
-    : false;
 
   const isSectionEnabled = section === 'site'
     ? true
@@ -455,6 +522,11 @@ function SettingsContent({ section }: { section: SettingsSection }) {
       if (values.product_watermark_text_repeat === undefined) {
         values.product_watermark_text_repeat = false;
       }
+      EMAIL_SETTING_KEYS.forEach((key) => {
+        if (values[key] === undefined) {
+          values[key] = EMAIL_DEFAULTS[key];
+        }
+      });
       setIsSecondaryAuto(values.site_brand_mode === 'single' ? true : !values.site_brand_secondary);
       setForm(values);
       setInitialForm(values);
@@ -498,29 +570,72 @@ function SettingsContent({ section }: { section: SettingsSection }) {
   }, [isLoading, isSectionEnabled, router]);
 
   useEffect(() => {
-    if (!canEditHeaderMenu && advancedTab === 'header') {
-      setAdvancedTab('product-placeholder');
+    if (section !== 'advanced') {return;}
+    if (enabledAdvancedTabs.length > 0 && !enabledAdvancedTabs.includes(advancedTab)) {
+      setAdvancedTab(enabledAdvancedTabs[0]);
     }
-  }, [advancedTab, canEditHeaderMenu]);
+  }, [advancedTab, enabledAdvancedTabs, section]);
 
   // Detect changes
   const headerConfigHasChanges = useMemo(
     () => stableStringify(headerConfigDraft) !== stableStringify(initialHeaderConfig),
     [headerConfigDraft, initialHeaderConfig]
   );
-  const hasChanges = useMemo(
-    () => Object.keys(form).some(key => form[key] !== initialForm[key]) || (canEditHeaderMenu && headerConfigHasChanges),
-    [form, initialForm, canEditHeaderMenu, headerConfigHasChanges]
-  );
+  
+  const isShopConfigTab = section === 'advanced' && advancedTab === 'shop-config' && canEditShopConfig;
+ 
+  const hasChanges = useMemo(() => {
+    if (isShopConfigTab) {
+      return shopConfigDirty;
+    }
+    return Object.keys(form).some(key => form[key] !== initialForm[key]) || (canEditHeaderMenu && headerConfigHasChanges);
+  }, [isShopConfigTab, shopConfigDirty, form, initialForm, canEditHeaderMenu, headerConfigHasChanges]);
+ 
+  const isCurrentlySaving = isSaving || (isShopConfigTab && shopConfigSaving);
 
   const updateField = (key: string, value: string | boolean) => {
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const getStringField = (key: string, fallback = '') => {
+    const value = form[key];
+    return typeof value === 'string' ? value : fallback;
   };
 
   const updateImageField = (key: string, url: string | undefined, storageId?: Id<'_storage'> | null) => {
     updateField(key, url ?? '');
     if (storageId !== undefined) {
       setMediaStorageIds(prev => ({ ...prev, [key]: storageId }));
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    const email = testEmail.trim();
+    if (!EMAIL_REGEX.test(email)) {
+      toast.error('Email nhận thử không hợp lệ.');
+      return;
+    }
+
+    setIsSendingTestEmail(true);
+    try {
+      const response = await fetch('/api/system/integrations/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          subject: 'Email test từ Thanshoes',
+          html: '<p>Đây là email test từ hệ thống Thanshoes.</p>',
+        }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.message || 'Gửi email thử thất bại.');
+      }
+      toast.success('Đã gửi email thử. Vui lòng kiểm tra hộp thư.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Gửi email thử thất bại.');
+    } finally {
+      setIsSendingTestEmail(false);
     }
   };
 
@@ -573,6 +688,25 @@ function SettingsContent({ section }: { section: SettingsSection }) {
       }
     }
 
+    if (section === 'advanced' && advancedTab === 'email-config' && canEditEmailConfig) {
+      const fromEmail = getStringField('mail_from_email').trim();
+      if (fromEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fromEmail)) {
+        toast.error('Email gửi đi không hợp lệ.');
+        return false;
+      }
+
+      const adminEmailsStr = getStringField('order_notification_emails').trim();
+      if (adminEmailsStr) {
+        const emails = adminEmailsStr.split(/[,\n;]+/).map((e) => e.trim()).filter(Boolean);
+        for (const email of emails) {
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            toast.error(`Email nhận thông báo "${email}" không hợp lệ.`);
+            return false;
+          }
+        }
+      }
+    }
+
     // Validate required fields
     const requiredFields = fieldsData?.filter(f => f.required && f.enabled) ?? [];
     for (const field of requiredFields) {
@@ -586,9 +720,27 @@ function SettingsContent({ section }: { section: SettingsSection }) {
     return true;
   };
 
-  const handleSave = async () => {
-    if (!validateForm()) {return;}
+  const handleTabChange = (nextTab: AdvancedTab) => {
+    if (isShopConfigTab && shopConfigDirty) {
+      if (window.confirm('Bạn có thay đổi chưa lưu trong Cấu hình cửa hàng. Nếu chuyển tab, các thay đổi này sẽ bị mất. Bạn có chắc chắn muốn chuyển không?')) {
+        setShopConfigDirty(false);
+        setAdvancedTab(nextTab);
+      }
+    } else {
+      setAdvancedTab(nextTab);
+    }
+  };
 
+  const handleSave = async () => {
+    if (isShopConfigTab) {
+      if (saveShopConfigRef.current) {
+        await saveShopConfigRef.current.save();
+      }
+      return;
+    }
+ 
+    if (!validateForm()) {return;}
+ 
     setIsSaving(true);
     try {
       // Get all enabled fields and their groups
@@ -718,6 +870,17 @@ function SettingsContent({ section }: { section: SettingsSection }) {
           group: 'site',
           key: 'header_config',
           value: normalizeHeaderConfig(headerConfigDraft),
+        });
+      }
+      if (section === 'advanced' && advancedTab === 'email-config' && canEditEmailConfig) {
+        EMAIL_SETTING_KEYS.forEach((key) => {
+          if (!settingsToSave.some((item) => item.key === key)) {
+            settingsToSave.push({
+              group: 'mail',
+              key,
+              value: form[key] ?? EMAIL_DEFAULTS[key],
+            });
+          }
         });
       }
 
@@ -1280,46 +1443,52 @@ function SettingsContent({ section }: { section: SettingsSection }) {
               {section === 'advanced' ? (
                 <div className="space-y-5">
                   <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => setAdvancedTab('product-placeholder')}
-                      className={cn(
-                        'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
-                        advancedTab === 'product-placeholder'
-                          ? 'border-orange-500 text-slate-900 dark:text-slate-100'
-                          : 'border-transparent text-slate-500 hover:text-slate-700'
-                      )}
-                    >
-                      Ảnh sản phẩm
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAdvancedTab('product-frame')}
-                      className={cn(
-                        'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
-                        advancedTab === 'product-frame'
-                          ? 'border-orange-500 text-slate-900 dark:text-slate-100'
-                          : 'border-transparent text-slate-500 hover:text-slate-700'
-                      )}
-                    >
-                      Khung viền sản phẩm
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setAdvancedTab('watermark')}
-                      className={cn(
-                        'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
-                        advancedTab === 'watermark'
-                          ? 'border-orange-500 text-slate-900 dark:text-slate-100'
-                          : 'border-transparent text-slate-500 hover:text-slate-700'
-                      )}
-                    >
-                      Watermark
-                    </button>
+                    {canEditProductImage && (
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange('product-placeholder')}
+                        className={cn(
+                          'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+                          advancedTab === 'product-placeholder'
+                            ? 'border-orange-500 text-slate-900 dark:text-slate-100'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        )}
+                      >
+                        Ảnh sản phẩm
+                      </button>
+                    )}
+                    {canEditProductFrame && (
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange('product-frame')}
+                        className={cn(
+                          'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+                          advancedTab === 'product-frame'
+                            ? 'border-orange-500 text-slate-900 dark:text-slate-100'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        )}
+                      >
+                        Khung viền sản phẩm
+                      </button>
+                    )}
+                    {canEditProductWatermark && (
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange('watermark')}
+                        className={cn(
+                          'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+                          advancedTab === 'watermark'
+                            ? 'border-orange-500 text-slate-900 dark:text-slate-100'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        )}
+                      >
+                        Watermark
+                      </button>
+                    )}
                     {canEditHeaderMenu && (
                       <button
                         type="button"
-                        onClick={() => setAdvancedTab('header')}
+                        onClick={() => handleTabChange('header')}
                         className={cn(
                           'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
                           advancedTab === 'header'
@@ -1330,10 +1499,10 @@ function SettingsContent({ section }: { section: SettingsSection }) {
                         Header
                       </button>
                     )}
-                    {enableSupplementalContent && (
+                    {canEditProductSupplemental && (
                       <button
                         type="button"
-                        onClick={() => setAdvancedTab('product-supplemental')}
+                        onClick={() => handleTabChange('product-supplemental')}
                         className={cn(
                           'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
                           advancedTab === 'product-supplemental'
@@ -1344,9 +1513,37 @@ function SettingsContent({ section }: { section: SettingsSection }) {
                         Nội dung mô tả SP
                       </button>
                     )}
+                    {canEditShopConfig && (
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange('shop-config')}
+                        className={cn(
+                          'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+                          advancedTab === 'shop-config'
+                            ? 'border-orange-500 text-slate-900 dark:text-slate-100'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        )}
+                      >
+                        Cấu hình cửa hàng
+                      </button>
+                    )}
+                    {canEditEmailConfig && (
+                      <button
+                        type="button"
+                        onClick={() => handleTabChange('email-config')}
+                        className={cn(
+                          'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+                          advancedTab === 'email-config'
+                            ? 'border-orange-500 text-slate-900 dark:text-slate-100'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        )}
+                      >
+                        Cấu hình email
+                      </button>
+                    )}
                   </div>
 
-                  {advancedTab === 'product-placeholder' && (
+                  {advancedTab === 'product-placeholder' && canEditProductImage && (
                     <div className="space-y-4">
                       {currentFields.map(field => renderField(field))}
                       {!hasAdvancedPlaceholderField && (
@@ -1394,7 +1591,7 @@ function SettingsContent({ section }: { section: SettingsSection }) {
                     </div>
                   )}
 
-                  {advancedTab === 'product-frame' && (
+                  {advancedTab === 'product-frame' && canEditProductFrame && (
                     <div className="space-y-6">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                         <div className="flex items-center gap-3">
@@ -1526,7 +1723,7 @@ function SettingsContent({ section }: { section: SettingsSection }) {
                     </div>
                   )}
 
-                  {advancedTab === 'watermark' && (
+                  {advancedTab === 'watermark' && canEditProductWatermark && (
                     <div className="space-y-6">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                         <div className="flex items-center gap-3">
@@ -1925,8 +2122,162 @@ function SettingsContent({ section }: { section: SettingsSection }) {
                       </div>
                     </div>
                   )}
-                  {advancedTab === 'product-supplemental' && enableSupplementalContent && (
+                  {advancedTab === 'product-supplemental' && canEditProductSupplemental && (
                     <ProductSupplementalContentManager />
+                  )}
+                  {advancedTab === 'shop-config' && canEditShopConfig && (
+                    <ShopConfigAdminContainer
+                      onDirtyChange={setShopConfigDirty}
+                      onSavingChange={setShopConfigSaving}
+                      registerSaveRef={(ref) => {
+                        saveShopConfigRef.current = ref;
+                      }}
+                    />
+                  )}
+                  {advancedTab === 'email-config' && canEditEmailConfig && (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                      {/* Cấu hình cột trái (7 cols) */}
+                      <div className="lg:col-span-7 space-y-6">
+
+
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label>Tên người gửi</Label>
+                            <Input
+                              value={getStringField('mail_from_name', EMAIL_DEFAULTS.mail_from_name)}
+                              onChange={(event) => updateField('mail_from_name', event.target.value)}
+                              placeholder="Thanshoes"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Email nhận thông báo đơn hàng</Label>
+                            <Input
+                              value={getStringField('order_notification_emails')}
+                              onChange={(event) => updateField('order_notification_emails', event.target.value)}
+                              placeholder="admin@example.com, manager@example.com"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="text-[11px] text-slate-500 -mt-2">
+                          Để trống sẽ dùng Email ở Cài đặt &gt; Thông tin liên hệ; nếu cả hai trống thì không gửi email admin. Có thể nhập nhiều email, phân tách bằng dấu phẩy, chấm phẩy hoặc xuống dòng.
+                        </div>
+
+                        <div className="rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+                          <div className="space-y-2">
+                            <Label>Gửi thử email</Label>
+                            <div className="flex flex-col gap-2 sm:flex-row">
+                              <Input
+                                type="email"
+                                value={testEmail}
+                                onChange={(event) => setTestEmail(event.target.value)}
+                                placeholder="email-khach@example.com"
+                              />
+                              <Button
+                                type="button"
+                                onClick={handleSendTestEmail}
+                                disabled={isSendingTestEmail}
+                                className="shrink-0"
+                              >
+                                {isSendingTestEmail ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Send size={16} className="mr-2" />}
+                                {isSendingTestEmail ? 'Đang gửi...' : 'Gửi thử'}
+                              </Button>
+                            </div>
+                            <p className="text-xs text-slate-500">Dùng để kiểm tra email gửi ra có đến đúng hộp thư khách hay không.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Preview cột phải (5 cols) */}
+                      <div className="lg:col-span-5 flex flex-col justify-start">
+                        <div className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex flex-col">
+                          <Label className="font-semibold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-1.5">
+                            <Eye size={16} className="text-orange-500" /> Preview email gửi khách
+                          </Label>
+
+                          {/* Khung giả lập Mail Client */}
+                          <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-950 text-xs font-sans text-slate-700 dark:text-slate-300">
+                            {/* Mail Header */}
+                            <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-1">
+                              <div className="flex justify-between text-slate-400">
+                                <span>Từ:</span>
+                                <span className="font-medium text-slate-700 dark:text-slate-300">
+                                  {getStringField('mail_from_name', EMAIL_DEFAULTS.mail_from_name)} &lt;{getStringField('mail_from_email', EMAIL_DEFAULTS.mail_from_email)}&gt;
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-slate-400">
+                                <span>Đến:</span>
+                                <span className="text-slate-600 dark:text-slate-400">khachhang@gmail.com</span>
+                              </div>
+                              <div className="flex justify-between text-slate-400">
+                                <span>Tiêu đề:</span>
+                                <span className="font-semibold text-slate-800 dark:text-slate-200">
+                                  [{getStringField('mail_from_name', EMAIL_DEFAULTS.mail_from_name)}] Xác nhận đơn hàng #1004
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Mail Body Container */}
+                            <div className="p-4 bg-white dark:bg-slate-900 flex justify-center">
+                              {/* Mô phỏng khung email gửi thực tế */}
+                              <div className="w-full max-w-sm border border-slate-100 dark:border-slate-800 rounded-md p-4 bg-slate-50/50 dark:bg-slate-950/50 space-y-4 shadow-xs">
+                                {/* Email header logo */}
+                                <div className="text-center pb-3 border-b border-slate-100 dark:border-slate-800">
+                                  <div className="font-bold text-sm text-slate-800 dark:text-slate-200 tracking-wide uppercase">
+                                    {getStringField('mail_from_name', EMAIL_DEFAULTS.mail_from_name)}
+                                  </div>
+                                </div>
+
+                                {/* Greeting */}
+                                <div className="space-y-1">
+                                  <p className="font-semibold text-[11px] text-slate-800 dark:text-slate-200">Chào Nguyễn Văn A,</p>
+                                  <p className="text-[10px] text-slate-500 leading-relaxed">Cảm ơn bạn đã mua sắm tại {getStringField('mail_from_name', EMAIL_DEFAULTS.mail_from_name)}! Đơn hàng của bạn đã được nhận và đang chờ xử lý.</p>
+                                </div>
+
+                                {/* Order details */}
+                                <div className="p-2.5 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-sm space-y-2">
+                                  <div className="flex justify-between text-[10px] font-bold text-slate-800 dark:text-slate-200 border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                                    <span>ĐƠN HÀNG #1004</span>
+                                    <span className="text-orange-500 font-medium">Chờ xử lý</span>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="flex justify-between text-[9px] text-slate-500">
+                                      <span>Sản phẩm:</span>
+                                      <span className="font-medium text-slate-700 dark:text-slate-300">Giày Sneaker Adidas Samba (Size 41) x 1</span>
+                                    </div>
+                                    <div className="flex justify-between text-[9px] text-slate-500">
+                                      <span>Tổng cộng:</span>
+                                      <span className="font-bold text-slate-800 dark:text-slate-200">2.500.000 đ</span>
+                                    </div>
+                                    <div className="flex justify-between text-[9px] text-slate-500">
+                                      <span>Hình thức:</span>
+                                      <span className="text-slate-600 dark:text-slate-400">Thanh toán chuyển khoản (VietQR)</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Call to action */}
+                                <div className="text-center pt-2">
+                                  <div className="inline-block bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-[9px] font-bold px-4 py-1.5 rounded-md shadow-sm">
+                                    Xem chi tiết đơn hàng
+                                  </div>
+                                </div>
+
+                                {/* Footer sign */}
+                                <div className="text-center pt-3 border-t border-slate-100 dark:border-slate-800 text-[9px] text-slate-400">
+                                  <p>Trân trọng,</p>
+                                  <p className="font-semibold text-slate-500 dark:text-slate-300">Đội ngũ {getStringField('mail_from_name', EMAIL_DEFAULTS.mail_from_name)}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 text-center">
+                            💡 Tiêu đề và nội dung email tự động đồng bộ theo <b>Tên người gửi</b>.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               ) : (
@@ -1953,9 +2304,9 @@ function SettingsContent({ section }: { section: SettingsSection }) {
         </Card>
       )}
 
-      {!(section === 'advanced' && advancedTab === 'product-supplemental' && enableSupplementalContent) && (
+      {!(section === 'advanced' && advancedTab === 'product-supplemental' && canEditProductSupplemental) && (
         <HomeComponentStickyFooter
-          isSubmitting={isSaving}
+          isSubmitting={isCurrentlySaving}
           submitLabel="Lưu thay đổi"
           hasChanges={hasChanges}
           submitType="button"
@@ -1990,17 +2341,17 @@ function SettingsContent({ section }: { section: SettingsSection }) {
             type="button"
             variant="accent"
             onClick={handleSave}
-            disabled={isSaving || !hasChanges}
-            className={!hasChanges && !isSaving
+            disabled={isCurrentlySaving || !hasChanges}
+            className={!hasChanges && !isCurrentlySaving
               ? 'bg-slate-300 hover:bg-slate-300 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-800 dark:text-slate-400'
               : undefined}
           >
-            {isSaving ? (
+            {isCurrentlySaving ? (
               <Loader2 size={16} className="mr-2 animate-spin" />
             ) : (
               <Save size={16} className="mr-2" />
             )}
-            {isSaving ? 'Đang lưu...' : hasChanges ? 'Lưu thay đổi' : 'Đã lưu'}
+            {isCurrentlySaving ? 'Đang lưu...' : hasChanges ? 'Lưu thay đổi' : 'Đã lưu'}
           </Button>
         </div>
       </HomeComponentStickyFooter>

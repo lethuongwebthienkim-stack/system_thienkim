@@ -237,6 +237,7 @@ type ProductDetailExperienceConfig = {
   accentColors?: ProductDetailAccentColorConfig;
   showSocialButtons?: boolean;
   socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
+  cartButtonsLayout?: 'stack' | 'grid-2';
 };
 
 type BaseImageLayoutConfig = {
@@ -360,6 +361,7 @@ const DEFAULT_CONFIG: ProductDetailExperienceConfig = {
   },
   showSocialButtons: false,
   socialButtons: [],
+  cartButtonsLayout: 'stack',
 };
 
 const LEGACY_COMBO_EFFECT_MAP = {
@@ -498,6 +500,7 @@ export default function ProductDetailExperiencePage() {
   const legacyStyleSetting = useQuery(api.settings.getByKey, { key: LEGACY_DETAIL_STYLE_KEY });
   const legacyHighlightsSetting = useQuery(api.settings.getByKey, { key: LEGACY_HIGHLIGHTS_KEY });
   const highlightsSetting = useQuery(api.settings.getByKey, { key: CLASSIC_HIGHLIGHTS_KEY });
+  const saleModeSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'saleMode' });
   const moduleAspectRatioSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'defaultImageAspectRatio' });
   const commentsModule = useQuery(api.admin.modules.getModuleByKey, { key: 'comments' });
   const commentsLikesFeature = useQuery(api.admin.modules.getModuleFeature, { featureKey: 'enableLikes', moduleKey: 'comments' });
@@ -676,6 +679,7 @@ export default function ProductDetailExperiencePage() {
       accentColors?: ProductDetailAccentColorConfig;
       showSocialButtons?: boolean;
       socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
+      cartButtonsLayout?: 'stack' | 'grid-2';
       layouts?: Partial<Record<ProductsDetailStyle, Partial<ClassicLayoutConfig & ModernLayoutConfig & MinimalLayoutConfig & PremiumLayoutConfig & BaseImageLayoutConfig & {
         imageAspectRatio?: ProductImageAspectRatio;
       }>>>;
@@ -763,12 +767,14 @@ export default function ProductDetailExperiencePage() {
       },
       showSocialButtons: raw?.showSocialButtons ?? false,
       socialButtons: raw?.socialButtons ?? [],
+      cartButtonsLayout: raw?.cartButtonsLayout ?? 'stack',
     };
   }, [experienceSetting?.value, legacyStyle, legacyHighlights]);
 
-  const isLoading = experienceSetting === undefined || legacyStyleSetting === undefined || legacyHighlightsSetting === undefined || highlightsSetting === undefined;
+  const isLoading = experienceSetting === undefined || legacyStyleSetting === undefined || legacyHighlightsSetting === undefined || highlightsSetting === undefined || saleModeSetting === undefined;
 
   const { config, setConfig, hasChanges } = useExperienceConfig(serverConfig, DEFAULT_CONFIG, isLoading);
+  const saleMode = (saleModeSetting?.value as string | undefined) ?? 'cart';
 
   const currentLayoutConfig = config.layouts[config.layoutStyle];
   const resolvedImageAspectRatio = config.imageAspectRatioSource === 'module'
@@ -952,6 +958,7 @@ export default function ProductDetailExperiencePage() {
       priceRightIcon: premiumLayoutConfig.priceRightIcon,
       showPriceLeftIcon: premiumLayoutConfig.showPriceLeftIcon,
       showPriceRightIcon: premiumLayoutConfig.showPriceRightIcon,
+      cartButtonsLayout: config.cartButtonsLayout,
     };
 
     return base;
@@ -1338,6 +1345,17 @@ export default function ProductDetailExperiencePage() {
               accentColor={brandColor}
               disabled={!canUseOrders}
             />
+            {currentLayoutConfig.showAddToCart && saleMode === 'cart' && (
+              <SelectRow
+                label="Bố cục nút"
+                value={config.cartButtonsLayout ?? 'stack'}
+                options={[
+                  { value: 'stack', label: 'Xếp dọc (Stack)' },
+                  { value: 'grid-2', label: 'Xếp ngang (Grid 2)' },
+                ]}
+                onChange={(v) => setConfig(prev => ({ ...prev, cartButtonsLayout: v as 'stack' | 'grid-2' }))}
+              />
+            )}
             <ToggleRow
               label="Section toàn bộ ảnh"
               description="Hiển thị toàn bộ ảnh sản phẩm dưới mô tả"

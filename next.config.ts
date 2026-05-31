@@ -29,6 +29,10 @@ const nextConfig: NextConfig = {
         protocol: 'https',
       },
       {
+        hostname: '*.convex.site',
+        protocol: 'https',
+      },
+      {
         hostname: 'images.unsplash.com',
         protocol: 'https',
       },
@@ -54,6 +58,14 @@ const nextConfig: NextConfig = {
       },
       {
         hostname: 'bizweb.dktcdn.net',
+        protocol: 'https',
+      },
+      {
+        hostname: 'sapo.dktcdn.net',
+        protocol: 'https',
+      },
+      {
+        hostname: '*.dktcdn.net',
         protocol: 'https',
       },
       {

@@ -445,12 +445,10 @@ function NotificationsContent() {
                               <Ban size={16}/>
                             </Button>
                           )}
-                          {notif.status !== 'Sent' && (
-                            <Link href={`/admin/notifications/${notif._id}/edit`}>
-                              <Button variant="ghost" size="icon"><Edit size={16}/></Button>
-                            </Link>
-                          )}
-                          <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={ async () => handleDelete(notif._id)}><Trash2 size={16}/></Button>
+                          <Link href={`/admin/notifications/${notif._id}/edit`}>
+                            <Button variant="ghost" size="icon" title={notif.status === 'Sent' ? 'Xem chi tiết' : 'Chỉnh sửa'}><Edit size={16}/></Button>
+                          </Link>
+                          <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={ async () => handleDelete(notif._id)} title="Xóa"><Trash2 size={16}/></Button>
                         </div>
                       </TableCell>
                     </TableRow>

@@ -47,6 +47,8 @@ type ProductsListExperienceConfig = {
   enableQuickAddVariant: boolean;
   hideEmptyCategories: boolean;
   cornerRadius: ProductListCornerRadius;
+  cartButtonsLayout?: 'stack' | 'grid-2';
+  priceFilterMode: 'disabled' | 'custom' | 'smart_dropdown' | 'slider';
 };
 
 type LayoutConfig = {
@@ -85,6 +87,8 @@ const DEFAULT_CONFIG: ProductsListExperienceConfig = {
   enableQuickAddVariant: true,
   hideEmptyCategories: true,
   cornerRadius: 'lg',
+  cartButtonsLayout: 'stack',
+  priceFilterMode: 'custom',
 };
 
 const HINTS = [
@@ -138,6 +142,7 @@ export default function ProductsListExperiencePage() {
   const ordersModule = useQuery(api.admin.modules.getModuleByKey, { key: 'orders' });
   const promotionsModule = useQuery(api.admin.modules.getModuleByKey, { key: 'promotions' });
   const variantsSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'variantEnabled' });
+  const saleModeSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'saleMode' });
   const brandColors = useBrandColors();
   const [brandColor, setBrandColor] = useState(brandColors.primary);
   const [secondaryColor, setSecondaryColor] = useState(brandColors.secondary || '');
@@ -155,6 +160,8 @@ export default function ProductsListExperiencePage() {
       enableQuickAddVariant?: boolean;
       hideEmptyCategories?: boolean;
       cornerRadius?: ProductListCornerRadius;
+      cartButtonsLayout?: 'stack' | 'grid-2';
+      priceFilterMode?: 'disabled' | 'custom' | 'smart_dropdown' | 'slider';
     } | undefined;
     
     const normalizePaginationType = (value?: string | boolean): PaginationType => {
@@ -188,12 +195,15 @@ export default function ProductsListExperiencePage() {
       enableQuickAddVariant: raw?.enableQuickAddVariant ?? true,
       hideEmptyCategories: raw?.hideEmptyCategories ?? true,
       cornerRadius: raw?.cornerRadius ?? 'lg',
+      cartButtonsLayout: raw?.cartButtonsLayout ?? 'stack',
+      priceFilterMode: raw?.priceFilterMode ?? 'custom',
     };
   }, [experienceSetting?.value]);
 
-  const isLoading = experienceSetting === undefined || productsModule === undefined || wishlistModule === undefined || cartModule === undefined || ordersModule === undefined || promotionsModule === undefined || variantsSetting === undefined;
+  const isLoading = experienceSetting === undefined || productsModule === undefined || wishlistModule === undefined || cartModule === undefined || ordersModule === undefined || promotionsModule === undefined || variantsSetting === undefined || saleModeSetting === undefined;
 
   const { config, setConfig, hasChanges } = useExperienceConfig(serverConfig, DEFAULT_CONFIG, isLoading);
+  const saleMode = (saleModeSetting?.value as string | undefined) ?? 'cart';
   const canUseProducts = productsModule?.enabled ?? false;
   const canUseWishlist = wishlistModule?.enabled ?? false;
   const canUseCart = (cartModule?.enabled ?? false) && (ordersModule?.enabled ?? false);
@@ -398,6 +408,17 @@ export default function ProductsListExperiencePage() {
               accentColor={brandColor}
               disabled={!canUsePromotions}
             />
+            {config.showAddToCartButton && saleMode === 'cart' && (
+              <SelectRow
+                label="Bố cục nút"
+                value={config.cartButtonsLayout ?? 'stack'}
+                options={[
+                  { value: 'stack', label: 'Xếp dọc (Stack)' },
+                  { value: 'grid-2', label: 'Xếp ngang (Grid 2)' },
+                ]}
+                onChange={(v) => setConfig(prev => ({ ...prev, cartButtonsLayout: v as 'stack' | 'grid-2' }))}
+              />
+            )}
           </ControlCard>
 
           <ControlCard title="Bảo trì hệ thống">
@@ -425,6 +446,25 @@ export default function ProductsListExperiencePage() {
                   </>
                 )}
               </Button>
+            </div>
+          </ControlCard>
+
+          <ControlCard title="Bộ lọc khoảng giá">
+            <div className="space-y-3">
+              <SelectRow
+                label="Chế độ lọc"
+                value={config.priceFilterMode ?? 'custom'}
+                options={[
+                  { value: 'disabled', label: 'Tắt bộ lọc' },
+                  { value: 'custom', label: 'Tự nhập (Từ - Đến)' },
+                  { value: 'smart_dropdown', label: 'Dropdown thông minh (SaaS)' },
+                  { value: 'slider', label: 'Slider 2 đầu (Range Slider)' },
+                ]}
+                onChange={(v) => setConfig(prev => ({ ...prev, priceFilterMode: v as any }))}
+              />
+              <p className="text-[10px] text-slate-400 leading-relaxed mt-1">
+                Lọc khoảng giá thông minh và Slider sẽ tự động tính toán khoảng biên từ cơ sở dữ liệu thực tế bằng index tối ưu O(1).
+              </p>
             </div>
           </ControlCard>
         </CardContent>
@@ -550,6 +590,8 @@ export default function ProductsListExperiencePage() {
                 showBuyNowButton={config.showBuyNowButton && (ordersModule?.enabled ?? false)}
                 showPromotionBadge={config.showPromotionBadge && (promotionsModule?.enabled ?? false)}
                 cornerRadius={config.cornerRadius}
+                cartButtonsLayout={config.cartButtonsLayout}
+                priceFilterMode={config.priceFilterMode}
               />
             </BrowserFrame>
           </div>

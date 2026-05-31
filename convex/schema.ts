@@ -219,8 +219,17 @@ export default defineSchema({
     phone: v.string(),
     status: v.union(v.literal("Active"), v.literal("Inactive")),
     totalSpent: v.number(),
+    addressFormat: v.optional(v.union(v.literal("text"), v.literal("2-level"), v.literal("3-level"))),
+    addressDetail: v.optional(v.string()),
+    provinceCode: v.optional(v.string()),
+    provinceName: v.optional(v.string()),
+    districtCode: v.optional(v.string()),
+    districtName: v.optional(v.string()),
+    wardCode: v.optional(v.string()),
+    wardName: v.optional(v.string()),
   })
     .index("by_email", ["email"])
+    .index("by_phone", ["phone"])
     .index("by_status", ["status"])
     .index("by_status_totalSpent", ["status", "totalSpent"])
     .index("by_city_status", ["city", "status"]),
@@ -234,6 +243,18 @@ export default defineSchema({
   })
     .index("by_token", ["token"])
     .index("by_customer", ["customerId"]),
+
+  // 8b. customerAuthChallenges - Challenges cho xác minh OTP khách hàng
+  customerAuthChallenges: defineTable({
+    customerId: v.id("customers"),
+    purpose: v.literal("password_setup"),
+    code: v.string(),
+    expiresAt: v.number(),
+    attempts: v.number(),
+    consumedAt: v.optional(v.number()),
+  })
+    .index("by_customer_purpose", ["customerId", "purpose"])
+    .index("by_expiresAt", ["expiresAt"]),
 
   // 9. productCategories - Danh mục sản phẩm (Hierarchical)
   productCategories: defineTable({
@@ -1312,4 +1333,28 @@ export default defineSchema({
     .index("by_type", ["landingType"])
     .index("by_type_status", ["landingType", "status"])
     .index("by_status_updatedAt", ["status", "updatedAt"]),
+
+  emailProviderUsageDaily: defineTable({
+    accountId: v.string(),
+    dateKey: v.string(), // "YYYY-MM-DD"
+    recipientCount: v.number(),
+  }).index("by_account_date", ["accountId", "dateKey"]),
+
+  emailProviderUsageMonthly: defineTable({
+    accountId: v.string(),
+    monthKey: v.string(), // "YYYY-MM"
+    recipientCount: v.number(),
+  }).index("by_account_month", ["accountId", "monthKey"]),
+
+  emailDispatchLogs: defineTable({
+    eventType: v.string(), // "order_placed" | "order_delivered" | "order_cancelled" | "otp"
+    orderId: v.optional(v.id("orders")),
+    recipient: v.string(),
+    provider: v.string(), // "smtp" | "resend"
+    accountId: v.string(), // Resend account ID or "smtp"
+    status: v.string(), // "pending" | "success" | "failed" | "skipped_quota_exhausted"
+    emailId: v.optional(v.string()),
+    idempotencyKey: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_idempotencyKey", ["idempotencyKey"]),
 });

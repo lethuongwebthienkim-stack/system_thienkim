@@ -17,6 +17,11 @@ import { DEFAULT_SECTION_SPACING, getSectionSpacingClassName, type SectionSpacin
 import { PRODUCT_LIST_LOOKBOOK_BANNERS, PRODUCT_LIST_STYLES } from '../_lib/constants';
 import { getProductListCardRadiusClassName, getProductListImageRadiusClassName, normalizeProductListCardRadius, type ProductListCardRadius, type ProductListPreviewItem, type ProductListStyle } from '../_types';
 import { getProductImageAspectRatioCssValue, resolveProductImageAspectRatio } from '@/lib/products/image-aspect-ratio';
+import { ProductCardActions } from '@/components/site/shared/ProductCardActions';
+import { getProductsListColors } from '@/components/site/products/colors';
+import { QuickAddVariantModal } from '@/components/products/QuickAddVariantModal';
+import type { Id } from '@/convex/_generated/dataModel';
+import { buildPreviewQuickAddProduct, type PreviewQuickAddAction, type PreviewQuickAddProduct } from '../../_shared/lib/previewQuickAdd';
 
 // Embla Carousel sub-component — tách riêng vì cần hooks
 function CarouselPreviewInner({
@@ -38,6 +43,12 @@ function CarouselPreviewInner({
   headerAlign = 'left' as const,
   subtitleAboveTitle = false,
   cardRadiusClassName,
+  showAddToCartButton,
+  showBuyNowButton,
+  cartButtonsLayout,
+  tokens,
+  isProduct = true,
+  onPreviewAction,
 }: {
   displayItems: ProductListPreviewItem[];
   device: 'desktop' | 'tablet' | 'mobile';
@@ -57,6 +68,12 @@ function CarouselPreviewInner({
   headerAlign?: 'left' | 'center' | 'right';
   subtitleAboveTitle?: boolean;
   cardRadiusClassName: string;
+  showAddToCartButton?: boolean;
+  showBuyNowButton?: boolean;
+  cartButtonsLayout?: 'stack' | 'grid-2';
+  tokens?: any;
+  isProduct?: boolean;
+  onPreviewAction: (item: ProductListPreviewItem, action: PreviewQuickAddAction) => void;
 }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
@@ -155,31 +172,54 @@ function CarouselPreviewInner({
             return (
               <div
                 key={item.id}
-                className="flex-shrink-0 group cursor-pointer min-w-0"
+                className="flex-shrink-0 group cursor-pointer min-w-0 flex flex-col justify-between"
                 style={{ flex: `0 0 ${slideWidth}` }}
               >
-                <div
-                  className={cn("relative overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 mb-3 border border-transparent transition-all", cardRadiusClassName)}
-                  onMouseEnter={(event) => { event.currentTarget.style.borderColor = `${secondary}20`; }}
-                  onMouseLeave={(event) => { event.currentTarget.style.borderColor = 'transparent'; }}
-                  style={imageAspectRatioStyle}
-                >
-                  {item.image ? (
-                    <PreviewImage src={item.image} alt={item.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                  ) : (
-                    <div className="h-full w-full flex items-center justify-center"><Package size={40} className="text-slate-300" /></div>
-                  )}
-                  {discount && (
-                    <div className="absolute top-2 left-2">
-                      <SaleBadge text={discount} className="text-[10px] px-2 py-1" />
-                    </div>
-                  )}
+                <div className="flex-1 flex flex-col">
+                  <div
+                    className={cn("relative overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-800 mb-3 border border-transparent transition-all", cardRadiusClassName)}
+                    onMouseEnter={(event) => { event.currentTarget.style.borderColor = `${secondary}20`; }}
+                    onMouseLeave={(event) => { event.currentTarget.style.borderColor = 'transparent'; }}
+                    style={imageAspectRatioStyle}
+                  >
+                    {item.image ? (
+                      <PreviewImage src={item.image} alt={item.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center"><Package size={40} className="text-slate-300" /></div>
+                    )}
+                    {discount && (
+                      <div className="absolute top-2 left-2">
+                        <SaleBadge text={discount} className="text-[10px] px-2 py-1" />
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm line-clamp-2 group-hover:opacity-80 transition-colors">{item.name}</h3>
+                  <div className="flex items-center gap-2 mt-1 mb-2">
+                    <span className="font-bold text-sm" style={{ color: brandColor }}>{item.price}</span>
+                    {item.originalPrice && <span className="text-xs text-slate-400 line-through">{item.originalPrice}</span>}
+                  </div>
                 </div>
-                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm line-clamp-2 group-hover:opacity-80 transition-colors">{item.name}</h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="font-bold text-sm" style={{ color: brandColor }}>{item.price}</span>
-                  {item.originalPrice && <span className="text-xs text-slate-400 line-through">{item.originalPrice}</span>}
-                </div>
+                {isProduct && (showAddToCartButton || showBuyNowButton) && (
+                  <div className="mt-auto">
+                    <ProductCardActions
+                      product={{
+                        _id: String(item.id),
+                        name: item.name,
+                        price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined,
+                        salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined,
+                      }}
+                      tokens={tokens}
+                      showStock={false}
+                      showAddToCartButton={!!showAddToCartButton}
+                      showBuyNowButton={!!showBuyNowButton}
+                      buyNowLabel="Mua ngay"
+                      onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                      onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                      cartButtonsLayout={cartButtonsLayout}
+                      device={device}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}
@@ -212,6 +252,12 @@ function WineCarouselPreviewInner({
   itemCount,
   getDiscount,
   cardRadiusClassName,
+  showAddToCartButton,
+  showBuyNowButton,
+  cartButtonsLayout,
+  tokens,
+  isProduct = true,
+  onPreviewAction,
 }: {
   displayItems: ProductListPreviewItem[];
   device: 'desktop' | 'tablet' | 'mobile';
@@ -220,6 +266,12 @@ function WineCarouselPreviewInner({
   itemCount: number;
   getDiscount: (price?: string, originalPrice?: string) => string | null;
   cardRadiusClassName: string;
+  showAddToCartButton?: boolean;
+  showBuyNowButton?: boolean;
+  cartButtonsLayout?: 'stack' | 'grid-2';
+  tokens?: any;
+  isProduct?: boolean;
+  onPreviewAction: (item: ProductListPreviewItem, action: PreviewQuickAddAction) => void;
 }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
@@ -318,16 +370,39 @@ function WineCarouselPreviewInner({
                       {item.name}
                     </h3>
                     <div className="mb-1.5 flex flex-col gap-0.5 sm:mb-2 sm:gap-1" />
-                    <div className="mt-auto flex items-end justify-between gap-2 border-t border-stone-100 pt-1.5 sm:pt-2">
-                      <div className="flex min-w-0 flex-col">
-                        {item.originalPrice ? (
-                          <span className="text-[10px] font-medium text-stone-400 line-through decoration-stone-400 decoration-1 sm:text-xs">{item.originalPrice}</span>
-                        ) : null}
-                        <span className="text-base font-bold sm:text-lg" style={{ color: brandColor }}>{item.price}</span>
+                    <div className="mt-auto flex flex-col gap-1.5 border-t border-stone-100 pt-1.5 sm:pt-2">
+                      <div className="flex items-end justify-between gap-2">
+                        <div className="flex min-w-0 flex-col">
+                          {item.originalPrice ? (
+                            <span className="text-[10px] font-medium text-stone-400 line-through decoration-stone-400 decoration-1 sm:text-xs">{item.originalPrice}</span>
+                          ) : null}
+                          <span className="text-base font-bold sm:text-lg" style={{ color: brandColor }}>{item.price}</span>
+                        </div>
+                        {(!isProduct || (!showAddToCartButton && !showBuyNowButton)) && (
+                          <button type="button" className="shrink-0 rounded px-2 py-1 text-[10px] font-medium text-white transition-colors sm:px-3 sm:py-1.5 sm:text-xs" style={{ backgroundColor: brandColor }}>
+                            Xem
+                          </button>
+                        )}
                       </div>
-                      <button type="button" className="shrink-0 rounded px-2 py-1 text-[10px] font-medium text-white transition-colors sm:px-3 sm:py-1.5 sm:text-xs" style={{ backgroundColor: brandColor }}>
-                        Xem
-                      </button>
+                      {isProduct && (showAddToCartButton || showBuyNowButton) && (
+                        <ProductCardActions
+                          product={{
+                            _id: String(item.id),
+                            name: item.name,
+                            price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined,
+                            salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined,
+                          }}
+                          tokens={tokens}
+                          showStock={false}
+                          showAddToCartButton={!!showAddToCartButton}
+                          showBuyNowButton={!!showBuyNowButton}
+                          buyNowLabel="Mua ngay"
+                          onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                          onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                          cartButtonsLayout={cartButtonsLayout}
+                          device={device}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -372,6 +447,9 @@ export const ProductListPreview = ({
   lookbookDesktopColumns = 3,
   forceEmpty = false,
   emptyMessage = 'Danh mục này chưa có sản phẩm.',
+  showAddToCartButton = true,
+  showBuyNowButton = true,
+  cartButtonsLayout = 'stack',
 }: {
   brandColor: string;
   secondary: string;
@@ -403,7 +481,14 @@ export const ProductListPreview = ({
   lookbookDesktopColumns?: 3 | 4;
   forceEmpty?: boolean;
   emptyMessage?: string;
+  showAddToCartButton?: boolean;
+  showBuyNowButton?: boolean;
+  cartButtonsLayout?: 'stack' | 'grid-2';
 }) => {
+  const tokens = React.useMemo(
+    () => getProductsListColors(brandColor, secondary, 'single'),
+    [brandColor, secondary]
+  );
   const displayTitle = sectionTitle ?? (componentType === 'ServiceList' ? 'Dịch vụ nổi bật' : 'Sản phẩm nổi bật');
   const displaySubtitle = subtitleProp ?? '';
   // Effective display flags
@@ -433,11 +518,38 @@ export const ProductListPreview = ({
   const previewStyle: string = selectedStyle ?? 'commerce';
   const setPreviewStyle = (style: string) => onStyleChange?.(style as ProductListStyle);
   const isProduct = componentType !== 'ServiceList';
+  const [quickAddTarget, setQuickAddTarget] = React.useState<{ product: PreviewQuickAddProduct; action: PreviewQuickAddAction } | null>(null);
+  const onPreviewAction = React.useCallback((item: ProductListPreviewItem | undefined, action: PreviewQuickAddAction) => {
+    if (!item || !isProduct) {
+      return;
+    }
+    const product = buildPreviewQuickAddProduct(item);
+    if (!product.hasVariants || !product._id) {
+      return;
+    }
+    setQuickAddTarget({ product, action });
+  }, [isProduct]);
+  const quickAddModalProduct = React.useMemo(() => quickAddTarget
+    ? { ...quickAddTarget.product, _id: quickAddTarget.product._id as Id<'products'> }
+    : null, [quickAddTarget]);
   const aspectRatioSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'defaultImageAspectRatio' });
   const imageAspectRatio = React.useMemo(
     () => resolveProductImageAspectRatio(aspectRatioSetting?.value),
     [aspectRatioSetting?.value]
   );
+  
+  const saleModeSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'saleMode' });
+  const saleMode = React.useMemo<'cart' | 'contact' | 'affiliate'>(() => {
+    const value = saleModeSetting?.value;
+    if (value === 'contact' || value === 'affiliate') {
+      return value;
+    }
+    return 'cart';
+  }, [saleModeSetting?.value]);
+
+  const effectiveShowAddToCartButton = saleMode === 'cart' && showAddToCartButton;
+  const effectiveShowBuyNowButton = saleMode === 'cart' && showBuyNowButton;
+
   const imageAspectRatioStyle = React.useMemo(
     () => ({ aspectRatio: getProductImageAspectRatioCssValue(imageAspectRatio) }),
     [imageAspectRatio]
@@ -573,15 +685,37 @@ export const ProductListPreview = ({
                   )}
                 </div>
 
-                <button
-                  className="w-full gap-1 border-2 py-1.5 px-2 rounded-lg font-medium flex items-center justify-center transition-colors whitespace-nowrap text-xs"
-                  style={{ borderColor: `${brandColor}20`, color: brandColor }}
-                  onMouseEnter={(event) => { event.currentTarget.style.borderColor = brandColor; event.currentTarget.style.backgroundColor = `${brandColor}08`; }}
-                  onMouseLeave={(event) => { event.currentTarget.style.borderColor = `${brandColor}20`; event.currentTarget.style.backgroundColor = 'transparent'; }}
-                >
-                  Xem chi tiết
-                  <ArrowRight className="w-3 h-3 flex-shrink-0" />
-                </button>
+                {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) ? (
+                  <div className="mt-auto">
+                    <ProductCardActions
+                      product={{
+                        _id: String(item.id),
+                        name: item.name,
+                        price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined,
+                        salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined,
+                      }}
+                      tokens={tokens}
+                      showStock={false}
+                      showAddToCartButton={!!effectiveShowAddToCartButton}
+                      showBuyNowButton={!!effectiveShowBuyNowButton}
+                      buyNowLabel="Mua ngay"
+                      onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                      onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                      cartButtonsLayout={cartButtonsLayout}
+                      device={device}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    className="w-full gap-1 border-2 py-1.5 px-2 rounded-lg font-medium flex items-center justify-center transition-colors whitespace-nowrap text-xs"
+                    style={{ borderColor: `${brandColor}20`, color: brandColor }}
+                    onMouseEnter={(event) => { event.currentTarget.style.borderColor = brandColor; event.currentTarget.style.backgroundColor = `${brandColor}08`; }}
+                    onMouseLeave={(event) => { event.currentTarget.style.borderColor = `${brandColor}20`; event.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    Xem chi tiết
+                    <ArrowRight className="w-3 h-3 flex-shrink-0" />
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -661,15 +795,37 @@ export const ProductListPreview = ({
                   )}
                 </div>
 
-                <button
-                  className="w-full gap-1.5 md:gap-2 border-2 py-1.5 md:py-2 px-2 md:px-4 rounded-lg font-medium flex items-center justify-center transition-colors whitespace-nowrap text-xs md:text-sm"
-                  style={{ borderColor: `${brandColor}20`, color: brandColor }}
-                  onMouseEnter={(event) => { event.currentTarget.style.borderColor = brandColor; event.currentTarget.style.backgroundColor = `${brandColor}08`; }}
-                  onMouseLeave={(event) => { event.currentTarget.style.borderColor = `${brandColor}20`; event.currentTarget.style.backgroundColor = 'transparent'; }}
-                >
-                  Xem chi tiết
-                  <ArrowRight className="w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0" />
-                </button>
+                {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) ? (
+                  <div className="mt-auto">
+                    <ProductCardActions
+                      product={{
+                        _id: String(item.id),
+                        name: item.name,
+                        price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined,
+                        salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined,
+                      }}
+                      tokens={tokens}
+                      showStock={false}
+                      showAddToCartButton={!!effectiveShowAddToCartButton}
+                      showBuyNowButton={!!effectiveShowBuyNowButton}
+                      buyNowLabel="Mua ngay"
+                      onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                      onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                      cartButtonsLayout={cartButtonsLayout}
+                      device={device}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    className="w-full gap-1.5 md:gap-2 border-2 py-1.5 md:py-2 px-2 md:px-4 rounded-lg font-medium flex items-center justify-center transition-colors whitespace-nowrap text-xs md:text-sm"
+                    style={{ borderColor: `${brandColor}20`, color: brandColor }}
+                    onMouseEnter={(event) => { event.currentTarget.style.borderColor = brandColor; event.currentTarget.style.backgroundColor = `${brandColor}08`; }}
+                    onMouseLeave={(event) => { event.currentTarget.style.borderColor = `${brandColor}20`; event.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    Xem chi tiết
+                    <ArrowRight className="w-3 h-3 md:w-3.5 md:h-3.5 flex-shrink-0" />
+                  </button>
+                )}
               </div>
             </div>
           );
@@ -712,6 +868,22 @@ export const ProductListPreview = ({
                   </div>
                   <h4 className="font-medium text-sm text-slate-900 dark:text-slate-100 line-clamp-2 group-hover:opacity-80 transition-colors">{item.name}</h4>
                   <span className="text-sm font-bold mt-1" style={{ color: brandColor }}>{item.price}</span>
+                  {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) && (
+                    <div className="mt-2">
+                      <ProductCardActions
+                        product={{ _id: String(item.id), name: item.name, price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined, salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined }}
+                        tokens={tokens}
+                        showStock={false}
+                        showAddToCartButton={!!effectiveShowAddToCartButton}
+                        showBuyNowButton={!!effectiveShowBuyNowButton}
+                        buyNowLabel="Mua ngay"
+                        onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                        onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                        cartButtonsLayout={cartButtonsLayout}
+                        device={device}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -749,13 +921,27 @@ export const ProductListPreview = ({
               <div className="absolute bottom-0 left-0 p-6 md:p-8 w-full">
                 <h3 className="text-2xl md:text-4xl font-bold mb-3 leading-tight text-white">{featured?.name}</h3>
 
-                <div className="flex flex-row items-center justify-between gap-4 mt-2">
-                  <span className="text-2xl font-bold text-white">{featured?.price}</span>
-
-                  <button type="button" className="rounded-full px-6 py-2 text-white border-0 shadow-lg transition-all hover:scale-105" style={{ backgroundColor: brandColor, boxShadow: `0 4px 6px ${brandColor}20` }}>
-                    Xem chi tiết
-                  </button>
-                </div>
+                  {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) ? (
+                    <div className="flex gap-2 mt-3">
+                      {effectiveShowAddToCartButton && (
+                        <button type="button" onClick={() => onPreviewAction(featured, 'addToCart')} className="flex-1 rounded-full py-2 px-3 text-sm font-bold text-white shadow-lg transition-all hover:opacity-90 whitespace-nowrap" style={{ backgroundColor: brandColor }}>
+                          Thêm giỏ
+                        </button>
+                      )}
+                      {effectiveShowBuyNowButton && (
+                        <button type="button" onClick={() => onPreviewAction(featured, 'buyNow')} className="flex-1 rounded-full py-2 px-3 text-sm font-bold text-slate-900 bg-white/90 hover:bg-white shadow-lg transition-all whitespace-nowrap">
+                          Mua ngay
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-row items-center justify-between gap-4 mt-2">
+                      <span className="text-2xl font-bold text-white">{featured?.price}</span>
+                      <button type="button" className="rounded-full px-6 py-2 text-white border-0 shadow-lg transition-all hover:scale-105" style={{ backgroundColor: brandColor, boxShadow: `0 4px 6px ${brandColor}20` }}>
+                        Xem chi tiết
+                      </button>
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -812,6 +998,22 @@ export const ProductListPreview = ({
                         </span>
                       )}
                     </div>
+                    {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) && (
+                      <div className="mt-2">
+                        <ProductCardActions
+                          product={{ _id: String(item.id), name: item.name, price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined, salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined }}
+                          tokens={tokens}
+                          showStock={false}
+                          showAddToCartButton={!!effectiveShowAddToCartButton}
+                          showBuyNowButton={!!effectiveShowBuyNowButton}
+                          buyNowLabel="Mua ngay"
+                          onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                          onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                          cartButtonsLayout={cartButtonsLayout}
+                          device={device}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -822,7 +1024,7 @@ export const ProductListPreview = ({
     );
   };
 
-  const renderCarouselStyle = () => <CarouselPreviewInner displayItems={displayItems} device={device} brandColor={brandColor} secondary={secondary} subTitle={subTitle} displayTitle={displayTitle} displaySubtitle={displaySubtitle} imageAspectRatioStyle={imageAspectRatioStyle} getDiscount={getDiscount} effectiveShowBadge={effectiveShowBadge} effectiveShowTitle={effectiveShowTitle} effectiveShowSubtitle={effectiveShowSubtitle} effectiveHideHeader={effectiveHideHeader} titleStyle={titleStyle} uppercaseText={uppercaseText} headerAlign={headerAlign} subtitleAboveTitle={subtitleAboveTitle} cardRadiusClassName={cardRadiusClassName} />;
+  const renderCarouselStyle = () => <CarouselPreviewInner displayItems={displayItems} device={device} brandColor={brandColor} secondary={secondary} subTitle={subTitle} displayTitle={displayTitle} displaySubtitle={displaySubtitle} imageAspectRatioStyle={imageAspectRatioStyle} getDiscount={getDiscount} effectiveShowBadge={effectiveShowBadge} effectiveShowTitle={effectiveShowTitle} effectiveShowSubtitle={effectiveShowSubtitle} effectiveHideHeader={effectiveHideHeader} titleStyle={titleStyle} uppercaseText={uppercaseText} headerAlign={headerAlign} subtitleAboveTitle={subtitleAboveTitle} cardRadiusClassName={cardRadiusClassName} showAddToCartButton={effectiveShowAddToCartButton} showBuyNowButton={effectiveShowBuyNowButton} cartButtonsLayout={cartButtonsLayout} tokens={tokens} isProduct={isProduct} onPreviewAction={onPreviewAction} />;
 
   const renderWineCarouselStyle = () => (
     <WineCarouselPreviewInner
@@ -833,6 +1035,12 @@ export const ProductListPreview = ({
       itemCount={itemCount}
       getDiscount={getDiscount}
       cardRadiusClassName={cardRadiusClassName}
+      showAddToCartButton={effectiveShowAddToCartButton}
+      showBuyNowButton={effectiveShowBuyNowButton}
+      cartButtonsLayout={cartButtonsLayout}
+      tokens={tokens}
+      isProduct={isProduct}
+      onPreviewAction={onPreviewAction}
     />
   );
 
@@ -867,6 +1075,22 @@ export const ProductListPreview = ({
               </div>
               <h3 className="font-medium text-xs text-slate-900 dark:text-slate-100 line-clamp-2 group-hover:opacity-80 transition-colors">{item.name}</h3>
               <span className="font-bold text-xs mt-0.5 block" style={{ color: brandColor }}>{item.price}</span>
+              {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) && (
+                <div className="mt-1.5">
+                  <ProductCardActions
+                    product={{ _id: String(item.id), name: item.name, price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined, salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined }}
+                    tokens={tokens}
+                    showStock={false}
+                    showAddToCartButton={!!effectiveShowAddToCartButton}
+                    showBuyNowButton={!!effectiveShowBuyNowButton}
+                    buyNowLabel="Mua ngay"
+                    onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                    onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                    cartButtonsLayout={cartButtonsLayout}
+                    device={device}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
@@ -899,6 +1123,22 @@ export const ProductListPreview = ({
                   </div>
                   <h4 className="font-medium text-sm text-slate-900 dark:text-slate-100 line-clamp-2">{item.name}</h4>
                   <span className="text-sm font-bold mt-1" style={{ color: brandColor }}>{item.price}</span>
+                  {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) && (
+                    <div className="mt-2">
+                      <ProductCardActions
+                        product={{ _id: String(item.id), name: item.name, price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined, salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined }}
+                        tokens={tokens}
+                        showStock={false}
+                        showAddToCartButton={!!effectiveShowAddToCartButton}
+                        showBuyNowButton={!!effectiveShowBuyNowButton}
+                        buyNowLabel="Mua ngay"
+                        onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                        onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                        cartButtonsLayout={cartButtonsLayout}
+                        device={device}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -920,10 +1160,25 @@ export const ProductListPreview = ({
               <div className="absolute bottom-0 left-0 p-6 w-full">
                 <BrandBadge text="Nổi bật" variant="solid" brandColor={brandColor} secondary={secondary} className="mb-2" />
                 <h3 className="text-xl md:text-2xl font-bold text-white mb-2 line-clamp-2">{showcaseFeatured?.name}</h3>
-                <div className="flex items-center justify-between">
-                  <span className="text-xl font-bold text-white">{showcaseFeatured?.price}</span>
-                  <button type="button" className="h-9 px-4 rounded-lg text-white text-sm font-medium shrink-0" style={{ backgroundColor: brandColor }}>Xem chi tiết</button>
-                </div>
+                {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) ? (
+                  <div className="flex gap-2 mt-2">
+                    {effectiveShowAddToCartButton && (
+                      <button type="button" onClick={() => onPreviewAction(showcaseFeatured, 'addToCart')} className="flex-1 rounded-full py-2 px-3 text-sm font-bold text-white shadow-lg transition-all hover:opacity-90 whitespace-nowrap" style={{ backgroundColor: brandColor }}>
+                        Thêm giỏ
+                      </button>
+                    )}
+                    {effectiveShowBuyNowButton && (
+                      <button type="button" onClick={() => onPreviewAction(showcaseFeatured, 'buyNow')} className="flex-1 rounded-full py-2 px-3 text-sm font-bold text-slate-900 bg-white/90 hover:bg-white shadow-lg transition-all whitespace-nowrap">
+                        Mua ngay
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xl font-bold text-white">{showcaseFeatured?.price}</span>
+                    <button type="button" className="h-9 px-4 rounded-lg text-white text-sm font-medium shrink-0" style={{ backgroundColor: brandColor }}>Xem chi tiết</button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -945,6 +1200,22 @@ export const ProductListPreview = ({
                       <span className="text-sm font-bold" style={{ color: brandColor }}>{item.price}</span>
                       {item.originalPrice && <span className="text-[10px] text-slate-400 line-through">{item.originalPrice}</span>}
                     </div>
+                    {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) && (
+                      <div className="mt-2">
+                        <ProductCardActions
+                          product={{ _id: String(item.id), name: item.name, price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined, salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined }}
+                          tokens={tokens}
+                          showStock={false}
+                          showAddToCartButton={!!effectiveShowAddToCartButton}
+                          showBuyNowButton={!!effectiveShowBuyNowButton}
+                          buyNowLabel="Mua ngay"
+                          onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                          onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                          cartButtonsLayout={cartButtonsLayout}
+                          device={device}
+                        />
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -1065,6 +1336,7 @@ export const ProductListPreview = ({
                     }
                   }}
                 >
+                  {/* 3D flip card */}
                   <div className="relative isolate aspect-[380/460] overflow-visible [perspective:2500px]">
                     <div
                       className={cn(
@@ -1094,6 +1366,7 @@ export const ProductListPreview = ({
                           <SaleBadge text={discount} className="text-[11px] px-3 py-1 font-bold shadow-lg" />
                         </div>
                       )}
+                      {/* Overlay text — luôn show tên/giá; nút Xem chi tiết chỉ khi KHÔNG có cart buttons */}
                       <div className={cn("absolute inset-x-0 bottom-0 z-20 space-y-2 p-4 text-center transition duration-500 group-hover:translate-y-1", isActive && "translate-y-1")}>
                         {item.category ? (
                           <div className={cn("text-[11px] font-semibold uppercase tracking-wide text-white/70 transition-colors duration-500 group-hover:text-slate-500", isActive && "text-slate-500")}>
@@ -1115,9 +1388,12 @@ export const ProductListPreview = ({
                             </span>
                           )}
                         </div>
-                        <div className="inline-flex items-center justify-center rounded-full px-5 py-2 text-xs font-bold text-white shadow-lg transition duration-300 group-hover:scale-105" style={{ backgroundColor: secondary }}>
-                          Xem chi tiết <ArrowRight size={14} className="ml-1.5" />
-                        </div>
+                        {/* Chỉ show nút Xem chi tiết khi KHÔNG có cart mode */}
+                        {(!isProduct || (!effectiveShowAddToCartButton && !effectiveShowBuyNowButton)) && (
+                          <div className="inline-flex items-center justify-center rounded-full px-5 py-2 text-xs font-bold text-white shadow-lg transition duration-300 group-hover:scale-105" style={{ backgroundColor: secondary }}>
+                            Xem chi tiết <ArrowRight size={14} className="ml-1.5" />
+                          </div>
+                        )}
                       </div>
                     </div>
                     {hoverImage && (
@@ -1133,6 +1409,24 @@ export const ProductListPreview = ({
                       />
                     )}
                   </div>
+
+                  {/* Cart buttons đặt NGOÀI card 3D — rộng rãi, dễ nhìn */}
+                  {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) && (
+                    <div className="mt-3 px-1">
+                      <ProductCardActions
+                        product={{ _id: String(item.id), name: item.name, price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined, salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined }}
+                        tokens={tokens}
+                        showStock={false}
+                        showAddToCartButton={!!effectiveShowAddToCartButton}
+                        showBuyNowButton={!!effectiveShowBuyNowButton}
+                        buyNowLabel="Mua ngay"
+                        onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                        onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                        cartButtonsLayout={cartButtonsLayout}
+                        device={device}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -1232,15 +1526,37 @@ export const ProductListPreview = ({
                     )}
                   </div>
 
-                  <button
-                    className="w-full gap-1.5 border-2 py-1.5 px-2 rounded-lg font-medium flex items-center justify-center transition-colors whitespace-nowrap text-xs"
-                    style={{ borderColor: `${brandColor}20`, color: brandColor }}
-                    onMouseEnter={(event) => { event.currentTarget.style.borderColor = brandColor; event.currentTarget.style.backgroundColor = `${brandColor}08`; }}
-                    onMouseLeave={(event) => { event.currentTarget.style.borderColor = `${brandColor}20`; event.currentTarget.style.backgroundColor = 'transparent'; }}
-                  >
-                    Xem chi tiết
-                    <ArrowRight className="w-3 h-3 flex-shrink-0" />
-                  </button>
+                  {isProduct && (effectiveShowAddToCartButton || effectiveShowBuyNowButton) ? (
+                    <div className="mt-auto">
+                      <ProductCardActions
+                        product={{
+                          _id: String(item.id),
+                          name: item.name,
+                          price: item.price ? Number(item.price.replace(/\D/g, '')) : undefined,
+                          salePrice: item.price ? Number(item.price.replace(/\D/g, '')) : undefined,
+                        }}
+                        tokens={tokens}
+                        showStock={false}
+                        showAddToCartButton={!!effectiveShowAddToCartButton}
+                        showBuyNowButton={!!effectiveShowBuyNowButton}
+                        buyNowLabel="Mua ngay"
+                        onAddToCart={() => onPreviewAction(item, 'addToCart')}
+                        onBuyNow={() => onPreviewAction(item, 'buyNow')}
+                        cartButtonsLayout={cartButtonsLayout}
+                        device={device}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      className="w-full gap-1.5 border-2 py-1.5 px-2 rounded-lg font-medium flex items-center justify-center transition-colors whitespace-nowrap text-xs"
+                      style={{ borderColor: `${brandColor}20`, color: brandColor }}
+                      onMouseEnter={(event) => { event.currentTarget.style.borderColor = brandColor; event.currentTarget.style.backgroundColor = `${brandColor}08`; }}
+                      onMouseLeave={(event) => { event.currentTarget.style.borderColor = `${brandColor}20`; event.currentTarget.style.backgroundColor = 'transparent'; }}
+                    >
+                      Xem chi tiết
+                      <ArrowRight className="w-3 h-3 flex-shrink-0" />
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -1425,6 +1741,16 @@ export const ProductListPreview = ({
         </BrowserFrame>
       </PreviewWrapper>
       <ColorInfoPanel brandColor={brandColor} secondary={secondary} />
+      {isProduct && (
+        <QuickAddVariantModal
+          isOpen={quickAddTarget !== null}
+          product={quickAddModalProduct}
+          brandColor={brandColor}
+          actionLabel={quickAddTarget?.action === 'addToCart' ? 'Thêm vào giỏ' : 'Mua ngay'}
+          onClose={() => setQuickAddTarget(null)}
+          onConfirm={() => setQuickAddTarget(null)}
+        />
+      )}
     </>
   );
 };

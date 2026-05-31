@@ -4,6 +4,13 @@ import React from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { PublicImage as Image } from '@/components/shared/PublicImage';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
+import { notifyAddToCart, useCart } from '@/lib/cart';
+import { useCartConfig } from '@/lib/experiences';
+import { ProductCardActions } from '@/components/site/shared/ProductCardActions';
+import { QuickAddVariantModal } from '@/components/products/QuickAddVariantModal';
+import { getProductsListColors } from '@/components/site/products/colors';
+import type { Id } from '@/convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useBrandColors } from './hooks';
@@ -3569,6 +3576,7 @@ function ProductCategoriesSection({ config, brandColor, secondary, mode, title }
   
   const categoriesData = useQuery(api.productCategories.listActive);
   const productsData = useQuery(api.products.listPublicResolved, {});
+  const categoriesWithStats = useQuery(api.productCategories.listActiveWithStats, { productLimit: 5000 });
   
   const categoryMap = React.useMemo(() => {
     const map: Record<string, { name: string; slug: string; image?: string; description?: string }> = {};
@@ -3582,13 +3590,26 @@ function ProductCategoriesSection({ config, brandColor, secondary, mode, title }
   
   const productCountMap = React.useMemo(() => {
     const map: Record<string, number> = {};
-    if (productsData) {
-      for (const p of productsData) {
-        map[p.categoryId] = (map[p.categoryId] || 0) + 1;
+    if (categoriesWithStats?.stats) {
+      for (const stat of categoriesWithStats.stats) {
+        map[stat.categoryId] = stat.productCount;
       }
     }
     return map;
-  }, [productsData]);
+  }, [categoriesWithStats]);
+  const productIdsForImages = React.useMemo(() => {
+    const ids: string[] = [];
+    for (const item of categoriesConfig) {
+      if (item.imageMode === 'product-image' && item.customImage?.startsWith('product:')) {
+        const id = item.customImage.replace('product:', '');
+        if (id) ids.push(id);
+      }
+    }
+    return ids;
+  }, [categoriesConfig]);
+
+  const targetProductsData = useQuery(api.products.listByIds, { ids: productIdsForImages as any });
+
   const productImageMap = React.useMemo(() => {
     const map: Record<string, string | undefined> = {};
     if (productsData) {
@@ -3596,8 +3617,13 @@ function ProductCategoriesSection({ config, brandColor, secondary, mode, title }
         map[product._id] = product.image;
       }
     }
+    if (targetProductsData) {
+      for (const product of targetProductsData) {
+        map[product._id] = product.image;
+      }
+    }
     return map;
-  }, [productsData]);
+  }, [productsData, targetProductsData]);
 
   React.useEffect(() => {
     const updateDevice = () => {
@@ -3851,49 +3877,148 @@ function CategoryProductsSection({
   }), [categorySlugMap, resolveProductHref]);
 
   // Product Card Component with Equal Height (line-clamp + min-height)
-  const ProductCard = ({ product, categoryId }: { product: { _id: string; name: string; image?: string; price?: number; salePrice?: number; slug?: string; hasVariants?: boolean }; categoryId: string }) => (
-    <a href={resolveProductHrefByCategory({ categoryId, product })} aria-label={`${sectionTitle}: ${product.name}`} className="group cursor-pointer flex flex-col h-full">
-      <ProductImageWithOverlay
-        frameConfig={frameConfig}
-        watermarkConfig={watermarkConfig}
-        className={cn('overflow-hidden mb-2', imageRadiusClassName)}
-        style={{ ...imageAspectRatioStyle, backgroundColor: colors.imageBackground }}
-      >
-        {product.image ? (
-          <SiteImage 
-            src={product.image} 
-            alt={product.name} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <Package size={24} style={{ color: colors.emptyStateIcon }} />
-          </div>
-        )}
-      </ProductImageWithOverlay>
-      <h4 className="font-medium text-sm line-clamp-2 min-h-[2.5rem]" style={{ color: colors.bodyText }}>{product.name || 'Tên sản phẩm'}</h4>
-      <div className="flex flex-col mt-auto">
-        {(() => {
-          const priceDisplay = getPriceDisplay(product.price, product.salePrice, product.hasVariants);
-          if (priceDisplay.comparePrice) {
-            return (
+  const showAddToCartButton = saleMode === 'cart' && config.showAddToCartButton !== false;
+  const showBuyNowButton = saleMode === 'cart' && config.showBuyNowButton !== false;
+  const cartButtonsLayout = (config.cartButtonsLayout as 'stack' | 'grid-2') || 'stack';
+  const showStock = config.showStock !== false;
+
+  const router = useRouter();
+  const { addItem, openDrawer } = useCart();
+  const cartConfig = useCartConfig();
+  const [quickAddTarget, setQuickAddTarget] = React.useState<{ product: any; action: 'addToCart' | 'buyNow' } | null>(null);
+
+  const tokens = React.useMemo(
+    () => getProductsListColors(brandColor, secondary, mode || 'single'),
+    [brandColor, secondary, mode]
+  );
+
+  const handleAddToCart = async (product: any) => {
+    if (showStock && !product.hasVariants && (product.stock ?? 0) <= 0) {
+      return;
+    }
+
+    if (product.hasVariants) {
+      setQuickAddTarget({ product, action: 'addToCart' });
+      return;
+    }
+
+    await addItem(product._id, 1);
+    notifyAddToCart();
+    if (cartConfig.layoutStyle === 'drawer') {
+      openDrawer();
+    } else {
+      router.push('/cart');
+    }
+  };
+
+  const handleBuyNow = (product: any) => {
+    if (showStock && !product.hasVariants && (product.stock ?? 0) <= 0) {
+      return;
+    }
+
+    if (product.hasVariants) {
+      setQuickAddTarget({ product, action: 'buyNow' });
+      return;
+    }
+
+    router.push(`/checkout?productId=${product._id}&quantity=1`);
+  };
+
+  const handleQuickAddConfirm = async (variantId: Id<'productVariants'>, quantity: number) => {
+    if (!quickAddTarget) return;
+    const { product, action } = quickAddTarget;
+
+    if (action === 'addToCart') {
+      await addItem(product._id, quantity, variantId);
+      notifyAddToCart();
+      if (cartConfig.layoutStyle === 'drawer') {
+        openDrawer();
+      } else {
+        router.push('/cart');
+      }
+    } else {
+      router.push(`/checkout?productId=${product._id}&quantity=${quantity}&variantId=${variantId}`);
+    }
+    setQuickAddTarget(null);
+  };
+
+  const renderQuickAddModal = () => (
+    <QuickAddVariantModal
+      isOpen={quickAddTarget !== null}
+      product={quickAddTarget?.product ?? null}
+      brandColor={brandColor}
+      actionLabel={quickAddTarget?.action === 'addToCart' ? 'Thêm vào giỏ' : 'Mua ngay'}
+      onClose={() => setQuickAddTarget(null)}
+      onConfirm={handleQuickAddConfirm}
+    />
+  );
+
+  const ProductCard = ({ product, categoryId }: { product: { _id: string; name: string; image?: string; price?: number; salePrice?: number; slug?: string; hasVariants?: boolean }; categoryId: string }) => {
+    const href = resolveProductHrefByCategory({ categoryId, product });
+    const priceDisplay = getPriceDisplay(product.price, product.salePrice, product.hasVariants);
+    return (
+      <div className={cn("group bg-white border border-slate-200 overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full p-3", cardRadiusClassName)}>
+        <a href={href} aria-label={`${sectionTitle}: ${product.name}`} className="block relative bg-slate-100 overflow-hidden mb-2" style={imageAspectRatioStyle}>
+          <ProductImageWithOverlay
+            frameConfig={frameConfig}
+            watermarkConfig={watermarkConfig}
+            className={cn('w-full h-full', imageRadiusClassName)}
+          >
+            {product.image ? (
+              <SiteImage 
+                src={product.image} 
+                alt={product.name} 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Package size={24} style={{ color: colors.emptyStateIcon }} />
+              </div>
+            )}
+          </ProductImageWithOverlay>
+        </a>
+        <a href={href} className="block flex-1 flex flex-col mb-3">
+          <h4 className="font-medium text-sm line-clamp-2 min-h-[2.5rem]" style={{ color: colors.bodyText }}>{product.name || 'Tên sản phẩm'}</h4>
+          <div className="flex flex-col mt-auto">
+            {priceDisplay.comparePrice ? (
               <>
                 <span className="font-bold text-sm" style={{ color: colors.priceText }}>
                   {priceDisplay.label}
                 </span>
                 <span className="text-xs line-through" style={{ color: colors.mutedText }}>{formatComparePrice(priceDisplay.comparePrice)}</span>
               </>
-            );
-          }
-          return (
-            <span className="font-bold text-sm" style={{ color: colors.priceText }}>
-              {priceDisplay.label}
-            </span>
-          );
-        })()}
+            ) : (
+              <span className="font-bold text-sm" style={{ color: colors.priceText }}>
+                {priceDisplay.label}
+              </span>
+            )}
+          </div>
+        </a>
+
+        {showAddToCartButton || showBuyNowButton ? (
+          <ProductCardActions
+            product={product as any}
+            tokens={tokens}
+            showStock={showStock}
+            showAddToCartButton={showAddToCartButton}
+            showBuyNowButton={showBuyNowButton}
+            buyNowLabel="Mua ngay"
+            onAddToCart={handleAddToCart}
+            onBuyNow={handleBuyNow}
+            cartButtonsLayout={cartButtonsLayout}
+          />
+        ) : (
+          <a
+            href={href}
+            className="w-full gap-1 border-2 py-1.5 px-2 rounded-lg font-medium flex items-center justify-center transition-colors whitespace-nowrap text-xs hover:bg-opacity-10"
+            style={{ borderColor: `${brandColor}20`, color: brandColor }}
+          >
+            Xem chi tiết <ArrowRight className="w-3 h-3 flex-shrink-0" />
+          </a>
+        )}
       </div>
-    </a>
-  );
+    );
+  };
 
   // Empty State Component with brandColor
   const EmptyProductsState = ({ message }: { message: string }) => (
@@ -3918,39 +4043,42 @@ function CategoryProductsSection({
   // Style 1: Grid
   if (style === 'grid') {
     return (
-      <div className={cn('space-y-10 md:space-y-16', sectionSpacingClassName)}>
-        {resolvedSections.map((section, idx) => (
-          <section key={idx} className="px-4">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl md:text-2xl font-bold" style={{ color: colors.heading }}>{section.category.name}</h2>
-                {showViewAll && (
-                  <a 
-                    href={buildCategoryPath({ categorySlug: section.category.slug ?? section.category._id, mode: routeMode, moduleKey: 'products' })}
-                    className="text-sm font-medium flex items-center gap-1 px-3 py-1.5 rounded-lg border transition-colors"
-                    style={{ borderColor: colors.buttonBorder, color: colors.buttonText }}
-                  >
-                    Xem danh mục
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </a>
+      <>
+        <div className={cn('space-y-10 md:space-y-16', sectionSpacingClassName)}>
+          {resolvedSections.map((section, idx) => (
+            <section key={idx} className="px-4">
+              <div className="max-w-7xl mx-auto">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl md:text-2xl font-bold" style={{ color: colors.heading }}>{section.category.name}</h2>
+                  {showViewAll && (
+                    <a 
+                      href={buildCategoryPath({ categorySlug: section.category.slug ?? section.category._id, mode: routeMode, moduleKey: 'products' })}
+                      className="text-sm font-medium flex items-center gap-1 px-3 py-1.5 rounded-lg border transition-colors"
+                      style={{ borderColor: colors.buttonBorder, color: colors.buttonText }}
+                    >
+                      Xem danh mục
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+                
+                {section.products.length > 0 ? (
+                  <div className={cn('grid gap-4', getGridCols())}>
+                    {section.products.map((product) => (
+                      <ProductCard key={product._id} product={product} categoryId={section.category._id} />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyProductsState message="Chưa có sản phẩm trong danh mục này" />
                 )}
               </div>
-              
-              {section.products.length > 0 ? (
-                <div className={cn('grid gap-4', getGridCols())}>
-                  {section.products.map((product) => (
-                    <ProductCard key={product._id} product={product} categoryId={section.category._id} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyProductsState message="Chưa có sản phẩm trong danh mục này" />
-              )}
-            </div>
-          </section>
-        ))}
-      </div>
+            </section>
+          ))}
+        </div>
+        {renderQuickAddModal()}
+      </>
     );
   }
 
@@ -4032,38 +4160,60 @@ function CategoryProductsSection({
             {section.products.length > 0 ? (
               <div className="overflow-hidden px-4" ref={emblaRef}>
                 <div className="flex gap-4 backface-hidden touch-pan-y">
-                  {section.products.map((product) => (
-                    <a
-                      key={product._id}
-                      href={resolveProductHrefByCategory({ categoryId: section.category._id, product })}
-                      className="flex-none w-36 md:w-48 group cursor-grab active:cursor-grabbing select-none"
-                      draggable={false}
-                    >
-                      <ProductImageWithOverlay
-                        frameConfig={frameConfig}
-                        watermarkConfig={watermarkConfig}
-                        className={cn('overflow-hidden mb-2', imageRadiusClassName)}
-                        style={{ ...imageAspectRatioStyle, backgroundColor: colors.imageBackground }}
+                  {section.products.map((product) => {
+                    const href = resolveProductHrefByCategory({ categoryId: section.category._id, product });
+                    const priceDisplay = getPriceDisplay(product.price, product.salePrice, product.hasVariants);
+                    return (
+                      <div
+                        key={product._id}
+                        className="flex-none w-36 md:w-48 group flex flex-col justify-between"
                       >
-                        {product.image ? (
-                          <SiteImage
-                            src={product.image}
-                            alt={product.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            draggable={false}
+                        <a
+                          href={href}
+                          className="block cursor-grab active:cursor-grabbing select-none mb-3 flex-1"
+                          draggable={false}
+                        >
+                          <ProductImageWithOverlay
+                            frameConfig={frameConfig}
+                            watermarkConfig={watermarkConfig}
+                            className={cn('overflow-hidden mb-2', imageRadiusClassName)}
+                            style={{ ...imageAspectRatioStyle, backgroundColor: colors.imageBackground }}
+                          >
+                            {product.image ? (
+                              <SiteImage
+                                src={product.image}
+                                alt={product.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                draggable={false}
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package size={24} style={{ color: colors.emptyStateIcon }} />
+                              </div>
+                            )}
+                          </ProductImageWithOverlay>
+                          <h4 className="font-medium text-sm line-clamp-2 mb-1" style={{ color: colors.bodyText }}>{product.name}</h4>
+                          <span className="font-bold text-base" style={{ color: colors.buttonText }}>
+                            {priceDisplay.label}
+                          </span>
+                        </a>
+
+                        {showAddToCartButton || showBuyNowButton ? (
+                          <ProductCardActions
+                            product={product as any}
+                            tokens={tokens}
+                            showStock={showStock}
+                            showAddToCartButton={showAddToCartButton}
+                            showBuyNowButton={showBuyNowButton}
+                            buyNowLabel="Mua ngay"
+                            onAddToCart={handleAddToCart}
+                            onBuyNow={handleBuyNow}
+                            cartButtonsLayout={cartButtonsLayout}
                           />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package size={24} style={{ color: colors.emptyStateIcon }} />
-                          </div>
-                        )}
-                      </ProductImageWithOverlay>
-                      <h4 className="font-medium text-sm line-clamp-2 mb-1" style={{ color: colors.bodyText }}>{product.name}</h4>
-                      <span className="font-bold text-base" style={{ color: colors.buttonText }}>
-                        {getPriceDisplay(product.price, product.salePrice, product.hasVariants).label}
-                      </span>
-                    </a>
-                  ))}
+                        ) : null}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ) : (
@@ -4077,81 +4227,88 @@ function CategoryProductsSection({
     };
 
     return (
-      <div className={cn('space-y-8 md:space-y-12', sectionSpacingClassName)}>
-        {resolvedSections.map((section, idx) => (
-          <CarouselSection key={idx} section={section} />
-        ))}
-      </div>
+      <>
+        <div className={cn('space-y-8 md:space-y-12', sectionSpacingClassName)}>
+          {resolvedSections.map((section, idx) => (
+            <CarouselSection key={idx} section={section} />
+          ))}
+        </div>
+        {renderQuickAddModal()}
+      </>
     );
   }
 
   // Style 3: Cards - Modern cards with category header
   if (style === 'cards') {
     return (
-      <div className={cn('space-y-10 md:space-y-16', sectionSpacingClassName)}>
-        {resolvedSections.map((section, idx) => (
-          <section key={idx} className="px-4">
-            <div className="max-w-7xl mx-auto">
-              <div 
-                className={cn('overflow-hidden', cardRadiusClassName)}
-                style={{ border: `1px solid ${colors.cardBorder}` }}
-              >
-                {/* Category Header */}
+      <>
+        <div className={cn('space-y-10 md:space-y-16', sectionSpacingClassName)}>
+          {resolvedSections.map((section, idx) => (
+            <section key={idx} className="px-4">
+              <div className="max-w-7xl mx-auto">
                 <div 
-                  className="px-4 py-3 flex items-center justify-between"
-                  style={{ backgroundColor: colors.neutralBackground }}
+                  className={cn('overflow-hidden', cardRadiusClassName)}
+                  style={{ border: `1px solid ${colors.cardBorder}` }}
                 >
-                  <div className="flex items-center gap-3">
-                    {section.category.image && (
-                      <div className={cn('w-10 h-10 overflow-hidden bg-white', imageRadiusClassName)}>
-                        <SiteImage 
-                          src={section.category.image} 
-                          alt={section.category.name} 
-                          className="w-full h-full object-cover" 
-                        />
-                      </div>
-                    )}
-                    <h2 className="text-lg font-bold" style={{ color: colors.heading }}>{section.category.name}</h2>
-                  </div>
-                  {showViewAll && (
-                    <a 
-                      href={buildCategoryPath({ categorySlug: section.category.slug ?? section.category._id, mode: routeMode, moduleKey: 'products' })}
-                      className="text-sm font-medium flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
-                      style={{ backgroundColor: colors.buttonBackground, border: `1px solid ${colors.buttonBorder}`, color: colors.buttonText }}
-                    >
-                      Xem danh mục
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                      </svg>
-                    </a>
-                  )}
-                </div>
-                
-                {/* Products Grid */}
-                <div className="p-4" style={{ backgroundColor: colors.cardBackground }}>
-                  {section.products.length > 0 ? (
-                    <div className={cn('grid gap-4', getGridCols())}>
-                      {section.products.map((product) => (
-                        <ProductCard key={product._id} product={product} categoryId={section.category._id} />
-                      ))}
+                  {/* Category Header */}
+                  <div 
+                    className="px-4 py-3 flex items-center justify-between"
+                    style={{ backgroundColor: colors.neutralBackground }}
+                  >
+                    <div className="flex items-center gap-3">
+                      {section.category.image && (
+                        <div className={cn('w-10 h-10 overflow-hidden bg-white', imageRadiusClassName)}>
+                          <SiteImage 
+                            src={section.category.image} 
+                            alt={section.category.name} 
+                            className="w-full h-full object-cover" 
+                          />
+                        </div>
+                      )}
+                      <h2 className="text-lg font-bold" style={{ color: colors.heading }}>{section.category.name}</h2>
                     </div>
-                  ) : (
-                    <EmptyProductsState message="Chưa có sản phẩm" />
-                  )}
+                    {showViewAll && (
+                      <a 
+                        href={buildCategoryPath({ categorySlug: section.category.slug ?? section.category._id, mode: routeMode, moduleKey: 'products' })}
+                        className="text-sm font-medium flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors"
+                        style={{ backgroundColor: colors.buttonBackground, border: `1px solid ${colors.buttonBorder}`, color: colors.buttonText }}
+                      >
+                        Xem danh mục
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
+                  
+                  {/* Products Grid */}
+                  <div className="p-4" style={{ backgroundColor: colors.cardBackground }}>
+                    {section.products.length > 0 ? (
+                      <div className={cn('grid gap-4', getGridCols())}>
+                        {section.products.map((product) => (
+                          <ProductCard key={product._id} product={product} categoryId={section.category._id} />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyProductsState message="Chưa có sản phẩm" />
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
-        ))}
-      </div>
+            </section>
+          ))}
+        </div>
+        {renderQuickAddModal()}
+      </>
     );
   }
 
   // Style 4: Bento - Featured product với bento grid
   if (style === 'bento') {
     return (
-      <div className={cn('space-y-10 md:space-y-16', sectionSpacingClassName)}>
-        {resolvedSections.map((section, idx) => {
+      <>
+        <div className={cn('space-y-10 md:space-y-16', sectionSpacingClassName)}>
+          {resolvedSections.map((section, idx) => {
           const featured = section.products[0];
           const others = section.products.slice(1, 5);
           
@@ -4225,7 +4382,7 @@ function CategoryProductsSection({
                                 Nổi bật
                               </span>
                               <h3 className="font-bold text-lg line-clamp-2 mb-1">{featured.name}</h3>
-                              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0 mb-3">
                                 {(() => {
                                   const priceDisplay = getPriceDisplay(featured?.price, featured?.salePrice, featured?.hasVariants);
                                   if (priceDisplay.comparePrice) {
@@ -4239,6 +4396,22 @@ function CategoryProductsSection({
                                   return <span className="font-bold text-lg">{priceDisplay.label}</span>;
                                 })()}
                               </div>
+                              {(showAddToCartButton || showBuyNowButton) && (
+                                <div className="mt-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                  <ProductCardActions
+                                    product={featured as any}
+                                    tokens={tokens}
+                                    showStock={showStock}
+                                    showAddToCartButton={showAddToCartButton}
+                                    showBuyNowButton={showBuyNowButton}
+                                    buyNowLabel="Mua ngay"
+                                    onAddToCart={handleAddToCart}
+                                    onBuyNow={handleBuyNow}
+                                    cartButtonsLayout={cartButtonsLayout}
+                                    isOnDarkBg={true}
+                                  />
+                                </div>
+                              )}
                             </div>
                           </a>
                         </ProductImageWithOverlay>
@@ -4266,10 +4439,26 @@ function CategoryProductsSection({
                                 <Package size={24} style={{ color: colors.emptyStateIcon }} />
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-30" />
-                            <div className="absolute bottom-0 left-0 right-0 p-3 text-white transform translate-y-full group-hover:translate-y-0 transition-transform z-30">
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity z-20" />
+                            <div className="absolute bottom-0 left-0 right-0 p-3 text-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-30 flex flex-col justify-end bg-black/60 max-h-full overflow-y-auto">
                               <h4 className="font-medium text-sm line-clamp-1">{product.name}</h4>
-                              <span className="font-bold text-sm">{getPriceDisplay(product.price, product.salePrice, product.hasVariants).label}</span>
+                              <span className="font-bold text-sm mb-2">{getPriceDisplay(product.price, product.salePrice, product.hasVariants).label}</span>
+                              {(showAddToCartButton || showBuyNowButton) && (
+                                <div className="mt-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                  <ProductCardActions
+                                    product={product as any}
+                                    tokens={tokens}
+                                    showStock={showStock}
+                                    showAddToCartButton={showAddToCartButton}
+                                    showBuyNowButton={showBuyNowButton}
+                                    buyNowLabel="Mua ngay"
+                                    onAddToCart={handleAddToCart}
+                                    onBuyNow={handleBuyNow}
+                                    cartButtonsLayout={cartButtonsLayout}
+                                    isOnDarkBg={true}
+                                  />
+                                </div>
+                              )}
                             </div>
                           </a>
                         </ProductImageWithOverlay>
@@ -4282,14 +4471,17 @@ function CategoryProductsSection({
           );
         })}
       </div>
+      {renderQuickAddModal()}
+      </>
     );
   }
 
   // Style 5: Magazine - Editorial Grid với Featured Item + Grid nhỏ
   if (style === 'magazine') {
     return (
-      <div className={cn('space-y-12 md:space-y-16', sectionSpacingClassName)}>
-        {resolvedSections.map((section, sectionIdx) => {
+      <>
+        <div className={cn('space-y-12 md:space-y-16', sectionSpacingClassName)}>
+          {resolvedSections.map((section, sectionIdx) => {
           const featured = section.products[0];
           const gridItems = section.products.slice(1, 5);
           
@@ -4366,7 +4558,7 @@ function CategoryProductsSection({
                                 Nổi bật
                               </span>
                               <h3 className="font-bold text-xl md:text-2xl line-clamp-2 mb-2">{featured.name}</h3>
-                              <div className="flex items-baseline gap-3">
+                              <div className="flex items-baseline gap-3 mb-3">
                                 {(() => {
                                   const priceDisplay = getPriceDisplay(featured?.price, featured?.salePrice, featured?.hasVariants);
                                   if (priceDisplay.comparePrice) {
@@ -4380,6 +4572,22 @@ function CategoryProductsSection({
                                   return <span className="font-bold text-2xl">{priceDisplay.label}</span>;
                                 })()}
                               </div>
+                              {(showAddToCartButton || showBuyNowButton) && (
+                                <div className="mt-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                  <ProductCardActions
+                                    product={featured as any}
+                                    tokens={tokens}
+                                    showStock={showStock}
+                                    showAddToCartButton={showAddToCartButton}
+                                    showBuyNowButton={showBuyNowButton}
+                                    buyNowLabel="Mua ngay"
+                                    onAddToCart={handleAddToCart}
+                                    onBuyNow={handleBuyNow}
+                                    cartButtonsLayout={cartButtonsLayout}
+                                    isOnDarkBg={true}
+                                  />
+                                </div>
+                              )}
                             </div>
                           </a>
                         </ProductImageWithOverlay>
@@ -4388,63 +4596,82 @@ function CategoryProductsSection({
                       {/* Grid 2x2 */}
                       <div className="grid grid-cols-2 gap-4">
                         {gridItems.map((product) => (
-                          <a 
+                          <div 
                             key={product._id}
-                            href={resolveProductHrefByCategory({ categoryId: section.category._id, product })}
-                            className="group cursor-pointer"
+                            className="group cursor-pointer flex flex-col justify-between"
                           >
-                            <ProductImageWithOverlay
-                              frameConfig={frameConfig}
-                              watermarkConfig={watermarkConfig}
-                              className={cn('overflow-hidden mb-3 relative', imageRadiusClassName)}
-                              style={{ ...imageAspectRatioStyle, backgroundColor: colors.imageBackground }}
+                            <a 
+                              href={resolveProductHrefByCategory({ categoryId: section.category._id, product })}
+                              className="block mb-2"
                             >
-                              {product.image ? (
-                                <SiteImage 
-                                  src={product.image} 
-                                  alt={product.name} 
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center">
-                                <Package size={24} style={{ color: colors.emptyStateIcon }} />
-                                </div>
-                              )}
-                              {/* Quick view overlay */}
-                              <div 
-                                className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-30"
-                              style={{ backgroundColor: colors.neutralSurface }}
+                              <ProductImageWithOverlay
+                                frameConfig={frameConfig}
+                                watermarkConfig={watermarkConfig}
+                                className={cn('overflow-hidden mb-3 relative', imageRadiusClassName)}
+                                style={{ ...imageAspectRatioStyle, backgroundColor: colors.imageBackground }}
                               >
-                                <span 
-                                className="px-4 py-2 rounded-full text-sm font-medium"
-                                style={{ backgroundColor: colors.buttonBackground, border: `1px solid ${colors.buttonBorder}`, color: colors.buttonText }}
+                                {product.image ? (
+                                  <SiteImage 
+                                    src={product.image} 
+                                    alt={product.name} 
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                  <Package size={24} style={{ color: colors.emptyStateIcon }} />
+                                  </div>
+                                )}
+                                {/* Quick view overlay */}
+                                <div 
+                                  className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-30"
+                                  style={{ backgroundColor: colors.neutralSurface }}
                                 >
-                                  Xem nhanh
-                                </span>
-                              </div>
-                            </ProductImageWithOverlay>
-                          <h4 className="font-medium text-sm line-clamp-2 min-h-[2.5rem]" style={{ color: colors.bodyText }}>{product.name}</h4>
-                            <div className="flex items-baseline gap-2 mt-1">
-                              {(() => {
-                                const priceDisplay = getPriceDisplay(product.price, product.salePrice, product.hasVariants);
-                                if (priceDisplay.comparePrice) {
-                                  return (
-                                    <>
-                                    <span className="font-bold text-sm" style={{ color: colors.priceText }}>
-                                        {priceDisplay.label}
-                                      </span>
-                                    <span className="text-xs line-through" style={{ color: colors.mutedText }}>{formatComparePrice(priceDisplay.comparePrice)}</span>
-                                    </>
-                                  );
-                                }
-                                return (
-                                <span className="font-bold text-sm" style={{ color: colors.priceText }}>
-                                    {priceDisplay.label}
+                                  <span 
+                                    className="px-4 py-2 rounded-full text-sm font-medium"
+                                    style={{ backgroundColor: colors.buttonBackground, border: `1px solid ${colors.buttonBorder}`, color: colors.buttonText }}
+                                  >
+                                    Xem nhanh
                                   </span>
-                                );
-                              })()}
-                            </div>
-                          </a>
+                                </div>
+                              </ProductImageWithOverlay>
+                              <h4 className="font-medium text-sm line-clamp-2 min-h-[2.5rem]" style={{ color: colors.bodyText }}>{product.name}</h4>
+                              <div className="flex items-baseline gap-2 mt-1">
+                                {(() => {
+                                  const priceDisplay = getPriceDisplay(product.price, product.salePrice, product.hasVariants);
+                                  if (priceDisplay.comparePrice) {
+                                    return (
+                                      <>
+                                        <span className="font-bold text-sm" style={{ color: colors.priceText }}>
+                                          {priceDisplay.label}
+                                        </span>
+                                        <span className="text-xs line-through" style={{ color: colors.mutedText }}>{formatComparePrice(priceDisplay.comparePrice)}</span>
+                                      </>
+                                    );
+                                  }
+                                  return (
+                                    <span className="font-bold text-sm" style={{ color: colors.priceText }}>
+                                      {priceDisplay.label}
+                                    </span>
+                                  );
+                                })()}
+                              </div>
+                            </a>
+                            {(showAddToCartButton || showBuyNowButton) && (
+                              <div className="mt-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                <ProductCardActions
+                                  product={product as any}
+                                  tokens={tokens}
+                                  showStock={showStock}
+                                  showAddToCartButton={showAddToCartButton}
+                                  showBuyNowButton={showBuyNowButton}
+                                  buyNowLabel="Mua ngay"
+                                  onAddToCart={handleAddToCart}
+                                  onBuyNow={handleBuyNow}
+                                  cartButtonsLayout={cartButtonsLayout}
+                                />
+                              </div>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -4455,11 +4682,14 @@ function CategoryProductsSection({
           );
         })}
       </div>
+      {renderQuickAddModal()}
+      </>
     );
   }
 
   if (style === 'wine-grid') {
     return (
+      <>
       <div className={cn('w-full bg-white px-2', sectionSpacingClassName)}>
         <div className="mx-auto flex w-full max-w-[1152px] flex-col gap-6">
           {resolvedSections.map((section, idx) => {
@@ -4559,24 +4789,43 @@ function CategoryProductsSection({
                               </h3>
                             </a>
                             <div className="mb-2 flex flex-col gap-1" />
-                            <div className="mt-auto flex min-w-0 flex-row items-end justify-between gap-1.5 border-t pt-2" style={{ borderColor: colors.cardBorder }}>
-                              <div className="min-w-0 flex flex-col">
-                                {priceDisplay.comparePrice && (
-                                  <span className="max-w-full truncate text-xs font-medium leading-4 line-through" style={{ color: colors.mutedText }}>
-                                    {formatComparePrice(priceDisplay.comparePrice)}
+                            <div className="mt-auto flex flex-col gap-2 border-t pt-2" style={{ borderColor: colors.cardBorder }}>
+                              <div className="flex min-w-0 flex-row items-end justify-between gap-1.5">
+                                <div className="min-w-0 flex flex-col">
+                                  {priceDisplay.comparePrice && (
+                                    <span className="max-w-full truncate text-xs font-medium leading-4 line-through" style={{ color: colors.mutedText }}>
+                                      {formatComparePrice(priceDisplay.comparePrice)}
+                                    </span>
+                                  )}
+                                  <span className="max-w-full truncate whitespace-nowrap text-[12px] font-bold leading-4 md:text-[13px] md:leading-5 lg:text-sm" style={{ color: colors.bodyText }}>
+                                    {priceDisplay.label}
                                   </span>
+                                </div>
+                                {!showAddToCartButton && !showBuyNowButton && (
+                                  <a
+                                    href={resolveProductHrefByCategory({ categoryId: section.category._id, product })}
+                                    className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center whitespace-nowrap rounded px-2 text-[10px] font-medium leading-none transition-colors md:min-w-10 md:px-2.5 md:text-[11px]"
+                                    style={{ backgroundColor: colors.buttonSolidBackground, color: colors.buttonSolidText }}
+                                  >
+                                    Xem
+                                  </a>
                                 )}
-                                <span className="max-w-full truncate whitespace-nowrap text-[12px] font-bold leading-4 md:text-[13px] md:leading-5 lg:text-sm" style={{ color: colors.bodyText }}>
-                                  {priceDisplay.label}
-                                </span>
                               </div>
-                              <a
-                                href={resolveProductHrefByCategory({ categoryId: section.category._id, product })}
-                                className="inline-flex h-6 min-w-9 shrink-0 items-center justify-center whitespace-nowrap rounded px-2 text-[10px] font-medium leading-none transition-colors md:min-w-10 md:px-2.5 md:text-[11px]"
-                                style={{ backgroundColor: colors.buttonSolidBackground, color: colors.buttonSolidText }}
-                              >
-                                Xem
-                              </a>
+                              {(showAddToCartButton || showBuyNowButton) && (
+                                <div className="mt-1" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                                  <ProductCardActions
+                                    product={product as any}
+                                    tokens={tokens}
+                                    showStock={showStock}
+                                    showAddToCartButton={showAddToCartButton}
+                                    showBuyNowButton={showBuyNowButton}
+                                    buyNowLabel="Mua ngay"
+                                    onAddToCart={handleAddToCart}
+                                    onBuyNow={handleBuyNow}
+                                    cartButtonsLayout={cartButtonsLayout}
+                                  />
+                                </div>
+                              )}
                             </div>
                           </div>
                         </article>
@@ -4590,6 +4839,8 @@ function CategoryProductsSection({
           })}
         </div>
       </div>
+      {renderQuickAddModal()}
+      </>
     );
   }
 
@@ -4638,92 +4889,113 @@ function CategoryProductsSection({
             ) : (
               <div className={cn('grid gap-5', getGridCols())}>
                 {section.products.map((product) => (
-                  <a 
+                  <div 
                     key={product._id}
-                    href={resolveProductHrefByCategory({ categoryId: section.category._id, product })}
-                    className="group cursor-pointer block"
+                    className="group cursor-pointer flex flex-col justify-between"
                   >
-                    {/* Image Container với effects */}
-                    <ProductImageWithOverlay
-                      frameConfig={frameConfig}
-                      watermarkConfig={watermarkConfig}
-                      className={cn('relative overflow-hidden mb-3', cardRadiusClassName)}
-                      style={imageAspectRatioStyle}
+                    <a 
+                      href={resolveProductHrefByCategory({ categoryId: section.category._id, product })}
+                      className="block mb-2"
                     >
-                      {/* Background gradient on hover */}
-                      <div 
-                        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30"
-                        style={{ background: `linear-gradient(135deg, ${colors.neutralBorder} 0%, transparent 50%, ${colors.neutralBackground} 100%)` }}
-                      />
-                      
-                      {product.image ? (
-                        <SiteImage 
-                          src={product.image} 
-                          alt={product.name} 
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                      {/* Image Container với effects */}
+                      <ProductImageWithOverlay
+                        frameConfig={frameConfig}
+                        watermarkConfig={watermarkConfig}
+                        className={cn('relative overflow-hidden mb-3', cardRadiusClassName)}
+                        style={imageAspectRatioStyle}
+                      >
+                        {/* Background gradient on hover */}
+                        <div 
+                          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-30"
+                          style={{ background: `linear-gradient(135deg, ${colors.neutralBorder} 0%, transparent 50%, ${colors.neutralBackground} 100%)` }}
                         />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: colors.imageBackground }}>
-                          <Package size={32} style={{ color: colors.emptyStateIcon }} />
-                        </div>
-                      )}
-                      
-                      {/* Gradient overlay bottom */}
-                      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20" />
-                      
-                      {/* Quick action button */}
-                      <div className="absolute bottom-3 left-3 right-3 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-30">
-                        <span 
-                          className="block w-full py-2.5 rounded-xl text-sm font-medium text-center backdrop-blur-sm"
-                          style={{ backgroundColor: colors.buttonBackground, border: `1px solid ${colors.buttonBorder}`, color: colors.buttonText }}
-                        >
-                          Xem chi tiết
-                        </span>
-                      </div>
-                      
-                      {/* Badge for sale */}
-                      {(() => {
-                        const priceDisplay = getPriceDisplay(product.price, product.salePrice, product.hasVariants);
-                        if (!priceDisplay.comparePrice) {return null;}
-                        return (
-                          <div className="absolute top-3 left-3 px-2 py-1 rounded-lg text-xs font-bold text-white bg-red-500 z-30">
-                            -{Math.round((1 - (product.price ?? 0) / priceDisplay.comparePrice) * 100)}%
+                        
+                        {product.image ? (
+                          <SiteImage 
+                            src={product.image} 
+                            alt={product.name} 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: colors.imageBackground }}>
+                            <Package size={32} style={{ color: colors.emptyStateIcon }} />
                           </div>
-                        );
-                      })()}
-                    </ProductImageWithOverlay>
-                    
-                    {/* Product info */}
-                    <div className="space-y-1">
-                      <h4 className="font-medium text-sm line-clamp-2 group-hover:opacity-80 transition-opacity" style={{ color: colors.bodyText }}>{product.name}</h4>
-                      <div className="flex flex-col">
+                        )}
+                        
+                        {/* Gradient overlay bottom */}
+                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20" />
+                        
+                        {/* Quick action button */}
+                        <div className="absolute bottom-3 left-3 right-3 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-30">
+                          <span 
+                            className="block w-full py-2.5 rounded-xl text-sm font-medium text-center backdrop-blur-sm"
+                            style={{ backgroundColor: colors.buttonBackground, border: `1px solid ${colors.buttonBorder}`, color: colors.buttonText }}
+                          >
+                            Xem chi tiết
+                          </span>
+                        </div>
+                        
+                        {/* Badge for sale */}
                         {(() => {
                           const priceDisplay = getPriceDisplay(product.price, product.salePrice, product.hasVariants);
-                          if (priceDisplay.comparePrice) {
-                            return (
-                              <>
-                                <span className="font-bold text-sm" style={{ color: colors.priceText }}>
-                                  {priceDisplay.label}
-                                </span>
-                                <span className="text-xs line-through" style={{ color: colors.mutedText }}>{formatComparePrice(priceDisplay.comparePrice)}</span>
-                              </>
-                            );
-                          }
+                          if (!priceDisplay.comparePrice) {return null;}
                           return (
-                            <span className="font-bold text-sm" style={{ color: colors.priceText }}>
-                              {priceDisplay.label}
-                            </span>
+                            <div className="absolute top-3 left-3 px-2 py-1 rounded-lg text-xs font-bold text-white bg-red-500 z-30">
+                              -{Math.round((1 - (product.price ?? 0) / priceDisplay.comparePrice) * 100)}%
+                            </div>
                           );
                         })()}
+                      </ProductImageWithOverlay>
+                      
+                      {/* Product info */}
+                      <div className="space-y-1">
+                        <h4 className="font-medium text-sm line-clamp-2 group-hover:opacity-80 transition-opacity" style={{ color: colors.bodyText }}>{product.name}</h4>
+                        <div className="flex flex-col">
+                          {(() => {
+                            const priceDisplay = getPriceDisplay(product.price, product.salePrice, product.hasVariants);
+                            if (priceDisplay.comparePrice) {
+                              return (
+                                <>
+                                  <span className="font-bold text-sm" style={{ color: colors.priceText }}>
+                                    {priceDisplay.label}
+                                  </span>
+                                  <span className="text-xs line-through" style={{ color: colors.mutedText }}>{formatComparePrice(priceDisplay.comparePrice)}</span>
+                                </>
+                              );
+                            }
+                            return (
+                              <span className="font-bold text-sm" style={{ color: colors.priceText }}>
+                                {priceDisplay.label}
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </div>
-                    </div>
-                  </a>
+                    </a>
+                    {(showAddToCartButton || showBuyNowButton) && (
+                      <div className="mt-auto" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                        <ProductCardActions
+                          product={product as any}
+                          tokens={tokens}
+                          showStock={showStock}
+                          showAddToCartButton={showAddToCartButton}
+                          showBuyNowButton={showBuyNowButton}
+                          buyNowLabel="Mua ngay"
+                          onAddToCart={handleAddToCart}
+                          onBuyNow={handleBuyNow}
+                          cartButtonsLayout={cartButtonsLayout}
+                        />
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
           </div>
         </section>
       ))}
+      
+      {renderQuickAddModal()}
     </div>
   );
 }

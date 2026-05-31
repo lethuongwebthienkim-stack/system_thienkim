@@ -69,6 +69,7 @@ export default function ProductGridEditPage({
   const updateMutation = useMutation(api.homeComponents.update);
   const saleMode = useMemo(() => resolveSaleMode(saleModeSetting?.value), [saleModeSetting?.value]);
   const categoriesData = useQuery(api.productCategories.listActive);
+  const categoryProductCountsMap = useQuery(api.products.countActiveByCategory);
 
   const allCategories: CategoryTabItem[] | undefined = useMemo(() => {
     if (!categoriesData) return undefined;
@@ -86,6 +87,7 @@ export default function ProductGridEditPage({
   const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
 
   const [itemCount, setItemCount] = useState(DEFAULT_PRODUCT_GRID_CONFIG.itemCount);
+  const [desktopRows, setDesktopRows] = useState(2);
   const [sortBy, setSortBy] = useState(DEFAULT_PRODUCT_GRID_CONFIG.sortBy);
   const [selectionMode, setSelectionMode] = useState<ProductGridSelectionMode>(DEFAULT_PRODUCT_GRID_CONFIG.selectionMode);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(DEFAULT_PRODUCT_GRID_CONFIG.selectedProductIds);
@@ -98,6 +100,11 @@ export default function ProductGridEditPage({
   const [categoryTabIds, setCategoryTabIds] = useState<string[]>([]);
   // Desktop columns
   const [desktopColumns, setDesktopColumns] = useState<3 | 4 | 5 | 6>(4);
+
+  // Cart buttons settings
+  const [showAddToCartButton, setShowAddToCartButton] = useState(true);
+  const [showBuyNowButton, setShowBuyNowButton] = useState(true);
+  const [cartButtonsLayout, setCartButtonsLayout] = useState<'stack' | 'grid-2'>('stack');
 
   // Header config state
   const [hideHeader, setHideHeader] = useState(false);
@@ -125,6 +132,8 @@ export default function ProductGridEditPage({
 
     const config = component.config ?? {};
     const nextItemCount = config.itemCount ?? DEFAULT_PRODUCT_GRID_CONFIG.itemCount;
+    const nextColumns = (config.desktopColumns === 3 || config.desktopColumns === 5 || config.desktopColumns === 6) ? config.desktopColumns : 4;
+    const nextDesktopRows = config.desktopRows ?? (config.itemCount ? Math.ceil(config.itemCount / nextColumns) : 2);
     const nextSortBy = config.sortBy ?? DEFAULT_PRODUCT_GRID_CONFIG.sortBy;
     const nextSelectionMode = config.selectionMode ?? DEFAULT_PRODUCT_GRID_CONFIG.selectionMode;
     const nextSelectedProductIds = config.selectedProductIds ?? [];
@@ -133,6 +142,7 @@ export default function ProductGridEditPage({
     const nextStyle = (config.style as ProductGridStyle) ?? DEFAULT_PRODUCT_GRID_CONFIG.style;
 
     setItemCount(nextItemCount);
+    setDesktopRows(nextDesktopRows);
     setSortBy(nextSortBy);
     setSelectionMode(nextSelectionMode);
     setSelectedProductIds(nextSelectedProductIds);
@@ -157,11 +167,21 @@ export default function ProductGridEditPage({
 
     // Category tabs
     setCategoryTabIds(Array.isArray(config.categoryTabIds) ? (config.categoryTabIds as string[]) : []);
-    setDesktopColumns((config.desktopColumns === 3 || config.desktopColumns === 5 || config.desktopColumns === 6) ? config.desktopColumns : 4);
+    setDesktopColumns(nextColumns);
+
+    const nextShowAddToCartButton = config.showAddToCartButton !== false;
+    const nextShowBuyNowButton = config.showBuyNowButton !== false;
+    const nextCartButtonsLayout = config.cartButtonsLayout ?? 'stack';
+
+    setShowAddToCartButton(nextShowAddToCartButton);
+    setShowBuyNowButton(nextShowBuyNowButton);
+    setCartButtonsLayout(nextCartButtonsLayout);
+
     setInitialSnapshot(JSON.stringify({
       title: component.title,
       active: component.active,
       itemCount: nextItemCount,
+      desktopRows: nextDesktopRows,
       sortBy: nextSortBy,
       selectionMode: nextSelectionMode,
       selectedProductIds: nextSelectionMode === 'manual' ? nextSelectedProductIds : [],
@@ -183,10 +203,30 @@ export default function ProductGridEditPage({
       cornerRadius: nextCardRadius,
       cardRadius: nextCardRadius,
       noBorderRadius: nextCardRadius === 'none',
-      desktopColumns: (config.desktopColumns === 3 || config.desktopColumns === 5 || config.desktopColumns === 6) ? config.desktopColumns : 4,
+      desktopColumns: nextColumns,
+      showAddToCartButton: nextShowAddToCartButton,
+      showBuyNowButton: nextShowBuyNowButton,
+      cartButtonsLayout: nextCartButtonsLayout,
     }));
     setIsInitialized(true);
   }, [component, id, isInitialized, router, snapshotComponent]);
+
+  const allActiveProducts = useMemo<ProductGridProductItem[]>(() => {
+    if (!productsData) return [];
+    return productsData
+      .filter(p => p.status === 'Active')
+      .map(p => ({
+        _id: p._id,
+        name: p.name,
+        slug: p.slug,
+        image: p.image,
+        price: p.price,
+        salePrice: p.salePrice,
+        hasVariants: p.hasVariants,
+        categoryId: p.categoryId,
+        stock: p.stock,
+      }));
+  }, [productsData]);
 
   const filteredProducts = useMemo<ProductGridProductItem[]>(() => {
     if (!productsData) {return [];}
@@ -197,7 +237,12 @@ export default function ProductGridEditPage({
         _id: product._id,
         image: product.image,
         name: product.name,
+        slug: product.slug,
         price: product.price,
+        salePrice: product.salePrice,
+        hasVariants: product.hasVariants,
+        categoryId: product.categoryId,
+        stock: product.stock,
       }));
   }, [productsData, productSearchTerm]);
 
@@ -211,56 +256,75 @@ export default function ProductGridEditPage({
         _id: product._id,
         image: product.image,
         name: product.name,
+        slug: product.slug,
         price: product.price,
+        salePrice: product.salePrice,
+        hasVariants: product.hasVariants,
+        categoryId: product.categoryId,
+        stock: product.stock,
       }));
   }, [productsData, selectedProductIds]);
 
-  const productPreviewItems: ProductListPreviewItem[] = useMemo(() => selectedProducts.map((p) => {
-    const resolvedProduct = resolvedProductMap.get(p._id as Id<'products'>);
-    const priceValue = resolvedProduct?.price ?? p.price ?? undefined;
-    const salePriceValue = resolvedProduct?.salePrice ?? undefined;
-    const priceDisplay = getHomeComponentPriceLabel({ saleMode, price: priceValue, salePrice: salePriceValue, isRangeFromVariant: resolvedProduct?.hasVariants ?? p.hasVariants });
-    const hasBasePrice = priceValue != null || salePriceValue != null;
-    return {
-      description: p.name,
-      id: p._id,
-      image: p.image ?? undefined,
-      name: p.name,
-      price: !hasBasePrice && saleMode === 'cart' ? undefined : priceDisplay.label,
-      originalPrice: priceDisplay.comparePrice
-        ? getHomeComponentPriceLabel({ saleMode: 'cart', price: priceDisplay.comparePrice }).label
-        : undefined,
-    };
-  }), [selectedProducts, saleMode]);
+  const effectiveItemCount = useMemo(() => {
+    if (selectionMode === 'category' || selectionMode === 'auto') {
+      return desktopColumns * desktopRows;
+    }
+    return selectionMode === 'demo' ? demoProducts.length : (selectionMode === 'manual' ? selectedProductIds.length : itemCount);
+  }, [selectionMode, desktopColumns, desktopRows, demoProducts.length, selectedProductIds.length, itemCount]);
 
-  const autoProductPreviewItems: ProductListPreviewItem[] = useMemo(() => {
-    const source = resolvedProductsData ?? productsData;
-    if (!source) {return [];} 
-    return source
-      .filter(product => product.status === 'Active')
-      .slice(0, itemCount)
-      .map(product => {
-        const priceDisplay = getHomeComponentPriceLabel({ saleMode, price: product.price ?? undefined, salePrice: product.salePrice ?? undefined, isRangeFromVariant: product.hasVariants });
-        const hasBasePrice = product.price != null || product.salePrice != null;
-        return {
-          description: product.name,
-          id: product._id,
-          image: product.image ?? undefined,
-          name: product.name,
-          price: !hasBasePrice && saleMode === 'cart' ? undefined : priceDisplay.label,
-          originalPrice: priceDisplay.comparePrice
-            ? getHomeComponentPriceLabel({ saleMode: 'cart', price: priceDisplay.comparePrice }).label
-            : undefined,
-        };
+  const previewItems: ProductListPreviewItem[] = useMemo(() => {
+    if (selectionMode === 'demo' && demoProducts.length > 0) {
+      return demoProducts.map(d => ({
+        id: d.id,
+        name: d.name,
+        image: d.image ?? undefined,
+        price: d.price,
+        originalPrice: d.originalPrice,
+        category: d.category,
+      }));
+    }
+
+    const source = selectionMode === 'manual' ? selectedProducts : allActiveProducts;
+    if (!source || source.length === 0) return [];
+
+    return source.map((p) => {
+      const resolvedProduct = resolvedProductMap.get(p._id as Id<'products'>);
+      const priceValue = resolvedProduct?.price ?? p.price ?? undefined;
+      const salePriceValue = resolvedProduct?.salePrice ?? undefined;
+      const priceDisplay = getHomeComponentPriceLabel({
+        saleMode,
+        price: priceValue,
+        salePrice: salePriceValue,
+        isRangeFromVariant: resolvedProduct?.hasVariants ?? p.hasVariants,
       });
-  }, [productsData, resolvedProductsData, itemCount, saleMode]);
+      const hasBasePrice = priceValue != null || salePriceValue != null;
+      return {
+        description: p.name,
+        categoryId: p.categoryId,
+        hasVariants: resolvedProduct?.hasVariants ?? p.hasVariants,
+        id: p._id,
+        image: p.image ?? undefined,
+        name: p.name,
+        price: !hasBasePrice && saleMode === 'cart' ? undefined : priceDisplay.label,
+        priceValue,
+        originalPrice: priceDisplay.comparePrice
+          ? getHomeComponentPriceLabel({ saleMode: 'cart', price: priceDisplay.comparePrice }).label
+          : undefined,
+        salePriceValue,
+        category: p.categoryId ? (allCategories?.find(c => c._id === p.categoryId)?.name ?? '') : undefined,
+        slug: p.slug,
+        stock: p.stock ?? undefined,
+      };
+    });
+  }, [selectionMode, demoProducts, selectedProducts, allActiveProducts, resolvedProductMap, saleMode, allCategories]);
 
   const resolvedCustomSecondary = resolveSecondaryByMode(customState.mode, customState.primary, customState.secondary);
 
   const currentSnapshot = JSON.stringify({
     title,
     active,
-    itemCount,
+    itemCount: effectiveItemCount,
+    desktopRows,
     sortBy,
     selectionMode,
     selectedProductIds: selectionMode === 'manual' ? selectedProductIds : [],
@@ -283,6 +347,9 @@ export default function ProductGridEditPage({
     cardRadius,
     noBorderRadius: cardRadius === 'none',
     desktopColumns,
+    showAddToCartButton,
+    showBuyNowButton,
+    cartButtonsLayout,
   });
   const customChanged = enableTypeOverrides && showCustomBlock
     ? customState.enabled !== initialCustom.enabled
@@ -306,7 +373,8 @@ export default function ProductGridEditPage({
     try {
       const savedSelectedProductIds = selectionMode === 'manual' ? selectedProductIds : [];
       const nextConfig = {
-          itemCount,
+          itemCount: effectiveItemCount,
+          desktopRows,
           sectionTitle,
           selectedProductIds: savedSelectedProductIds,
           demoProducts: selectionMode === 'demo' ? demoProducts : undefined,
@@ -334,6 +402,10 @@ export default function ProductGridEditPage({
           showCategoryTabs: true,
           categoryTabIds,
           desktopColumns,
+          // Cart button settings
+          showAddToCartButton,
+          showBuyNowButton,
+          cartButtonsLayout,
         };
 
       if (onSnapshotSave) {
@@ -366,7 +438,8 @@ export default function ProductGridEditPage({
       setInitialSnapshot(JSON.stringify({
         title,
         active,
-        itemCount,
+        itemCount: effectiveItemCount,
+        desktopRows,
         sortBy,
         selectionMode,
         selectedProductIds: savedSelectedProductIds,
@@ -389,6 +462,9 @@ export default function ProductGridEditPage({
         cardRadius,
         noBorderRadius: cardRadius === 'none',
         desktopColumns,
+        showAddToCartButton: showAddToCartButton,
+        showBuyNowButton: showBuyNowButton,
+        cartButtonsLayout,
       }));
       if (enableTypeOverrides && showCustomBlock) {
         setInitialCustom({
@@ -468,6 +544,8 @@ export default function ProductGridEditPage({
         <ProductGridForm
           itemCount={itemCount}
           setItemCount={setItemCount}
+          desktopRows={desktopRows}
+          setDesktopRows={setDesktopRows}
           sortBy={sortBy}
           setSortBy={setSortBy}
           selectionMode={selectionMode}
@@ -478,12 +556,14 @@ export default function ProductGridEditPage({
           setProductSearchTerm={setProductSearchTerm}
           selectedProducts={selectedProducts}
           filteredProducts={filteredProducts}
+          allActiveProducts={allActiveProducts}
           isLoading={productsData === undefined}
           demoProducts={demoProducts}
           setDemoProducts={setDemoProducts}
           categoryTabIds={categoryTabIds}
           setCategoryTabIds={setCategoryTabIds}
           allCategories={allCategories}
+          categoryProductCountsMap={categoryProductCountsMap}
           desktopColumns={desktopColumns}
           onDesktopColumnsChange={setDesktopColumns}
           spacing={spacing}
@@ -491,6 +571,12 @@ export default function ProductGridEditPage({
           cardRadius={cardRadius}
           setCardRadius={setCardRadius}
           defaultExpanded={false}
+          showAddToCartButton={showAddToCartButton}
+          setShowAddToCartButton={setShowAddToCartButton}
+          showBuyNowButton={showBuyNowButton}
+          setShowBuyNowButton={setShowBuyNowButton}
+          cartButtonsLayout={cartButtonsLayout}
+          setCartButtonsLayout={setCartButtonsLayout}
           className="mb-3"
         />
 
@@ -539,16 +625,11 @@ export default function ProductGridEditPage({
             <ProductGridPreview
               brandColor={effectiveColors.primary}
               secondary={effectiveColors.secondary}
-              itemCount={selectionMode === 'demo' ? demoProducts.length : (selectionMode === 'manual' ? selectedProductIds.length : itemCount)}
+              itemCount={effectiveItemCount}
+              desktopRows={desktopRows}
               selectedStyle={style}
               onStyleChange={setStyle}
-              items={
-                selectionMode === 'demo' && demoProducts.length > 0
-                  ? demoProducts.map(d => ({ id: d.id, name: d.name, image: d.image, price: d.price, originalPrice: d.originalPrice, category: d.category, tag: d.tag || undefined }))
-                  : selectionMode === 'manual' && productPreviewItems.length > 0
-                    ? productPreviewItems
-                    : (autoProductPreviewItems.length > 0 ? autoProductPreviewItems : undefined)
-              }
+              items={previewItems}
               subTitle={subTitle}
               sectionTitle={title}
               subtitle={sectionTitle}
@@ -574,6 +655,9 @@ export default function ProductGridEditPage({
               showBadge={showBadge}
               spacing={spacing}
               cornerRadius={cardRadius}
+              showAddToCartButton={showAddToCartButton}
+              showBuyNowButton={showBuyNowButton}
+              cartButtonsLayout={cartButtonsLayout}
             />
           </div>
         </div>

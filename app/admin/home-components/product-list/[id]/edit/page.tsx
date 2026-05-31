@@ -28,6 +28,8 @@ import { HomeComponentDisplaySettingsSection } from '../../../_shared/components
 import { useFormSectionsState } from '../../../_shared/hooks/useFormSectionsState';
 import { FormSectionsToggleAllButton } from '../../../_shared/components/FormSectionsToggleAllButton';
 
+import { Label } from '../../../../components/ui';
+
 const COMPONENT_TYPE = 'ProductList';
 
 type SnapshotEditableComponent = {
@@ -144,6 +146,9 @@ export default function ProductListEditPage({
         itemCount: config.itemCount ?? DEFAULT_PRODUCT_LIST_CONFIG.itemCount,
         lookbookDesktopColumns: normalizeProductListDesktopColumns(config.desktopColumns ?? config.lookbookDesktopColumns),
         sortBy: config.sortBy ?? DEFAULT_PRODUCT_LIST_CONFIG.sortBy,
+        showAddToCartButton: config.showAddToCartButton ?? true,
+        showBuyNowButton: config.showBuyNowButton ?? true,
+        cartButtonsLayout: config.cartButtonsLayout ?? 'stack',
       });
       setProductListStyle(normalizeProductListStyle(config.style));
       setProductSelectionMode((config.selectionMode as ProductSelectionMode) || 'auto');
@@ -205,6 +210,9 @@ export default function ProductListEditPage({
       badgeText: (config.subTitle as string) ?? headerConfig.badgeText ?? DEFAULT_PRODUCT_LIST_TEXT.subTitle,
       spacing: normalizedSpacing,
       cornerRadius: normalizedCornerRadius,
+      showAddToCartButton: config.showAddToCartButton ?? true,
+      showBuyNowButton: config.showBuyNowButton ?? true,
+      cartButtonsLayout: config.cartButtonsLayout ?? 'stack',
     }));
   }, [component]);
 
@@ -232,6 +240,9 @@ export default function ProductListEditPage({
     badgeText,
     spacing,
     cornerRadius: cardRadius,
+    showAddToCartButton: productListConfig.showAddToCartButton ?? true,
+    showBuyNowButton: productListConfig.showBuyNowButton ?? true,
+    cartButtonsLayout: productListConfig.cartButtonsLayout ?? 'stack',
   });
 
   const resolvedCustomSecondary = resolveSecondaryByMode(customState.mode, customState.primary, customState.secondary);
@@ -332,6 +343,9 @@ export default function ProductListEditPage({
         badgeText,
         spacing,
         cornerRadius: cardRadius,
+        showAddToCartButton: nextConfig.showAddToCartButton,
+        showBuyNowButton: nextConfig.showBuyNowButton,
+        cartButtonsLayout: nextConfig.cartButtonsLayout,
       }));
       if (enableTypeOverrides && showCustomBlock) {
         setInitialCustom({
@@ -446,6 +460,50 @@ export default function ProductListEditPage({
                   Ảnh hưởng layout Commerce, Compact và Lookbook. 4 cột: tablet/mobile 2 cột. 3 cột: tablet 3 cột, mobile 1 cột.
                 </p>
               </div>
+
+              {saleMode === 'cart' && (
+                <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">Hiển thị nút Thêm vào giỏ</Label>
+                      <p className="text-xs text-slate-500">Cho phép khách hàng thêm nhanh sản phẩm vào giỏ</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={productListConfig.showAddToCartButton ?? true}
+                      onChange={(e) => setProductListConfig({ ...productListConfig, showAddToCartButton: e.target.checked })}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">Hiển thị nút Mua ngay</Label>
+                      <p className="text-xs text-slate-500">Khách hàng có thể nhấn mua và đi thẳng tới trang checkout</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={productListConfig.showBuyNowButton ?? true}
+                      onChange={(e) => setProductListConfig({ ...productListConfig, showBuyNowButton: e.target.checked })}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {(productListConfig.showAddToCartButton ?? true) && (productListConfig.showBuyNowButton ?? true) && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-slate-700 dark:text-slate-200">Bố cục nút hiển thị</Label>
+                      <select
+                        className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+                        value={productListConfig.cartButtonsLayout ?? 'stack'}
+                        onChange={(e) => setProductListConfig({ ...productListConfig, cartButtonsLayout: e.target.value as 'stack' | 'grid-2' })}
+                      >
+                        <option value="stack">Xếp dọc (Stack)</option>
+                        <option value="grid-2">Xếp ngang (Grid 2)</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
           </HomeComponentDisplaySettingsSection>
         </div>
 
@@ -533,36 +591,48 @@ export default function ProductListEditPage({
                 }))
                 : productSelectionMode === 'manual' && selectedProducts.length > 0
                   ? selectedProducts.map((product) => ({
+                    categoryId: product.categoryId,
                     description: product.description,
                     id: product._id,
                     image: product.image,
                     name: product.name,
+                    slug: product.slug,
+                    stock: product.stock,
                     ...(() => {
                       const resolvedProduct = resolvedProductMap.get(product._id as Id<'products'>) ?? product;
                       const priceDisplay = getHomeComponentPriceLabel({ saleMode, price: resolvedProduct.price, salePrice: resolvedProduct.salePrice, isRangeFromVariant: resolvedProduct.hasVariants });
                       const hasBasePrice = resolvedProduct.price != null || resolvedProduct.salePrice != null;
                       return {
+                        hasVariants: resolvedProduct.hasVariants,
                         price: !hasBasePrice && saleMode === 'cart' ? undefined : priceDisplay.label,
+                        priceValue: resolvedProduct.price,
                         originalPrice: priceDisplay.comparePrice
                           ? getHomeComponentPriceLabel({ saleMode: 'cart', price: priceDisplay.comparePrice }).label
                           : undefined,
+                        salePriceValue: resolvedProduct.salePrice,
                       };
                     })(),
                   }))
                   : filteredProducts.slice(0, productListConfig.itemCount).map((product) => ({
+                    categoryId: product.categoryId,
                     description: product.description,
                     id: product._id,
                     image: product.image,
                     name: product.name,
+                    slug: product.slug,
+                    stock: product.stock,
                     ...(() => {
                       const resolvedProduct = resolvedProductMap.get(product._id as Id<'products'>) ?? product;
                       const priceDisplay = getHomeComponentPriceLabel({ saleMode, price: resolvedProduct.price, salePrice: resolvedProduct.salePrice, isRangeFromVariant: resolvedProduct.hasVariants });
                       const hasBasePrice = resolvedProduct.price != null || resolvedProduct.salePrice != null;
                       return {
+                        hasVariants: resolvedProduct.hasVariants,
                         price: !hasBasePrice && saleMode === 'cart' ? undefined : priceDisplay.label,
+                        priceValue: resolvedProduct.price,
                         originalPrice: priceDisplay.comparePrice
                           ? getHomeComponentPriceLabel({ saleMode: 'cart', price: priceDisplay.comparePrice }).label
                           : undefined,
+                        salePriceValue: resolvedProduct.salePrice,
                       };
                     })(),
                   }))
@@ -584,6 +654,9 @@ export default function ProductListEditPage({
               cardRadius={cardRadius}
               desktopColumns={desktopColumns}
               lookbookDesktopColumns={desktopColumns}
+              showAddToCartButton={productListConfig.showAddToCartButton ?? true}
+              showBuyNowButton={productListConfig.showBuyNowButton ?? true}
+              cartButtonsLayout={productListConfig.cartButtonsLayout ?? 'stack'}
             />
           </div>
         </div>

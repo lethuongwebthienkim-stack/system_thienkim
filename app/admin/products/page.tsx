@@ -8,7 +8,7 @@ import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
 import { ChevronDown, Copy, Edit, ExternalLink, Layers, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Badge, Button, Card, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui';
+import { Badge, Button, Card, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Popover, PopoverTrigger, PopoverContent, ScrollArea, cn } from '../components/ui';
 import { BulkActionBar, ColumnToggle, generatePaginationItems, SelectCheckbox, SortableHeader, useSortableData } from '../components/TableUtilities';
 import { ModuleGuard } from '../components/ModuleGuard';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
@@ -39,7 +39,30 @@ function ProductsContent() {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+  const [exactMode, setExactMode] = useState(false);
   const [filterCategory, setFilterCategory] = useState<Id<"productCategories"> | ''>('');
+  const [categorySearch, setCategorySearch] = useState('');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setIsCategoryDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const filteredCategories = useMemo(() => {
+    if (!categoriesData) return [];
+    return categoriesData.filter(c => 
+      c.name.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [categoriesData, categorySearch]);
   const [filterStatus, setFilterStatus] = useState<'' | 'Active' | 'Archived' | 'Draft'>('');
   const [sortConfig, setSortConfig] = useState<{ key: string | null; direction: 'asc' | 'desc' }>({ direction: 'asc', key: null });
   const [visibleColumns, setVisibleColumns] = useState<string[]>(() => {
@@ -122,6 +145,7 @@ function ProductsContent() {
     search: resolvedSearch,
     categoryId: filterCategory || undefined,
     status: filterStatus || undefined,
+    exactMode,
   });
 
   const deleteInfo = useQuery(
@@ -133,6 +157,7 @@ function ProductsContent() {
     search: resolvedSearch,
     categoryId: filterCategory || undefined,
     status: filterStatus || undefined,
+    exactMode,
   });
 
   const selectAllData = useQuery(
@@ -142,6 +167,7 @@ function ProductsContent() {
           search: resolvedSearch,
           categoryId: filterCategory || undefined,
           status: filterStatus || undefined,
+          exactMode,
         }
       : 'skip'
   );
@@ -243,6 +269,7 @@ function ProductsContent() {
     setDebouncedSearchTerm('');
     setFilterCategory('');
     setFilterStatus('');
+    setExactMode(false);
     setCurrentPage(1);
     setPageSizeOverride(null);
     applyManualSelection([]);
@@ -431,19 +458,110 @@ function ProductsContent() {
       <Card>
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row gap-4 justify-between">
           <div className="flex flex-wrap gap-3 flex-1">
-            <div className="relative max-w-xs">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <Input 
-                placeholder={enabledFields.has('sku') ? "Tìm tên, SKU..." : "Tìm tên sản phẩm..."} 
-                className="pl-9 w-48" 
-                value={searchTerm} 
-                onChange={(e) =>{  setSearchTerm(e.target.value); setCurrentPage(1); applyManualSelection([]); }} 
-              />
+            <div className="relative flex items-center gap-2">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Input 
+                  placeholder={enabledFields.has('sku') ? "Tìm tên, SKU..." : "Tìm tên sản phẩm..."} 
+                  className="pl-9 w-60 text-sm" 
+                  value={searchTerm} 
+                  onChange={(e) =>{  setSearchTerm(e.target.value); setCurrentPage(1); applyManualSelection([]); }} 
+                  title="Gợi ý: Dùng dấu - ở trước từ để loại trừ (ví dụ: -[B])."
+                />
+              </div>
+              <label 
+                className={`flex items-center gap-1.5 cursor-pointer select-none text-xs border rounded-md px-2.5 h-10 transition-colors ${
+                  exactMode 
+                    ? 'border-orange-500 bg-orange-500/5 text-orange-600 dark:text-orange-400' 
+                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                }`}
+                title="Khớp chính xác từng ký tự (không dùng fuzzy)"
+              >
+                <input 
+                  type="checkbox" 
+                  checked={exactMode} 
+                  onChange={(e) => { 
+                    setExactMode(e.target.checked); 
+                    setCurrentPage(1); 
+                    applyManualSelection([]); 
+                  }} 
+                  className="rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-3.5 w-3.5 cursor-pointer"
+                />
+                <span className="font-medium">Tìm chính xác</span>
+              </label>
             </div>
-            <select className="h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm" value={filterCategory} onChange={(e) =>{  handleFilterChange('category', e.target.value); }}>
-              <option value="">Tất cả danh mục</option>
-              {categoriesData?.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
-            </select>
+            <div className="relative" ref={categoryDropdownRef}>
+              <Popover open={isCategoryDropdownOpen} onOpenChange={setIsCategoryDropdownOpen}>
+                <PopoverTrigger>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={isCategoryDropdownOpen}
+                    className="h-10 justify-between text-left font-normal bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 w-[220px]"
+                    onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                  >
+                    <span className="truncate">
+                      {filterCategory === ''
+                        ? "Tất cả danh mục"
+                        : categoriesData?.find(c => c._id === filterCategory)?.name ?? "Tất cả danh mục"}
+                    </span>
+                    <span className="text-slate-400 text-xs shrink-0 ml-2">▼</span>
+                  </Button>
+                </PopoverTrigger>
+                {isCategoryDropdownOpen && (
+                  <PopoverContent className="w-[240px] p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-lg z-50" align="start">
+                  <div className="flex items-center gap-2 mb-2 px-1">
+                    <Search size={14} className="text-slate-400 shrink-0" />
+                    <Input
+                      placeholder="Tìm danh mục..."
+                      value={categorySearch}
+                      onChange={(e) => setCategorySearch(e.target.value)}
+                      className="h-8 text-xs w-full bg-slate-50 dark:bg-slate-800 border-0 focus-visible:ring-1 focus-visible:ring-blue-500"
+                    />
+                  </div>
+                  <ScrollArea className="max-h-[200px] overflow-y-auto pr-1 space-y-0.5" style={{ scrollbarWidth: 'thin' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleFilterChange('category', '');
+                        setIsCategoryDropdownOpen(false);
+                      }}
+                      className={cn(
+                        "w-full px-2.5 py-1.5 rounded-md text-left text-xs transition-colors hover:bg-slate-100 dark:hover:bg-slate-800",
+                        filterCategory === '' ? "bg-blue-500/5 text-blue-600 dark:text-blue-400 font-semibold" : "text-slate-700 dark:text-slate-300"
+                      )}
+                    >
+                      Tất cả danh mục
+                    </button>
+                    {filteredCategories.length === 0 ? (
+                      <p className="text-xs text-slate-400 text-center py-4">Không tìm thấy danh mục</p>
+                    ) : (
+                      filteredCategories.map(c => {
+                        const isSelected = filterCategory === c._id;
+                        return (
+                          <button
+                            key={c._id}
+                            type="button"
+                            onClick={() => {
+                              handleFilterChange('category', c._id);
+                              setIsCategoryDropdownOpen(false);
+                            }}
+                            className={cn(
+                              "w-full px-2.5 py-1.5 rounded-md text-left text-xs transition-colors hover:bg-slate-100 dark:hover:bg-slate-800",
+                              isSelected ? "bg-blue-500/5 text-blue-600 dark:text-blue-400 font-semibold" : "text-slate-700 dark:text-slate-300"
+                            )}
+                          >
+                            <span className="truncate block">{c.name}</span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </ScrollArea>
+                </PopoverContent>
+              )}
+              </Popover>
+            </div>
             <select className="h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm" value={filterStatus} onChange={(e) =>{  handleFilterChange('status', e.target.value); }}>
               <option value="">Tất cả trạng thái</option>
               <option value="Active">Đang bán</option>

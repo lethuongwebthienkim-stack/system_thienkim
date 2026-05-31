@@ -123,8 +123,7 @@ component. It handles batching, cursor-based pagination, state tracking, resume
 from failure, dry runs, and progress monitoring.
 
 See `references/migrations-component.md` for installation, setup, defining and
-running migrations directly with `npx convex run migrations:myMigration`, dry
-runs, status monitoring, and configuration options.
+running migrations, dry runs, status monitoring, and configuration options.
 
 ## Common Migration Patterns
 
@@ -168,9 +167,8 @@ covering:
 - [ ] Update code to write the new format for new documents
 - [ ] Deploy widened schema and updated code
 - [ ] Define migration using the `@convex-dev/migrations` component
-- [ ] Test with `npx convex run migrations:myMigration '{"dryRun": true}'`
-- [ ] Run migration directly with `npx convex run migrations:myMigration` and
-      monitor status
+- [ ] Test with `dryRun: true`
+- [ ] Run migration and monitor status
 - [ ] Verify all documents are migrated
 - [ ] Update schema to require new format only
 - [ ] Clean up code that handled old format

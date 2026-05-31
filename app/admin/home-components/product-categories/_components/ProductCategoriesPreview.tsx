@@ -57,6 +57,22 @@ export const ProductCategoriesPreview = ({
   const setPreviewStyle = (s: string) => onStyleChange?.(s as ProductCategoriesStyle);
   const colors = React.useMemo(() => getProductCategoriesColors(brandColor, secondary, mode), [brandColor, secondary, mode]);
   const productsData = useQuery(api.products.listPublicResolved, { limit: 100 });
+  const categoriesConfig = React.useMemo(() => config.categories ?? [], [config.categories]);
+
+  const productIdsForImages = React.useMemo(() => {
+    const ids: string[] = [];
+    for (const item of categoriesConfig) {
+      if (item.imageMode === 'product-image' && item.customImage?.startsWith('product:')) {
+        const id = item.customImage.replace('product:', '');
+        if (id) ids.push(id);
+      }
+    }
+    return ids;
+  }, [categoriesConfig]);
+
+  const targetProductsData = useQuery(api.products.listByIds, { ids: productIdsForImages as any });
+  const categoriesWithStats = useQuery(api.productCategories.listActiveWithStats, { productLimit: 5000 });
+
   const categoryMap = React.useMemo(() => {
     const map: Record<string, CategoryData> = {};
     for (const cat of categoriesData) {
@@ -64,6 +80,7 @@ export const ProductCategoriesPreview = ({
     }
     return map;
   }, [categoriesData]);
+
   const productImageMap = React.useMemo(() => {
     const map: Record<string, { image?: string }> = {};
     if (productsData) {
@@ -71,19 +88,24 @@ export const ProductCategoriesPreview = ({
         map[product._id] = { image: product.image };
       }
     }
-    return map;
-  }, [productsData]);
-  const productCountMap = React.useMemo(() => {
-    const map: Record<string, number> = {};
-    if (productsData) {
-      for (const product of productsData) {
-        map[product.categoryId] = (map[product.categoryId] || 0) + 1;
+    if (targetProductsData) {
+      for (const product of targetProductsData) {
+        map[product._id] = { image: product.image };
       }
     }
     return map;
-  }, [productsData]);
+  }, [productsData, targetProductsData]);
 
-  const categoriesConfig = React.useMemo(() => config.categories ?? [], [config.categories]);
+  const productCountMap = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    if (categoriesWithStats?.stats) {
+      for (const stat of categoriesWithStats.stats) {
+        map[stat.categoryId] = stat.productCount;
+      }
+    }
+    return map;
+  }, [categoriesWithStats]);
+
   const uniqueCategories = React.useMemo(() => (
     categoriesConfig.filter((item, index, arr) => {
       if (!item.categoryId) {return true;}
