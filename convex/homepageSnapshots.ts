@@ -19,7 +19,7 @@ const REPLACE_ALL_MODE = 'replace_all';
 const loadSnapshotPayload = async (
   ctx: any,
   snapshotId: string,
-): Promise<unknown | null> => {
+): Promise<unknown> => {
   const payloadRow = await ctx.db
     .query('homeComponentSnapshotPayloads')
     .withIndex('by_snapshotId', (q: any) => q.eq('snapshotId', snapshotId))

@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import * as SliderPrimitive from '@radix-ui/react-slider';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Id } from '@/convex/_generated/dataModel';

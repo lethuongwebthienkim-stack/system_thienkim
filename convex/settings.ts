@@ -103,7 +103,7 @@ export const set = mutation({
     value: v.any(),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
+    const _existing = await ctx.db
       .query("settings")
       .withIndex("by_key", (q) => q.eq("key", args.key))
       .unique();
@@ -175,7 +175,7 @@ export const setMultiple = mutation({
       if (!Object.prototype.hasOwnProperty.call(setting, "storageId")) {
         continue;
       }
-      const existing = settingsMap.get(setting.key);
+      const _existing = settingsMap.get(setting.key);
       const storageKey = storageIdSettingKey(setting.key);
       const storageSetting = settingsMap.get(storageKey);
       const previousStorageIds = [
@@ -244,7 +244,7 @@ export const removeMultiple = mutation({
     ]);
     const settings = await ctx.db.query('settings').take(500);
     for (const key of args.keys) {
-      const setting = settings.find(item => item.key === key);
+      const _setting = settings.find(item => item.key === key);
       const storageSetting = settings.find(item => item.key === storageIdSettingKey(key));
       await removeOwnerFilesAndCleanup(ctx, {
         ownerId: key,

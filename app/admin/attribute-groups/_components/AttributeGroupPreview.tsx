@@ -89,7 +89,6 @@ export function AttributeGroupPreview({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const resolvedRangeConfig = getSmartRangeConfig(name, terms);
-  const rangeGap = resolvedRangeConfig.step;
   const [minVal, setMinVal] = useState(resolvedRangeConfig.defaultMin);
   const [maxVal, setMaxVal] = useState(resolvedRangeConfig.defaultMax);
 
