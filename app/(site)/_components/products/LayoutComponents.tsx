@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import * as SliderPrimitive from '@radix-ui/react-slider';
 import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Id } from '@/convex/_generated/dataModel';
@@ -305,48 +306,39 @@ function DoubleRangeSlider({
   tokens: any;
   brandColor: string;
 }) {
-  const [minVal, setMinVal] = useState(initialMin);
-  const [maxVal, setMaxVal] = useState(initialMax);
-  const minValRef = useRef(initialMin);
-  const maxValRef = useRef(initialMax);
-  const rangeRef = useRef<HTMLDivElement>(null);
+  const [localValues, setLocalValues] = useState<[number, number]>([initialMin, initialMax]);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    setMinVal(initialMin);
-    minValRef.current = initialMin;
-  }, [initialMin]);
+    setLocalValues([initialMin, initialMax]);
+  }, [initialMin, initialMax]);
 
   useEffect(() => {
-    setMaxVal(initialMax);
-    maxValRef.current = initialMax;
-  }, [initialMax]);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
-  const getPercent = (value: number) => Math.round(((value - min) / (max - min)) * 100);
+  const handleChange = (values: number[]) => {
+    const [newMin, newMax] = values as [number, number];
+    setLocalValues([newMin, newMax]);
 
-  useEffect(() => {
-    const minPercent = getPercent(minVal);
-    const maxPercent = getPercent(maxVal);
-
-    if (rangeRef.current) {
-      rangeRef.current.style.left = `${minPercent}%`;
-      rangeRef.current.style.width = `${maxPercent - minPercent}%`;
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
     }
-  }, [minVal, maxVal, min, max]);
-
-  const handleMinChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.min(Number(event.target.value), maxVal - 1);
-    setMinVal(value);
-    minValRef.current = value;
+    debounceTimerRef.current = setTimeout(() => {
+      onChange(newMin, newMax);
+    }, 400);
   };
 
-  const handleMaxChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Math.max(Number(event.target.value), minVal + 1);
-    setMaxVal(value);
-    maxValRef.current = value;
-  };
-
-  const handleMouseUp = () => {
-    onChange(minVal, maxVal);
+  const handleCommit = (values: number[]) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    const [newMin, newMax] = values as [number, number];
+    onChange(newMin, newMax);
   };
 
   const formatK = (num: number) => {
@@ -359,100 +351,66 @@ function DoubleRangeSlider({
     return String(num);
   };
 
+  const step = Math.max(1, Math.min(10000, Math.floor((max - min) / 100)));
+
   return (
     <div className="flex flex-col gap-4 py-2">
-      <style>{`
-        .thumb,
-        .thumb::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          -webkit-tap-highlight-color: transparent;
-        }
-        .thumb {
-          pointer-events: none;
-          position: absolute;
-          height: 24px;
-          width: 100%;
-          outline: none;
-          background: transparent;
-        }
-        .thumb::-webkit-slider-thumb {
-          background-color: #ffffff;
-          border: 3px solid ${brandColor};
-          border-radius: 50%;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-          cursor: pointer;
-          height: 16px;
-          width: 16px;
-          pointer-events: all;
-          position: relative;
-          box-sizing: border-box;
-        }
-        .thumb::-moz-range-thumb {
-          background-color: #ffffff;
-          border: 3px solid ${brandColor};
-          border-radius: 50%;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-          cursor: pointer;
-          height: 16px;
-          width: 16px;
-          pointer-events: all;
-          position: relative;
-          box-sizing: border-box;
-        }
-        .slider-track {
-          position: absolute;
-          border-radius: 3px;
-          height: 4px;
-          width: 100%;
-          z-index: 1;
-        }
-        .slider-range {
-          position: absolute;
-          border-radius: 3px;
-          height: 4px;
-          z-index: 2;
-        }
-      `}</style>
       <div className="relative w-full h-6 flex items-center">
-        <input
-          type="range"
+        <SliderPrimitive.Root
+          className="relative flex items-center w-full touch-none select-none"
           min={min}
           max={max}
-          value={minVal}
-          onChange={handleMinChange}
-          onMouseUp={handleMouseUp}
-          onTouchEnd={handleMouseUp}
-          className="thumb thumb--left"
-          style={{
-            zIndex: minVal > max - 100 ? 5 : 3,
-          }}
-        />
-        <input
-          type="range"
-          min={min}
-          max={max}
-          value={maxVal}
-          onChange={handleMaxChange}
-          onMouseUp={handleMouseUp}
-          onTouchEnd={handleMouseUp}
-          className="thumb thumb--right"
-          style={{
-            zIndex: 4,
-          }}
-        />
+          step={step}
+          value={localValues}
+          onValueChange={handleChange}
+          onValueCommit={handleCommit}
+          minStepsBetweenThumbs={0}
+          style={{ height: 20 }}
+        >
+          {/* Active / Background Track */}
+          <SliderPrimitive.Track 
+            className="relative w-full rounded-full overflow-hidden" 
+            style={{ height: 4, backgroundColor: tokens.filterChipBg }}
+          >
+            <SliderPrimitive.Range 
+              className="absolute h-full rounded-full" 
+              style={{ backgroundColor: brandColor }} 
+            />
+          </SliderPrimitive.Track>
 
-        <div className="slider-track" style={{ backgroundColor: tokens.filterChipBg }} />
-        <div ref={rangeRef} className="slider-range" style={{ backgroundColor: brandColor }} />
+          {/* Left Thumb */}
+          <SliderPrimitive.Thumb 
+            className="block rounded-full bg-white border-2 focus:outline-none relative after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:rounded-full cursor-grab active:cursor-grabbing transition-transform active:scale-125"
+            style={{ 
+              width: 16, 
+              height: 16, 
+              borderColor: brandColor, 
+              boxShadow: '0 2px 4px rgba(0,0,0,0.15)' 
+            }}
+            aria-label="Khoảng giá nhỏ nhất"
+          />
+
+          {/* Right Thumb */}
+          <SliderPrimitive.Thumb 
+            className="block rounded-full bg-white border-2 focus:outline-none relative after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:rounded-full cursor-grab active:cursor-grabbing transition-transform active:scale-125"
+            style={{ 
+              width: 16, 
+              height: 16, 
+              borderColor: brandColor, 
+              boxShadow: '0 2px 4px rgba(0,0,0,0.15)' 
+            }}
+            aria-label="Khoảng giá lớn nhất"
+          />
+        </SliderPrimitive.Root>
       </div>
 
       <div className="flex justify-between items-center text-sm font-semibold mt-1">
         <div className="px-2 py-1 rounded border" style={{ borderColor: tokens.inputBorder, backgroundColor: tokens.inputBackground, color: tokens.inputText }}>
-          {formatK(minVal)}đ
+          {formatK(localValues[0])}đ
         </div>
         <span className="text-slate-400 dark:text-slate-500 font-bold">-</span>
         <div className="px-2 py-1 rounded border" style={{ borderColor: tokens.inputBorder, backgroundColor: tokens.inputBackground, color: tokens.inputText }}>
-          {formatK(maxVal)}đ
+          {formatK(localValues[1])}đ
         </div>
       </div>
     </div>
