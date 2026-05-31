@@ -23,7 +23,7 @@ export async function recalculateProductEffectivePrice(ctx: MutationCtx, product
   const product = await ctx.db.get(productId);
   if (!product) return;
 
-  let effectivePrice = product.salePrice ?? product.price;
+  let effectivePrice = product.price ?? product.salePrice;
 
   if (product.hasVariants) {
     const variants = await ctx.db
@@ -33,7 +33,7 @@ export async function recalculateProductEffectivePrice(ctx: MutationCtx, product
     
     const activeVariants = variants.filter(v => v.status === "Active");
     if (activeVariants.length > 0) {
-      const prices = activeVariants.map(v => v.salePrice ?? v.price).filter((p): p is number => p !== undefined);
+      const prices = activeVariants.map(v => v.price ?? v.salePrice).filter((p): p is number => p !== undefined);
       if (prices.length > 0) {
         effectivePrice = Math.min(...prices);
       }
@@ -905,7 +905,7 @@ export const getPriceRangeStats = query({
     let maxPrice = -Infinity;
 
     for (const p of resolvedProducts) {
-      const price = p.effectivePrice ?? p.salePrice ?? p.price;
+      const price = p.effectivePrice ?? 0;
       if (price > 0) {
         if (price < minPrice) minPrice = price;
         if (price > maxPrice) maxPrice = price;
@@ -993,10 +993,10 @@ export const listPublishedPaginated = query({
         .paginate(args.paginationOpts);
     }
 
-    // Filter by minPrice and maxPrice (JS post-filter, dùng effectivePrice ?? salePrice ?? price)
+    // Filter by minPrice and maxPrice using canonical sale price.
     if (args.minPrice !== undefined || args.maxPrice !== undefined) {
       result.page = result.page.filter((p) => {
-        const price = p.effectivePrice ?? p.salePrice ?? p.price;
+        const price = p.effectivePrice ?? 0;
         if (args.minPrice !== undefined && price < args.minPrice) return false;
         if (args.maxPrice !== undefined && price > args.maxPrice) return false;
         return true;
@@ -1126,7 +1126,7 @@ export const listPublishedWithOffset = query({
 
     if (args.minPrice !== undefined || args.maxPrice !== undefined) {
       products = products.filter((p) => {
-        const price = p.effectivePrice ?? p.salePrice ?? p.price;
+        const price = p.effectivePrice ?? 0;
         if (args.minPrice !== undefined && price < args.minPrice) return false;
         if (args.maxPrice !== undefined && price > args.maxPrice) return false;
         return true;
@@ -1355,7 +1355,7 @@ export const countPublished = query({
 
     if (args.minPrice !== undefined || args.maxPrice !== undefined) {
       products = products.filter((p) => {
-        const price = p.effectivePrice ?? p.salePrice ?? p.price;
+        const price = p.effectivePrice ?? 0;
         if (args.minPrice !== undefined && price < args.minPrice) return false;
         if (args.maxPrice !== undefined && price > args.maxPrice) return false;
         return true;
