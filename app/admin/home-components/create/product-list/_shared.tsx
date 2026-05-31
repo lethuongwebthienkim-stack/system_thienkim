@@ -279,9 +279,6 @@ export function ProductListCreateShared({ type, titleLabel }: ProductListCreateS
     };
 
     if (type === 'ProductList') {
-      config.subTitle = subTitle;
-      config.sectionTitle = sectionTitle;
-      // Header config fields
       config.hideHeader = hideHeader;
       config.showTitle = showTitleHeader;
       config.showSubtitle = showSubtitle;

@@ -1174,11 +1174,11 @@ export const listPublishedWithOffset = query({
           break;
         }
         case "price_asc": {
-          products.sort((a, b) => (a.salePrice ?? a.price) - (b.salePrice ?? b.price));
+          products.sort((a, b) => (a.effectivePrice ?? 0) - (b.effectivePrice ?? 0));
           break;
         }
         case "price_desc": {
-          products.sort((a, b) => (b.salePrice ?? b.price) - (a.salePrice ?? a.price));
+          products.sort((a, b) => (b.effectivePrice ?? 0) - (a.effectivePrice ?? 0));
           break;
         }
         case "name": {
@@ -1271,11 +1271,11 @@ export const searchPublished = query({
         break;
       }
       case "price_asc": {
-        products.sort((a, b) => (a.salePrice ?? a.price) - (b.salePrice ?? b.price));
+        products.sort((a, b) => (a.effectivePrice ?? 0) - (b.effectivePrice ?? 0));
         break;
       }
       case "price_desc": {
-        products.sort((a, b) => (b.salePrice ?? b.price) - (a.salePrice ?? a.price));
+        products.sort((a, b) => (b.effectivePrice ?? 0) - (a.effectivePrice ?? 0));
         break;
       }
       case "name": {

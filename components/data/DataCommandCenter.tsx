@@ -63,13 +63,16 @@ function DataContractAuditCard({
   const issueTables = scan?.tables.filter((table) => table.totalIssues > 0).slice(0, 6) ?? [];
   const hasCritical = (scan?.summary.critical ?? 0) > 0;
   const hasWarnings = (scan?.summary.warnings ?? 0) > 0;
+  const hasEmptyTables = (scan?.summary.empty ?? 0) > 0;
   const statusBadge = !scan
     ? <Badge variant="secondary">Chưa quét</Badge>
     : hasCritical
       ? <Badge variant="destructive">Có lỗi critical</Badge>
       : hasWarnings
         ? <Badge variant="warning">Có cảnh báo</Badge>
-        : <Badge variant="success">Sạch</Badge>;
+        : hasEmptyTables
+          ? <Badge variant="secondary">Có bảng rỗng</Badge>
+          : <Badge variant="success">Sạch</Badge>;
 
   return (
     <Card className="p-4 border border-amber-200 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/20">
@@ -89,6 +92,7 @@ function DataContractAuditCard({
               <Badge variant="secondary">{scan.summary.scannedRecords.toLocaleString()} records scanned</Badge>
               <Badge variant={scan.summary.critical > 0 ? 'destructive' : 'secondary'}>{scan.summary.critical} critical</Badge>
               <Badge variant={scan.summary.warnings > 0 ? 'warning' : 'secondary'}>{scan.summary.warnings} warnings</Badge>
+              <Badge variant={scan.summary.empty > 0 ? 'warning' : 'secondary'}>{scan.summary.empty} empty</Badge>
               <Badge variant="secondary">sample {scan.sampleSize}/table</Badge>
             </div>
           )}
@@ -121,7 +125,9 @@ function DataContractAuditCard({
       )}
 
       {scan && issueTables.length === 0 && (
-        <p className="mt-4 text-sm text-green-700 dark:text-green-300">Không phát hiện lệch contract trong phạm vi quét.</p>
+        <p className="mt-4 text-sm text-green-700 dark:text-green-300">
+          Không phát hiện lệch contract trong phạm vi quét{scan.summary.empty > 0 ? `; ${scan.summary.empty} bảng rỗng chưa đủ dữ liệu để kết luận.` : '.'}
+        </p>
       )}
     </Card>
   );

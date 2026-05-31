@@ -310,8 +310,6 @@ type ClassicHighlightIcon =
 type ClassicHighlightItem = { icon: ClassicHighlightIcon; text: string };
 
 const EXPERIENCE_KEY = 'product_detail_ui';
-const LEGACY_DETAIL_STYLE_KEY = 'products_detail_style';
-const LEGACY_HIGHLIGHTS_KEY = 'products_detail_classic_highlights_enabled';
 const CLASSIC_HIGHLIGHTS_KEY = 'products_detail_classic_highlights';
 
 const LAYOUT_STYLES: LayoutOption<ProductsDetailStyle>[] = [
@@ -367,16 +365,6 @@ const DEFAULT_CONFIG: ProductDetailExperienceConfig = {
   highlightsPosition: 'image_column',
   highlightsSpacing: 'high',
 };
-
-const LEGACY_COMBO_EFFECT_MAP = {
-  'sparkle-gradient': { type: 'sparkle', color: 'gradient-1' },
-  'sparkle-black': { type: 'sparkle', color: 'black' },
-  'sparkle-gold': { type: 'sparkle', color: 'gradient-2' },
-  'sparkle-emerald': { type: 'sparkle', color: 'gradient-3' },
-  'sparkle-red': { type: 'sparkle', color: 'red' },
-  'sparkle-primary': { type: 'sparkle', color: 'primary' },
-  'sparkle-secondary': { type: 'sparkle', color: 'secondary' },
-} as const;
 
 const HINTS = [
   'Classic layout phù hợp shop truyền thống.',
@@ -501,8 +489,6 @@ const normalizeClassicHighlights = (value: unknown): ClassicHighlightItem[] => {
 
 export default function ProductDetailExperiencePage() {
   const experienceSetting = useQuery(api.settings.getByKey, { key: EXPERIENCE_KEY });
-  const legacyStyleSetting = useQuery(api.settings.getByKey, { key: LEGACY_DETAIL_STYLE_KEY });
-  const legacyHighlightsSetting = useQuery(api.settings.getByKey, { key: LEGACY_HIGHLIGHTS_KEY });
   const highlightsSetting = useQuery(api.settings.getByKey, { key: CLASSIC_HIGHLIGHTS_KEY });
   const saleModeSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'saleMode' });
   const moduleAspectRatioSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'defaultImageAspectRatio' });
@@ -532,8 +518,6 @@ export default function ProductDetailExperiencePage() {
   const [secondaryColor, setSecondaryColor] = useState(brandColors.secondary || '');
   const [colorMode, setColorMode] = useState<'single' | 'dual'>(brandColors.mode || 'single');
 
-  const legacyStyle = legacyStyleSetting?.value as ProductsDetailStyle | undefined;
-  const legacyHighlights = (legacyHighlightsSetting?.value as boolean) ?? true;
   const serverHighlights = useMemo(
     () => normalizeClassicHighlights(highlightsSetting?.value),
     [highlightsSetting?.value]
@@ -678,7 +662,7 @@ export default function ProductDetailExperiencePage() {
       imageAspectRatioSource?: ProductImageAspectRatioSource;
       showAllProductImagesSection?: boolean;
       enableImageLightbox?: boolean;
-      comboAnimateType?: ComboAnimateType | 'pulse' | 'bounce' | keyof typeof LEGACY_COMBO_EFFECT_MAP;
+      comboAnimateType?: ComboAnimateType;
       comboEffectColor?: ComboEffectColor;
       accentColors?: ProductDetailAccentColorConfig;
       showSocialButtons?: boolean;
@@ -691,8 +675,8 @@ export default function ProductDetailExperiencePage() {
     }> | undefined;
     const classicHighlightsSetting = raw?.layouts?.classic?.showClassicHighlights
       ?? raw?.showClassicHighlights
-      ?? legacyHighlights;
-    const legacyAspectRatio = isProductImageAspectRatio(raw?.imageAspectRatio)
+      ?? DEFAULT_CONFIG.layouts.classic.showClassicHighlights;
+    const selectedImageAspectRatio = isProductImageAspectRatio(raw?.imageAspectRatio)
       ? raw.imageAspectRatio
       : isProductImageAspectRatio(raw?.layouts?.classic?.imageAspectRatio)
         ? raw.layouts.classic.imageAspectRatio
@@ -709,16 +693,11 @@ export default function ProductDetailExperiencePage() {
         || isProductImageAspectRatio(raw?.layouts?.minimal?.imageAspectRatio)
         ? 'custom'
         : 'module';
-    const legacyComboEffect = raw?.comboAnimateType && (raw.comboAnimateType in LEGACY_COMBO_EFFECT_MAP)
-      ? LEGACY_COMBO_EFFECT_MAP[raw.comboAnimateType as keyof typeof LEGACY_COMBO_EFFECT_MAP]
-      : undefined;
-    const comboAnimateType: ComboAnimateType = raw?.comboAnimateType === 'pulse' || raw?.comboAnimateType === 'bounce'
-      ? 'luxury-sheen'
-      : legacyComboEffect?.type ?? (raw?.comboAnimateType as ComboAnimateType | undefined) ?? DEFAULT_CONFIG.comboAnimateType ?? 'luxury-sheen';
+    const comboAnimateType: ComboAnimateType = raw?.comboAnimateType ?? DEFAULT_CONFIG.comboAnimateType ?? 'luxury-sheen';
     return {
-      layoutStyle: raw?.layoutStyle ?? legacyStyle ?? DEFAULT_CONFIG.layoutStyle,
+      layoutStyle: raw?.layoutStyle ?? DEFAULT_CONFIG.layoutStyle,
       imageAspectRatioSource,
-      imageAspectRatio: legacyAspectRatio,
+      imageAspectRatio: selectedImageAspectRatio,
       showAllProductImagesSection: raw?.showAllProductImagesSection ?? false,
       enableImageLightbox: raw?.enableImageLightbox ?? false,
       layouts: {
@@ -765,7 +744,7 @@ export default function ProductDetailExperiencePage() {
         ? raw.relatedProductsPerPage
         : DEFAULT_CONFIG.relatedProductsPerPage,
       comboAnimateType,
-      comboEffectColor: raw?.comboEffectColor ?? legacyComboEffect?.color ?? DEFAULT_CONFIG.comboEffectColor,
+      comboEffectColor: raw?.comboEffectColor ?? DEFAULT_CONFIG.comboEffectColor,
       accentColors: {
         ...DEFAULT_CONFIG.accentColors,
         ...raw?.accentColors,
@@ -776,9 +755,9 @@ export default function ProductDetailExperiencePage() {
       highlightsPosition: raw?.highlightsPosition ?? 'image_column',
       highlightsSpacing: raw?.highlightsSpacing ?? 'high',
     };
-  }, [experienceSetting?.value, legacyStyle, legacyHighlights]);
+  }, [experienceSetting?.value]);
 
-  const isLoading = experienceSetting === undefined || legacyStyleSetting === undefined || legacyHighlightsSetting === undefined || highlightsSetting === undefined || saleModeSetting === undefined;
+  const isLoading = experienceSetting === undefined || highlightsSetting === undefined || saleModeSetting === undefined;
 
   const { config, setConfig, hasChanges } = useExperienceConfig(serverConfig, DEFAULT_CONFIG, isLoading);
   const saleMode = (saleModeSetting?.value as string | undefined) ?? 'cart';
@@ -834,13 +813,6 @@ export default function ProductDetailExperiencePage() {
       },
     }));
   };
-
-  const additionalSettings = useMemo(() => {
-    return [
-      { group: 'products', key: LEGACY_DETAIL_STYLE_KEY, value: config.layoutStyle },
-      { group: 'products', key: LEGACY_HIGHLIGHTS_KEY, value: config.layouts.classic.showClassicHighlights ?? true },
-    ];
-  }, [config.layoutStyle, config.layouts.classic.showClassicHighlights]);
 
   const hasHighlightsChanges = useMemo(
     () => JSON.stringify(classicHighlights) !== JSON.stringify(serverHighlights),
@@ -898,7 +870,6 @@ export default function ProductDetailExperiencePage() {
       const settingsToSave = [
         { group: EXPERIENCE_GROUP, key: EXPERIENCE_KEY, value: normalizedConfig },
         { group: 'products', key: CLASSIC_HIGHLIGHTS_KEY, value: classicHighlights },
-        ...additionalSettings,
       ];
       await setMultipleSettings({ settings: settingsToSave });
       toast.success(MESSAGES.saveSuccess(EXPERIENCE_NAMES[EXPERIENCE_KEY]));

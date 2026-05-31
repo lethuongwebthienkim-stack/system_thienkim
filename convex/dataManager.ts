@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import type { QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { listSeedableModuleKeys } from "./seeders";
 import type { TableNames } from "./_generated/dataModel";
@@ -50,6 +51,18 @@ type DataContract = {
 const SYSTEM_DOC_FIELDS = new Set(["_creationTime", "_id"]);
 const CONTRACT_SAMPLE_LIMIT_DEFAULT = 100;
 const CONTRACT_SAMPLE_LIMIT_MAX = 500;
+const STORAGE_URL_PREFIX = "/api/storage/";
+const LEGACY_SETTING_KEYS = [
+  "posts_list_style",
+  "posts_detail_style",
+  "product_frame_overlay_url",
+  "product_frame_overlay_url__storageId",
+  "products_detail_classic_highlights_enabled",
+  "products_detail_style",
+  "site_brand_color",
+] as const;
+const PRODUCT_HEADER_LEGACY_FIELDS = ["sectionTitle", "subTitle"] as const;
+const CONTACT_LEGACY_FIELDS = ["address", "email", "phone", "workingHours"] as const;
 
 const DATA_CONTRACTS: DataContract[] = [
   {
@@ -180,6 +193,17 @@ const DATA_CONTRACTS: DataContract[] = [
     label: "Home components",
     required: ["active", "config", "order", "title", "type"],
     table: "homeComponents",
+  },
+  {
+    label: "Homepage snapshots",
+    optional: ["address", "brandMode", "brandName", "brandPrimary", "brandSecondary", "category", "componentTypes", "logo", "phone", "publicEnabled", "sectionTitles", "slug"],
+    required: ["createdAt", "label", "version"],
+    table: "homeComponentSnapshots",
+  },
+  {
+    label: "Homepage snapshot payloads",
+    required: ["payload", "snapshotId"],
+    table: "homeComponentSnapshotPayloads",
   },
   {
     label: "Settings",
@@ -390,6 +414,169 @@ function getKnownContractFields(contract: DataContract) {
   ]);
 }
 
+function toRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function isManagedStorageUrl(value: unknown) {
+  return typeof value === "string" && value.includes(STORAGE_URL_PREFIX);
+}
+
+function hasStorageIdForUrl(record: Record<string, unknown>, key: string) {
+  const directStorageKey = `${key}StorageId`;
+  const genericStorageId = record.storageId;
+  const specificStorageId = record[directStorageKey];
+  return (typeof specificStorageId === "string" && specificStorageId.trim().length > 0)
+    || (typeof genericStorageId === "string" && genericStorageId.trim().length > 0);
+}
+
+function collectManagedUrlStorageIssues(
+  value: unknown,
+  recordId: string,
+  issues: Map<string, FieldIssue>,
+  path = "config",
+) {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => collectManagedUrlStorageIssues(item, recordId, issues, `${path}[${index}]`));
+    return;
+  }
+  const record = toRecord(value);
+  if (!record) {
+    return;
+  }
+  for (const [key, item] of Object.entries(record)) {
+    if (isManagedStorageUrl(item) && !hasStorageIdForUrl(record, key)) {
+      addFieldIssue(issues, `${path}.${key}StorageId`, recordId);
+    }
+    collectManagedUrlStorageIssues(item, recordId, issues, `${path}.${key}`);
+  }
+}
+
+function buildScanTable(args: {
+  deprecatedFields?: FieldIssue[];
+  extraFields?: FieldIssue[];
+  label: string;
+  missingRecommended?: FieldIssue[];
+  missingRequired?: FieldIssue[];
+  scanned: number;
+  table: string;
+}) {
+  const missingRequired = args.missingRequired ?? [];
+  const missingRecommended = args.missingRecommended ?? [];
+  const extraFields = args.extraFields ?? [];
+  const deprecatedFields = args.deprecatedFields ?? [];
+  const totalIssues =
+    missingRequired.reduce((sum, issue) => sum + issue.count, 0) +
+    missingRecommended.reduce((sum, issue) => sum + issue.count, 0) +
+    extraFields.reduce((sum, issue) => sum + issue.count, 0) +
+    deprecatedFields.reduce((sum, issue) => sum + issue.count, 0);
+  const status: ContractStatus = args.scanned === 0
+    ? "empty"
+    : missingRequired.length > 0
+      ? "critical"
+      : totalIssues > 0
+        ? "warning"
+        : "ok";
+
+  return {
+    deprecatedFields,
+    extraFields,
+    label: args.label,
+    missingRecommended,
+    missingRequired,
+    scanned: args.scanned,
+    status,
+    table: args.table,
+    totalIssues,
+  };
+}
+
+async function scanLegacySettings(ctx: QueryCtx) {
+  const deprecatedFields = new Map<string, FieldIssue>();
+  const rows = await Promise.all(
+    LEGACY_SETTING_KEYS.map((key) =>
+      ctx.db.query("settings").withIndex("by_key", (q) => q.eq("key", key)).unique()
+    )
+  );
+  rows.forEach((row, index) => {
+    if (row) {
+      addFieldIssue(deprecatedFields, LEGACY_SETTING_KEYS[index], String(row._id));
+    }
+  });
+  return buildScanTable({
+    deprecatedFields: fieldIssuesToArray(deprecatedFields),
+    label: "Deprecated settings keys",
+    scanned: LEGACY_SETTING_KEYS.length,
+    table: "settings:deprecatedKeys",
+  });
+}
+
+async function scanHomeComponentConfigContracts(ctx: QueryCtx, sampleSize: number) {
+  const records = await ctx.db.query("homeComponents").take(sampleSize);
+  const deprecatedFields = new Map<string, FieldIssue>();
+  const missingRecommended = new Map<string, FieldIssue>();
+
+  for (const record of records) {
+    const doc = record as Record<string, unknown>;
+    const recordId = String(doc._id);
+    const config = toRecord(doc.config);
+    if (!config) {
+      addFieldIssue(missingRecommended, "config", recordId);
+      continue;
+    }
+
+    if (doc.type === "ProductList" || doc.type === "ProductGrid") {
+      PRODUCT_HEADER_LEGACY_FIELDS.forEach((field) => {
+        if (field in config) {
+          addFieldIssue(deprecatedFields, `config.${field}`, recordId);
+        }
+      });
+    }
+
+    if (doc.type === "Contact") {
+      CONTACT_LEGACY_FIELDS.forEach((field) => {
+        if (field in config) {
+          addFieldIssue(deprecatedFields, `config.${field}`, recordId);
+        }
+      });
+    }
+
+    collectManagedUrlStorageIssues(config, recordId, missingRecommended);
+  }
+
+  return buildScanTable({
+    deprecatedFields: fieldIssuesToArray(deprecatedFields),
+    label: "Home component nested config",
+    missingRecommended: fieldIssuesToArray(missingRecommended),
+    scanned: records.length,
+    table: "homeComponents.config",
+  });
+}
+
+async function scanSnapshotPayloadRelations(ctx: QueryCtx, sampleSize: number) {
+  const snapshots = await ctx.db.query("homeComponentSnapshots").take(sampleSize);
+  const missingRequired = new Map<string, FieldIssue>();
+
+  for (const snapshot of snapshots) {
+    const payload = await ctx.db
+      .query("homeComponentSnapshotPayloads")
+      .withIndex("by_snapshotId", (q) => q.eq("snapshotId", snapshot._id))
+      .unique();
+    if (!payload) {
+      addFieldIssue(missingRequired, "homeComponentSnapshotPayloads.payload", String(snapshot._id));
+    }
+  }
+
+  return buildScanTable({
+    label: "Homepage snapshot payload relation",
+    missingRequired: fieldIssuesToArray(missingRequired),
+    scanned: snapshots.length,
+    table: "homeComponentSnapshots.payloadRelation",
+  });
+}
+
 export const scanDataContracts = query({
   args: {
     runId: v.optional(v.number()),
@@ -397,7 +584,7 @@ export const scanDataContracts = query({
   },
   handler: async (ctx, args) => {
     const sampleSize = Math.min(args.sampleSize ?? CONTRACT_SAMPLE_LIMIT_DEFAULT, CONTRACT_SAMPLE_LIMIT_MAX);
-    const tables = await Promise.all(
+    const contractTables = await Promise.all(
       DATA_CONTRACTS.map(async (contract) => {
         const records = await ctx.db.query(contract.table).take(sampleSize);
         const knownFields = getKnownContractFields(contract);
@@ -465,6 +652,12 @@ export const scanDataContracts = query({
         };
       })
     );
+    const customTables = await Promise.all([
+      scanLegacySettings(ctx),
+      scanHomeComponentConfigContracts(ctx, sampleSize),
+      scanSnapshotPayloadRelations(ctx, sampleSize),
+    ]);
+    const tables = [...contractTables, ...customTables];
 
     return {
       runId: args.runId ?? 0,

@@ -2,7 +2,7 @@ import { mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
-import { removeOwnerFilesAndCleanup, resolveStorageIdsFromLegacyUrls, syncOwnerFilesAndCleanup } from "./lib/fileService";
+import { removeOwnerFilesAndCleanup, syncOwnerFilesAndCleanup } from "./lib/fileService";
 
 const settingDoc = v.object({
   _creationTime: v.number(),
@@ -113,9 +113,6 @@ export const set = mutation({
       .unique();
     const previousStorageIds = [
       typeof storageSetting?.value === "string" ? storageSetting.value as Id<"_storage"> : null,
-      ...await resolveStorageIdsFromLegacyUrls(ctx, [
-        typeof existing?.value === "string" ? existing.value : null,
-      ], { folder: "settings", limit: 100 }),
     ];
 
     await upsertSetting(ctx, { group: args.group, key: args.key, value: args.value });
@@ -183,9 +180,6 @@ export const setMultiple = mutation({
       const storageSetting = settingsMap.get(storageKey);
       const previousStorageIds = [
         typeof storageSetting?.value === "string" ? storageSetting.value as Id<"_storage"> : null,
-        ...await resolveStorageIdsFromLegacyUrls(ctx, [
-          typeof existing?.value === "string" ? existing.value : null,
-        ], { folder: "settings", limit: 100 }),
       ];
       const nextStorageId = setting.storageId ?? null;
       if (nextStorageId) {
@@ -232,9 +226,6 @@ export const remove = mutation({
     }, {
       previousStorageIds: [
         typeof storageSetting?.value === "string" ? storageSetting.value as Id<"_storage"> : null,
-        ...await resolveStorageIdsFromLegacyUrls(ctx, [
-          typeof setting?.value === "string" ? setting.value : null,
-        ], { folder: "settings", limit: 100 }),
       ],
     });
     if (setting) {await ctx.db.delete(setting._id);}
@@ -261,9 +252,6 @@ export const removeMultiple = mutation({
       }, {
         previousStorageIds: [
           typeof storageSetting?.value === "string" ? storageSetting.value as Id<"_storage"> : null,
-          ...await resolveStorageIdsFromLegacyUrls(ctx, [
-            typeof setting?.value === "string" ? setting.value : null,
-          ], { folder: "settings", limit: 100 }),
         ],
       });
     }
@@ -293,9 +281,6 @@ export const removeByGroup = mutation({
       }, {
         previousStorageIds: [
           typeof storageSetting?.value === "string" ? storageSetting.value as Id<"_storage"> : null,
-          ...await resolveStorageIdsFromLegacyUrls(ctx, [
-            typeof setting.value === "string" ? setting.value : null,
-          ], { folder: "settings", limit: 100 }),
         ],
       });
     }
