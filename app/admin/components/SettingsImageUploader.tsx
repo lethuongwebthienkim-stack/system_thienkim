@@ -33,7 +33,7 @@ interface SettingsImageUploaderProps {
 export function SettingsImageUploader({
   value,
   onChange,
-  storageId,
+  storageId: _storageId,
   folder = 'settings',
   naming,
   className,
