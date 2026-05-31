@@ -39,6 +39,8 @@ interface RangeSliderProps {
   unit?: string;
   /** Đang có bộ lọc hoạt động bên ngoài (dùng khi minLimit === maxLimit) */
   hasFilterActive?: boolean;
+  /** Formatter tùy biến cho giá trị hiển thị */
+  formatValue?: (value: number) => string;
 }
 
 export function RangeSlider({
@@ -54,6 +56,7 @@ export function RangeSlider({
   onValueCommit,
   unit = '',
   hasFilterActive = false,
+  formatValue,
 }: RangeSliderProps) {
   // Local state để hiển thị real-time mà không gây navigate
   const [localValues, setLocalValues] = useState<[number, number]>([valueMin, valueMax]);
@@ -66,6 +69,7 @@ export function RangeSlider({
     if (lastAppliedValuesRef.current) {
       const [appliedMin, appliedMax] = lastAppliedValuesRef.current;
       if (appliedMin === valueMin && appliedMax === valueMax) {
+        lastAppliedValuesRef.current = null;
         return;
       }
     }
@@ -100,10 +104,13 @@ export function RangeSlider({
   const [min, max] = localValues;
 
   const formatVal = (val: number) => {
-    if (unit === 'đ' || unit === '₫' || val >= 1000) {
-      return val.toLocaleString('vi-VN');
+    if (formatValue) {
+      return formatValue(val);
     }
-    return String(val);
+    if (unit === 'đ' || unit === '₫' || val >= 1000) {
+      return `${val.toLocaleString('vi-VN')}${unit}`;
+    }
+    return `${val}${unit}`;
   };
 
   return (
@@ -185,7 +192,7 @@ export function RangeSlider({
 
       {/* Min / Max hiển thị động giá trị đang chọn bên dưới, kèm nút Reset */}
       <div className="flex justify-between items-center text-xs font-mono font-semibold" style={{ color: '#64748b' }}>
-        <span>{formatVal(min)}{unit}</span>
+        <span>{formatVal(min)}</span>
         
         {((min !== minLimit || max !== maxLimit || hasFilterActive)) ? (
           <button
@@ -200,7 +207,7 @@ export function RangeSlider({
           <span className="text-slate-300 dark:text-slate-700 font-bold">-</span>
         )}
 
-        <span>{formatVal(max)}{unit}</span>
+        <span>{formatVal(max)}</span>
       </div>
     </div>
   );
