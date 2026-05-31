@@ -1111,13 +1111,6 @@ export const listPublishedWithOffset = query({
         .query("products")
         .withIndex("by_status_order", (q) => q.eq("status", "Active"));
 
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
-
       products = await query.take(fetchLimit);
     }
 
@@ -1346,13 +1339,6 @@ export const countPublished = query({
       let query = ctx.db
         .query("products")
         .withIndex("by_status_order", (q) => q.eq("status", "Active"));
-
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
 
       products = await query.collect();
     }
