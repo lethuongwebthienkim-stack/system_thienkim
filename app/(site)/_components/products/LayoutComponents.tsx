@@ -593,6 +593,37 @@ export function CatalogLayout({
               </div>
             )}
 
+            {enableProductTypes && productTypes && productTypes.length > 0 && (
+              <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+                <h3 className="font-bold text-sm mb-2" style={{ color: tokens.bodyText }}>Nhóm sản phẩm</h3>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => onProductTypeChange?.(null)}
+                    className={`w-full py-1.5 px-2.5 rounded text-left text-sm transition-colors border ${!productType ? 'font-semibold' : ''}`}
+                    style={!productType
+                      ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
+                      : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
+                    }
+                  >
+                    Tất cả nhóm
+                  </button>
+                  {productTypes.map((t) => (
+                    <button
+                      key={t._id}
+                      onClick={() => onProductTypeChange?.(t.slug)}
+                      className={`w-full py-1.5 px-2.5 rounded text-left text-sm transition-colors border ${productType?.slug === t.slug ? 'font-semibold' : ''}`}
+                      style={productType?.slug === t.slug
+                        ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
+                        : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
+                      }
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {showCategories && (
               <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="font-semibold text-sm mb-2" style={{ color: tokens.bodyText }}>
@@ -661,37 +692,6 @@ export function CatalogLayout({
                       Không tìm thấy kết quả.
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {enableProductTypes && productTypes && productTypes.length > 0 && (
-              <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
-                <h3 className="font-bold text-sm mb-2" style={{ color: tokens.bodyText }}>Nhóm sản phẩm</h3>
-                <div className="space-y-1">
-                  <button
-                    onClick={() => onProductTypeChange?.(null)}
-                    className={`w-full py-1.5 px-2.5 rounded text-left text-sm transition-colors border ${!productType ? 'font-semibold' : ''}`}
-                    style={!productType
-                      ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
-                      : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
-                    }
-                  >
-                    Tất cả nhóm
-                  </button>
-                  {productTypes.map((t) => (
-                    <button
-                      key={t._id}
-                      onClick={() => onProductTypeChange?.(t.slug)}
-                      className={`w-full py-1.5 px-2.5 rounded text-left text-sm transition-colors border ${productType?.slug === t.slug ? 'font-semibold' : ''}`}
-                      style={productType?.slug === t.slug
-                        ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
-                        : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
-                      }
-                    >
-                      {t.name}
-                    </button>
-                  ))}
                 </div>
               </div>
             )}
@@ -1366,6 +1366,37 @@ export function ListLayout({
               </div>
             )}
 
+            {enableProductTypes && productTypes && productTypes.length > 0 && (
+              <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
+                <h3 className="font-bold text-sm mb-2" style={{ color: tokens.bodyText }}>Nhóm sản phẩm</h3>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => onProductTypeChange?.(null)}
+                    className={`w-full py-1.5 px-2.5 rounded text-left text-sm transition-colors border ${!productType ? 'font-semibold' : ''}`}
+                    style={!productType
+                      ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
+                      : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
+                    }
+                  >
+                    Tất cả nhóm
+                  </button>
+                  {productTypes.map((t) => (
+                    <button
+                      key={t._id}
+                      onClick={() => onProductTypeChange?.(t.slug)}
+                      className={`w-full py-1.5 px-2.5 rounded text-left text-sm transition-colors border ${productType?.slug === t.slug ? 'font-semibold' : ''}`}
+                      style={productType?.slug === t.slug
+                        ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
+                        : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
+                      }
+                    >
+                      {t.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {showCategories && (
               <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
                 <h3 className="font-semibold text-sm mb-2" style={{ color: tokens.bodyText }}>
@@ -1434,37 +1465,6 @@ export function ListLayout({
                       Không tìm thấy kết quả.
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {enableProductTypes && productTypes && productTypes.length > 0 && (
-              <div className={`${radiusClass} border p-3`} style={{ backgroundColor: tokens.filterBarBackground, borderColor: tokens.filterBarBorder }}>
-                <h3 className="font-bold text-sm mb-2" style={{ color: tokens.bodyText }}>Nhóm sản phẩm</h3>
-                <div className="space-y-1">
-                  <button
-                    onClick={() => onProductTypeChange?.(null)}
-                    className={`w-full py-1.5 px-2.5 rounded text-left text-sm transition-colors border ${!productType ? 'font-semibold' : ''}`}
-                    style={!productType
-                      ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
-                      : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
-                    }
-                  >
-                    Tất cả nhóm
-                  </button>
-                  {productTypes.map((t) => (
-                    <button
-                      key={t._id}
-                      onClick={() => onProductTypeChange?.(t.slug)}
-                      className={`w-full py-1.5 px-2.5 rounded text-left text-sm transition-colors border ${productType?.slug === t.slug ? 'font-semibold' : ''}`}
-                      style={productType?.slug === t.slug
-                        ? { backgroundColor: tokens.filterChipActiveBg, color: tokens.filterChipActiveText, borderColor: tokens.filterChipActiveBorder }
-                        : { backgroundColor: tokens.filterChipBg, color: tokens.filterChipText, borderColor: tokens.filterChipBorder }
-                      }
-                    >
-                      {t.name}
-                    </button>
-                  ))}
                 </div>
               </div>
             )}
