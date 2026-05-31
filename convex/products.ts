@@ -954,13 +954,6 @@ export const listPublishedPaginated = query({
         query = query.filter((q) => q.eq(q.field("productTypeId"), args.productTypeId));
       }
 
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
-      
       result = await query
         .order(sortBy === "oldest" ? "asc" : "desc")
         .paginate(args.paginationOpts);
@@ -979,13 +972,6 @@ export const listPublishedPaginated = query({
           q.eq("productTypeId", args.productTypeId!).eq("status", "Active")
         );
 
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
-
       result = await query
         .order(sortBy === "oldest" ? "asc" : "desc")
         .paginate(args.paginationOpts);
@@ -993,13 +979,6 @@ export const listPublishedPaginated = query({
       let query = ctx.db
         .query("products")
         .withIndex("by_status_sales", (q) => q.eq("status", "Active"));
-
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
 
       result = await query
         .order("desc")
@@ -1009,19 +988,12 @@ export const listPublishedPaginated = query({
         .query("products")
         .withIndex("by_status_order", (q) => q.eq("status", "Active"));
 
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
-
       result = await query
         .order(sortBy === "oldest" ? "asc" : "desc")
         .paginate(args.paginationOpts);
     }
 
-    // Filter by minPrice and maxPrice
+    // Filter by minPrice and maxPrice (JS post-filter, dùng effectivePrice ?? salePrice ?? price)
     if (args.minPrice !== undefined || args.maxPrice !== undefined) {
       result.page = result.page.filter((p) => {
         const price = p.effectivePrice ?? p.salePrice ?? p.price;
@@ -1115,13 +1087,6 @@ export const listPublishedWithOffset = query({
         query = query.filter((q) => q.eq(q.field("productTypeId"), args.productTypeId));
       }
 
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
-      
       products = await query.take(fetchLimit);
       if (await isMultiCategoryEnabled(ctx, "products")) {
         products = await mergeProductsByCategoryAssignments(ctx, args.categoryId, products, fetchLimit);
@@ -1134,25 +1099,11 @@ export const listPublishedWithOffset = query({
           q.eq("productTypeId", args.productTypeId!).eq("status", "Active")
         );
 
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
-
       products = await query.take(fetchLimit);
     } else if (sortBy === "popular") {
       let query = ctx.db
         .query("products")
         .withIndex("by_status_sales", (q) => q.eq("status", "Active"));
-
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
 
       products = await query.order("desc").take(fetchLimit);
     } else {
@@ -1378,13 +1329,6 @@ export const countPublished = query({
         query = query.filter((q) => q.eq(q.field("productTypeId"), args.productTypeId));
       }
 
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
-      
       products = await query.collect();
       if (await isMultiCategoryEnabled(ctx, "products")) {
         products = await mergeProductsByCategoryAssignments(ctx, args.categoryId, products, 1000);
@@ -1396,13 +1340,6 @@ export const countPublished = query({
         .withIndex("by_type_status_effectivePrice", (q) =>
           q.eq("productTypeId", args.productTypeId!).eq("status", "Active")
         );
-
-      if (args.minPrice !== undefined) {
-        query = query.filter((q) => q.gte(q.field("effectivePrice"), args.minPrice!));
-      }
-      if (args.maxPrice !== undefined) {
-        query = query.filter((q) => q.lte(q.field("effectivePrice"), args.maxPrice!));
-      }
 
       products = await query.collect();
     } else {
