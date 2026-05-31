@@ -117,7 +117,7 @@ export function RangeSlider({
         value={localValues}
         onValueChange={handleChange}
         onValueCommit={handleCommit}
-        minStepsBetweenThumbs={1}
+        minStepsBetweenThumbs={0}
         style={{ height: 20 }}
       >
         {/* Track nền */}
