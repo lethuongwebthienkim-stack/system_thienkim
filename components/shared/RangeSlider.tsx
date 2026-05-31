@@ -37,6 +37,8 @@ interface RangeSliderProps {
   onValueCommit?: (min: number, max: number) => void;
   /** Đơn vị hiển thị (%, %, °C…) */
   unit?: string;
+  /** Đang có bộ lọc hoạt động bên ngoài (dùng khi minLimit === maxLimit) */
+  hasFilterActive?: boolean;
 }
 
 export function RangeSlider({
@@ -51,6 +53,7 @@ export function RangeSlider({
   onValueChange,
   onValueCommit,
   unit = '',
+  hasFilterActive = false,
 }: RangeSliderProps) {
   // Local state để hiển thị real-time mà không gây navigate
   const [localValues, setLocalValues] = useState<[number, number]>([valueMin, valueMax]);
@@ -114,7 +117,7 @@ export function RangeSlider({
         value={localValues}
         onValueChange={handleChange}
         onValueCommit={handleCommit}
-        minStepsBetweenThumbs={0}
+        minStepsBetweenThumbs={1}
         style={{ height: 20 }}
       >
         {/* Track nền */}
@@ -184,7 +187,7 @@ export function RangeSlider({
       <div className="flex justify-between items-center text-xs font-mono font-semibold" style={{ color: '#64748b' }}>
         <span>{formatVal(min)}{unit}</span>
         
-        {((min !== minLimit || max !== maxLimit)) ? (
+        {((min !== minLimit || max !== maxLimit || hasFilterActive)) ? (
           <button
             type="button"
             onClick={handleReset}

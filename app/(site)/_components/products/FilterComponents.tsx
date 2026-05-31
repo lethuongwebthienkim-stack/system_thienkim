@@ -68,69 +68,59 @@ export function AttributeFilterGroupWidget({
 
   const [sliderMin, setSliderMin] = useState(minLimit);
   const [sliderMax, setSliderMax] = useState(maxLimit);
+  // lastAppliedSlugsRef: lưu slugs mà CHÍNH widget vừa apply
+  // - null = chưa apply lần nào (fresh mount)
+  // - [] = vừa reset về toàn bộ (clear filter)
+  // - ['slug-a', ...] = vừa apply khoảng lọc cụ thể
   const lastAppliedSlugsRef = useRef<string[] | null>(null);
-  const isRoutingRef = useRef(false);
-  const routingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (routingTimeoutRef.current) {
-        clearTimeout(routingTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Sync slider state khi URL thay đổi từ bên ngoài
   const currentSelectedTermIds = selectedAttributes?.[group._id] || [];
 
   useEffect(() => {
-    if (filterType === 'range' && numericTerms.length > 0) {
-      const isSelfChange = lastAppliedSlugsRef.current &&
-        lastAppliedSlugsRef.current.length === currentSelectedTermIds.length &&
-        lastAppliedSlugsRef.current.every(slug => currentSelectedTermIds.includes(slug));
+    if (filterType !== 'range' || numericTerms.length === 0) return;
 
+    const last = lastAppliedSlugsRef.current;
+
+    // Case 1: Chính widget vừa apply – slugs khớp hoàn toàn → không cần sync
+    if (last !== null) {
+      const isSelfChange =
+        last.length === currentSelectedTermIds.length &&
+        last.every(slug => currentSelectedTermIds.includes(slug));
       if (isSelfChange) {
-        isRoutingRef.current = false;
-        if (routingTimeoutRef.current) {
-          clearTimeout(routingTimeoutRef.current);
-          routingTimeoutRef.current = null;
-        }
+        // URL đã phản ánh đúng giá trị chúng ta vừa apply → done
+        lastAppliedSlugsRef.current = null;
         return;
       }
 
-      // Chặn đứng lệch pha props trung gian khi URL đang trong quá trình cập nhật
-      if (isRoutingRef.current) {
-        return;
+      // Case 2: URL đang trống NHƯNG chúng ta vừa apply non-empty → chờ URL update
+      // (trạng thái intermediate: router.push chưa kịp phản ánh vào searchParams)
+      if (currentSelectedTermIds.length === 0 && last.length > 0) {
+        return; // giữ nguyên local slider, không reset
       }
-
-      if (currentSelectedTermIds.length > 0) {
-        const selectedValues = numericTerms
-          .filter((item: any) => currentSelectedTermIds.includes(item.term.slug))
-          .map((item: any) => item.value);
-        if (selectedValues.length > 0) {
-          setSliderMin(Math.min(...selectedValues));
-          setSliderMax(Math.max(...selectedValues));
-          return;
-        }
-      }
-      setSliderMin(minLimit);
-      setSliderMax(maxLimit);
     }
+
+    // Case 3: Thay đổi từ bên ngoài (URL navigate, clear all, v.v.) → sync
+    if (currentSelectedTermIds.length > 0) {
+      const selectedValues = numericTerms
+        .filter((item: any) => currentSelectedTermIds.includes(item.term.slug))
+        .map((item: any) => item.value);
+      if (selectedValues.length > 0) {
+        setSliderMin(Math.min(...selectedValues));
+        setSliderMax(Math.max(...selectedValues));
+        return;
+      }
+    }
+    setSliderMin(minLimit);
+    setSliderMax(maxLimit);
   }, [currentSelectedTermIds, minLimit, maxLimit, numericTerms, filterType]);
 
   const applyRangeFilter = useCallback((newMin: number, newMax: number) => {
     setSliderMin(newMin);
     setSliderMax(newMax);
-    isRoutingRef.current = true;
 
-    if (routingTimeoutRef.current) {
-      clearTimeout(routingTimeoutRef.current);
-    }
-    routingTimeoutRef.current = setTimeout(() => {
-      isRoutingRef.current = false;
-    }, 1200); // 1.2s safety fallback
-
-    if (newMin === minLimit && newMax === maxLimit) {
+    if (newMin === minLimit && newMax === maxLimit && minLimit !== maxLimit) {
+      // Reset về toàn bộ dải = xóa filter
       lastAppliedSlugsRef.current = [];
       onAttributeChange?.(group.slug, [], false);
     } else {
@@ -169,6 +159,7 @@ export function AttributeFilterGroupWidget({
         thumbBorderColor="#ffffff"
         unit={unit}
         onValueCommit={applyRangeFilter}
+        hasFilterActive={currentSelectedTermIds.length > 0}
       />
     );
   }
