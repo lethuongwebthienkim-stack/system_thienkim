@@ -724,7 +724,12 @@ export function ProductListCreateShared({ type, titleLabel }: ProductListCreateS
                       <SettingsImageUploader
                         label="Ảnh thumbnail"
                         value={item.image ?? ''}
-                        onChange={(url) => setDemoServices(prev => prev.map(d => d.id === item.id ? { ...d, image: url ?? '' } : d))}
+                        storageId={item.storageId as any}
+                        onChange={(url, storageId) => setDemoServices(prev => prev.map(d => d.id === item.id ? {
+                          ...d,
+                          image: url ?? '',
+                          storageId: storageId ? String(storageId) : null
+                        } : d))}
                         folder="home-components/service-list"
                         naming={{ entityName: item.name || 'demo-service', field: 'thumbnail', index: index + 1 }}
                         previewSize="sm"
