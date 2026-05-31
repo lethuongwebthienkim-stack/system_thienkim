@@ -55,9 +55,6 @@ export function RangeSlider({
   // Local state để hiển thị real-time mà không gây navigate
   const [localValues, setLocalValues] = useState<[number, number]>([valueMin, valueMax]);
 
-  // Debounce timer ref
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
   // Ref lưu giá trị tự trượt apply gần nhất để chống giật ngược khi URL update trễ
   const lastAppliedValuesRef = useRef<[number, number] | null>(null);
 
@@ -72,40 +69,18 @@ export function RangeSlider({
     setLocalValues([valueMin, valueMax]);
   }, [valueMin, valueMax]);
 
-  // Dọn dẹp timer khi unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
-
   const handleChange = useCallback(
     (values: number[]) => {
       const [minVal, maxVal] = values as [number, number];
       setLocalValues([minVal, maxVal]);
       onValueChange?.(minVal, maxVal);
-
-      // Debounce: hẹn giờ 400ms để trigger commit
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      debounceTimerRef.current = setTimeout(() => {
-        lastAppliedValuesRef.current = [minVal, maxVal];
-        onValueCommit?.(minVal, maxVal);
-      }, 400);
     },
-    [onValueChange, onValueCommit]
+    [onValueChange]
   );
 
   const handleCommit = useCallback(
     (values: number[]) => {
       const [minVal, maxVal] = values as [number, number];
-      // Hủy timer đang chờ vì đã commit trực tiếp
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
       setLocalValues([minVal, maxVal]);
       lastAppliedValuesRef.current = [minVal, maxVal];
       onValueCommit?.(minVal, maxVal);
@@ -114,9 +89,6 @@ export function RangeSlider({
   );
 
   const handleReset = useCallback(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
     setLocalValues([minLimit, maxLimit]);
     lastAppliedValuesRef.current = [minLimit, maxLimit];
     onValueCommit?.(minLimit, maxLimit);
