@@ -116,6 +116,7 @@ type ProductDetailPreviewProps = {
   showPriceRightIcon?: boolean;
   cartButtonsLayout?: 'stack' | 'grid-2';
   highlightsPosition?: 'info_column' | 'image_column';
+  highlightsSpacing?: 'low' | 'high' | 'none';
 };
 
 const formatVND = (price: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
@@ -658,7 +659,13 @@ export function ProductDetailPreview({
   showPriceRightIcon = true,
   cartButtonsLayout = 'stack',
   highlightsPosition,
+  highlightsSpacing = 'high',
 }: ProductDetailPreviewProps) {
+  const getHighlightsSpacingClass = (spacing?: 'low' | 'high' | 'none') => {
+    if (spacing === 'none') return '!mt-0';
+    if (spacing === 'low') return '!mt-4 md:!mt-5';
+    return '!mt-8 md:!mt-10';
+  };
   const tokens = getProductDetailColors(brandColor, secondaryColor, colorMode);
   const categoryBadgeColors = resolveProductDetailElementColor(accentColors?.categoryBadge ?? 'secondary', tokens);
   const discountBadgeColors = resolveProductDetailElementColor(accentColors?.discountBadge ?? 'primary', tokens);
@@ -1041,7 +1048,7 @@ export function ProductDetailPreview({
               )}
 
               {showHighlightBlock && highlightsPosition !== 'image_column' && (
-                <div className="!mt-8 md:!mt-10 mb-6 animate-fadeIn">
+                <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6 animate-fadeIn`}>
                   {renderHighlights()}
                 </div>
               )}
@@ -1355,7 +1362,7 @@ export function ProductDetailPreview({
                 )}
 
                 {showHighlightBlock && highlightsPosition !== 'image_column' && (
-                  <div className="!mt-8 md:!mt-10 mb-6 animate-fadeIn">
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6 animate-fadeIn`}>
                     {renderHighlights()}
                   </div>
                 )}
@@ -1587,7 +1594,7 @@ export function ProductDetailPreview({
                 )}
 
                 {showHighlightBlock && highlightsPosition !== 'image_column' && (
-                  <div className="!mt-8 md:!mt-10 mb-6 animate-fadeIn">
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6 animate-fadeIn`}>
                     {renderHighlights()}
                   </div>
                 )}
@@ -1949,7 +1956,7 @@ export function ProductDetailPreview({
                 )}
 
                 {showHighlightBlock && highlightsPosition === 'info_column' && (
-                  <div className="grid grid-cols-3 gap-2 border-t pt-4 !mt-8 md:!mt-10 animate-fadeIn" style={{ borderColor: tokens.divider }}>
+                  <div className={`grid grid-cols-3 gap-2 border-t pt-4 ${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`} style={{ borderColor: tokens.divider }}>
                     {highlightItems.map((item, index) => {
                       const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || Star;
                       return (

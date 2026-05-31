@@ -239,6 +239,7 @@ type ProductDetailExperienceConfig = {
   socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
   cartButtonsLayout?: 'stack' | 'grid-2';
   highlightsPosition?: 'info_column' | 'image_column';
+  highlightsSpacing?: 'low' | 'high' | 'none';
 };
 
 type BaseImageLayoutConfig = {
@@ -364,6 +365,7 @@ const DEFAULT_CONFIG: ProductDetailExperienceConfig = {
   socialButtons: [],
   cartButtonsLayout: 'stack',
   highlightsPosition: 'image_column',
+  highlightsSpacing: 'high',
 };
 
 const LEGACY_COMBO_EFFECT_MAP = {
@@ -772,6 +774,7 @@ export default function ProductDetailExperiencePage() {
       socialButtons: raw?.socialButtons ?? [],
       cartButtonsLayout: raw?.cartButtonsLayout ?? 'stack',
       highlightsPosition: raw?.highlightsPosition ?? 'image_column',
+      highlightsSpacing: raw?.highlightsSpacing ?? 'high',
     };
   }, [experienceSetting?.value, legacyStyle, legacyHighlights]);
 
@@ -964,6 +967,7 @@ export default function ProductDetailExperiencePage() {
       showPriceRightIcon: premiumLayoutConfig.showPriceRightIcon,
       cartButtonsLayout: config.cartButtonsLayout,
       highlightsPosition: config.highlightsPosition,
+      highlightsSpacing: config.highlightsSpacing,
     };
 
     return base;
@@ -1015,6 +1019,18 @@ export default function ProductDetailExperiencePage() {
             { label: 'Dưới ảnh sản phẩm (cột trái)', value: 'image_column' },
           ]}
           onChange={(v) => setConfig(prev => ({ ...prev, highlightsPosition: v as 'info_column' | 'image_column' }))}
+        />
+      )}
+      {config.layouts.classic.showClassicHighlights && config.highlightsPosition === 'info_column' && (
+        <SelectRow
+          label="Khoảng cách cột phải (Highlights)"
+          value={config.highlightsSpacing || 'high'}
+          options={[
+            { label: 'Nhiều (Mặc định)', value: 'high' },
+            { label: 'Ít (Bằng một nửa)', value: 'low' },
+            { label: 'Bỏ (Không khoảng cách)', value: 'none' },
+          ]}
+          onChange={(v) => setConfig(prev => ({ ...prev, highlightsSpacing: v as 'low' | 'high' | 'none' }))}
         />
       )}
       {classicHighlights.map((item, index) => {

@@ -129,6 +129,7 @@ type ProductDetailExperienceConfig = {
   premiumBannerItems?: { title: string; subtitle: string }[];
   showPremiumBanner?: boolean;
   highlightsPosition?: 'info_column' | 'image_column';
+  highlightsSpacing?: 'low' | 'high' | 'none';
 };
 
 type ProductVariantOptionValue = {
@@ -275,6 +276,7 @@ function useProductDetailExperienceConfig(): ProductDetailExperienceConfig {
       showSocialButtons?: boolean;
       socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
       highlightsPosition?: 'info_column' | 'image_column';
+      highlightsSpacing?: 'low' | 'high' | 'none';
     }> | undefined;
     const layoutStyle = raw?.layoutStyle ?? legacyStyle;
     const layoutConfig = raw?.layouts?.[layoutStyle];
@@ -377,6 +379,7 @@ function useProductDetailExperienceConfig(): ProductDetailExperienceConfig {
       showPriceLeftIcon: (raw?.layouts?.premium as any)?.showPriceLeftIcon !== false,
       showPriceRightIcon: (raw?.layouts?.premium as any)?.showPriceRightIcon !== false,
       highlightsPosition: raw?.highlightsPosition ?? 'image_column',
+      highlightsSpacing: raw?.highlightsSpacing ?? 'high',
     };
   }, [experienceSetting?.value, legacyHighlightsEnabled, legacyStyle, cartAvailable, canUseComments, canUseCommentLikes, canUseCommentReplies, canUseWishlist, ordersEnabled, moduleDefaultAspectRatio]);
 }
@@ -1032,6 +1035,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           highlights={classicHighlights}
           highlightsEnabled={classicHighlightsEnabled}
           highlightsPosition={experienceConfig.highlightsPosition}
+          highlightsSpacing={experienceConfig.highlightsSpacing}
           ratingSummary={ratingSummary}
           saleMode={saleMode}
           showAddToCart={canUseCartActions ? experienceConfig.showAddToCart : false}
@@ -1106,6 +1110,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           highlights={classicHighlights}
           highlightsEnabled={classicHighlightsEnabled}
           highlightsPosition={experienceConfig.highlightsPosition}
+          highlightsSpacing={experienceConfig.highlightsSpacing}
           ratingSummary={ratingSummary}
           saleMode={saleMode}
           showAddToCart={canUseCartActions ? experienceConfig.showAddToCart : false}
@@ -1163,6 +1168,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           highlights={classicHighlights}
           showHighlights={experienceConfig.showHighlights}
           highlightsPosition={experienceConfig.highlightsPosition}
+          highlightsSpacing={experienceConfig.highlightsSpacing}
           ratingSummary={ratingSummary}
           saleMode={saleMode}
           showAddToCart={canUseCartActions ? experienceConfig.showAddToCart : false}
@@ -1223,6 +1229,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           highlights={classicHighlights}
           showHighlights={experienceConfig.showHighlights}
           highlightsPosition={experienceConfig.highlightsPosition}
+          highlightsSpacing={experienceConfig.highlightsSpacing}
           ratingSummary={ratingSummary}
           saleMode={saleMode}
           showAddToCart={canUseCartActions ? experienceConfig.showAddToCart : false}
@@ -1392,13 +1399,21 @@ interface HighlightBlockProps {
   highlights: ClassicHighlightItem[];
   showHighlights: boolean;
   highlightsPosition?: 'info_column' | 'image_column';
+  highlightsSpacing?: 'low' | 'high' | 'none';
 }
 
 interface ClassicStyleProps extends StyleProps, ExperienceBlocksProps {
   highlights: ClassicHighlightItem[];
   highlightsEnabled: boolean;
   highlightsPosition?: 'info_column' | 'image_column';
+  highlightsSpacing?: 'low' | 'high' | 'none';
 }
+
+const getHighlightsSpacingClass = (spacing?: 'low' | 'high' | 'none') => {
+  if (spacing === 'none') return '!mt-0';
+  if (spacing === 'low') return '!mt-4 md:!mt-5';
+  return '!mt-8 md:!mt-10';
+};
 
 function formatPrice(price: number): string {
   return new Intl.NumberFormat('vi-VN', { currency: 'VND', style: 'currency' }).format(price);
@@ -2050,6 +2065,7 @@ function ClassicStyle({
   productAttributesMap,
   productTypeId,
   highlightsPosition,
+  highlightsSpacing,
 }: ClassicStyleProps) {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -2464,7 +2480,7 @@ function ClassicStyle({
             )}
 
             {highlightsEnabled && highlights.length > 0 && highlightsPosition !== 'image_column' && (
-              <div className="grid grid-cols-3 gap-4 p-4 rounded-xl !mt-8 md:!mt-10 mb-8 animate-fadeIn" style={{ backgroundColor: tokens.highlightBg }}>
+              <div className={`grid grid-cols-3 gap-4 p-4 rounded-xl ${getHighlightsSpacingClass(highlightsSpacing)} mb-8 animate-fadeIn`} style={{ backgroundColor: tokens.highlightBg }}>
                 {highlights.map((item, index) => {
                   const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon];
                   return (
@@ -2588,6 +2604,7 @@ interface PremiumStyleProps extends StyleProps, ExperienceBlocksProps {
   highlights: ClassicHighlightItem[];
   highlightsEnabled: boolean;
   highlightsPosition?: 'info_column' | 'image_column';
+  highlightsSpacing?: 'low' | 'high' | 'none';
   premiumBannerItems?: { title: string; subtitle: string }[];
   premiumBannerBg?: 'primary' | 'secondary' | 'black' | 'white';
   premiumBannerText?: 'primary' | 'secondary' | 'black' | 'white';
@@ -2672,6 +2689,7 @@ function PremiumStyle({
   showPriceLeftIcon = true,
   showPriceRightIcon = true,
   highlightsPosition,
+  highlightsSpacing,
 }: PremiumStyleProps) {
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
@@ -3358,7 +3376,7 @@ function PremiumStyle({
             )}
 
             {highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition === 'info_column' && (
-              <div className="grid grid-cols-3 gap-2 border-t pt-4 !mt-8 md:!mt-10 animate-fadeIn" style={{ borderColor: tokens.divider }}>
+              <div className={`grid grid-cols-3 gap-2 border-t pt-4 ${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`} style={{ borderColor: tokens.divider }}>
                 {highlights.map((item, index) => {
                   const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || BadgeCheck;
                   return (
@@ -4056,6 +4074,7 @@ function ModernStyle({
   enableProductTypes,
   productTypeSlugMap,
   highlightsPosition,
+  highlightsSpacing,
 }: StyleProps & ExperienceBlocksProps & HighlightBlockProps & { heroStyle: ModernHeroStyle }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -4569,7 +4588,7 @@ function ModernStyle({
             )}
 
             {showHighlights && highlightsPosition !== 'image_column' && (
-              <div className="!mt-8 md:!mt-10 mb-6 animate-fadeIn">
+              <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6 animate-fadeIn`}>
                 <HighlightsGrid highlights={highlights} tokens={tokens} />
               </div>
             )}
@@ -4737,6 +4756,7 @@ function MinimalStyle({
   enableProductTypes,
   productTypeSlugMap,
   highlightsPosition,
+  highlightsSpacing,
 }: StyleProps & ExperienceBlocksProps & HighlightBlockProps & { contentWidth: MinimalContentWidth }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<VariantSelectionMap>({});
@@ -5161,7 +5181,7 @@ function MinimalStyle({
             )}
 
             {showHighlights && highlightsPosition !== 'image_column' && (
-              <div className="!mt-8 md:!mt-10 mb-6 animate-fadeIn">
+              <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6 animate-fadeIn`}>
                 <HighlightsGrid highlights={highlights} tokens={tokens} />
               </div>
             )}
