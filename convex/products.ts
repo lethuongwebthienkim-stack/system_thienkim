@@ -53,6 +53,7 @@ async function searchActiveProductsByNameOrSku(
   },
 ) {
   const searchText = args.search.toLowerCase().trim();
+  const fallbackLimit = Math.max(args.limit, 200);
   const nameQuery = ctx.db
     .query("products")
     .withSearchIndex("search_name", (q) => {
@@ -65,14 +66,24 @@ async function searchActiveProductsByNameOrSku(
       const builder = q.search("sku", searchText).eq("status", "Active");
       return args.categoryId ? builder.eq("categoryId", args.categoryId) : builder;
     });
+  const fallbackQuery = args.categoryId
+    ? ctx.db
+      .query("products")
+      .withIndex("by_category_status", (q) =>
+        q.eq("categoryId", args.categoryId!).eq("status", "Active")
+      )
+    : ctx.db
+      .query("products")
+      .withIndex("by_status_order", (q) => q.eq("status", "Active"));
 
-  const [nameResults, skuResults] = await Promise.all([
+  const [nameResults, skuResults, fallbackResults] = await Promise.all([
     nameQuery.take(args.limit),
     skuQuery.take(args.limit),
+    fallbackQuery.take(fallbackLimit),
   ]);
 
   let products = Array.from(
-    new Map([...nameResults, ...skuResults].map((product) => [product._id, product])).values(),
+    new Map([...nameResults, ...skuResults, ...fallbackResults].map((product) => [product._id, product])).values(),
   );
 
   if (args.productTypeId) {
