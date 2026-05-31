@@ -2464,7 +2464,7 @@ function ClassicStyle({
             )}
 
             {highlightsEnabled && highlights.length > 0 && highlightsPosition !== 'image_column' && (
-              <div className="grid grid-cols-3 gap-4 p-4 rounded-xl mt-6 md:mt-8 mb-8 animate-fadeIn" style={{ backgroundColor: tokens.highlightBg }}>
+              <div className="grid grid-cols-3 gap-4 p-4 rounded-xl !mt-8 md:!mt-10 mb-8 animate-fadeIn" style={{ backgroundColor: tokens.highlightBg }}>
                 {highlights.map((item, index) => {
                   const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon];
                   return (
@@ -3358,7 +3358,7 @@ function PremiumStyle({
             )}
 
             {highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition === 'info_column' && (
-              <div className="grid grid-cols-3 gap-2 border-t pt-4 mt-6 md:mt-8 animate-fadeIn" style={{ borderColor: tokens.divider }}>
+              <div className="grid grid-cols-3 gap-2 border-t pt-4 !mt-8 md:!mt-10 animate-fadeIn" style={{ borderColor: tokens.divider }}>
                 {highlights.map((item, index) => {
                   const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || BadgeCheck;
                   return (
@@ -4569,7 +4569,7 @@ function ModernStyle({
             )}
 
             {showHighlights && highlightsPosition !== 'image_column' && (
-              <div className="mt-6 md:mt-8 mb-6 animate-fadeIn">
+              <div className="!mt-8 md:!mt-10 mb-6 animate-fadeIn">
                 <HighlightsGrid highlights={highlights} tokens={tokens} />
               </div>
             )}
@@ -5161,7 +5161,7 @@ function MinimalStyle({
             )}
 
             {showHighlights && highlightsPosition !== 'image_column' && (
-              <div className="mt-6 md:mt-8 mb-6 animate-fadeIn">
+              <div className="!mt-8 md:!mt-10 mb-6 animate-fadeIn">
                 <HighlightsGrid highlights={highlights} tokens={tokens} />
               </div>
             )}
@@ -6279,7 +6279,7 @@ function ProductSocialButtons({
   if (activeButtons.length === 0) return null;
 
   return (
-    <div className="mt-4 pt-4 border-t" style={{ borderColor: tokens.divider }}>
+    <div className="mt-4 pt-4 border-t pb-2" style={{ borderColor: tokens.divider }}>
       <p className="text-xs font-semibold mb-2" style={{ color: tokens.headingColor }}>
         Liên hệ & Mua hàng:
       </p>

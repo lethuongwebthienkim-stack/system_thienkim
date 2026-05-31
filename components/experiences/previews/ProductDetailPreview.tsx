@@ -1041,7 +1041,7 @@ export function ProductDetailPreview({
               )}
 
               {showHighlightBlock && highlightsPosition !== 'image_column' && (
-                <div className="mt-6 md:mt-8 mb-6 animate-fadeIn">
+                <div className="!mt-8 md:!mt-10 mb-6 animate-fadeIn">
                   {renderHighlights()}
                 </div>
               )}
@@ -1355,7 +1355,7 @@ export function ProductDetailPreview({
                 )}
 
                 {showHighlightBlock && highlightsPosition !== 'image_column' && (
-                  <div className="mt-6 md:mt-8 mb-6 animate-fadeIn">
+                  <div className="!mt-8 md:!mt-10 mb-6 animate-fadeIn">
                     {renderHighlights()}
                   </div>
                 )}
@@ -1587,7 +1587,7 @@ export function ProductDetailPreview({
                 )}
 
                 {showHighlightBlock && highlightsPosition !== 'image_column' && (
-                  <div className="mt-6 md:mt-8 mb-6 animate-fadeIn">
+                  <div className="!mt-8 md:!mt-10 mb-6 animate-fadeIn">
                     {renderHighlights()}
                   </div>
                 )}
@@ -1949,7 +1949,7 @@ export function ProductDetailPreview({
                 )}
 
                 {showHighlightBlock && highlightsPosition === 'info_column' && (
-                  <div className="grid grid-cols-3 gap-2 border-t pt-4 mt-4 animate-fadeIn" style={{ borderColor: tokens.divider }}>
+                  <div className="grid grid-cols-3 gap-2 border-t pt-4 !mt-8 md:!mt-10 animate-fadeIn" style={{ borderColor: tokens.divider }}>
                     {highlightItems.map((item, index) => {
                       const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || Star;
                       return (
@@ -2680,7 +2680,7 @@ function PreviewSocialButtons({
   if (activeButtons.length === 0) return null;
 
   return (
-    <div className="mt-4 pt-4 border-t" style={{ borderColor: tokens.divider }}>
+    <div className="mt-4 pt-4 border-t pb-2" style={{ borderColor: tokens.divider }}>
       <p className="text-xs font-semibold mb-2" style={{ color: tokens.headingColor }}>
         Liên hệ & Mua hàng:
       </p>
