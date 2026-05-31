@@ -43,6 +43,45 @@ export async function recalculateProductEffectivePrice(ctx: MutationCtx, product
   await ctx.db.patch(productId, { effectivePrice });
 }
 
+async function searchActiveProductsByNameOrSku(
+  ctx: QueryCtx,
+  args: {
+    categoryId?: Id<"productCategories">;
+    productTypeId?: Id<"productTypes">;
+    search: string;
+    limit: number;
+  },
+) {
+  const searchText = args.search.toLowerCase().trim();
+  const nameQuery = ctx.db
+    .query("products")
+    .withSearchIndex("search_name", (q) => {
+      const builder = q.search("name", searchText).eq("status", "Active");
+      return args.categoryId ? builder.eq("categoryId", args.categoryId) : builder;
+    });
+  const skuQuery = ctx.db
+    .query("products")
+    .withSearchIndex("search_sku", (q) => {
+      const builder = q.search("sku", searchText).eq("status", "Active");
+      return args.categoryId ? builder.eq("categoryId", args.categoryId) : builder;
+    });
+
+  const [nameResults, skuResults] = await Promise.all([
+    nameQuery.take(args.limit),
+    skuQuery.take(args.limit),
+  ]);
+
+  let products = Array.from(
+    new Map([...nameResults, ...skuResults].map((product) => [product._id, product])).values(),
+  );
+
+  if (args.productTypeId) {
+    products = products.filter((product) => product.productTypeId === args.productTypeId);
+  }
+
+  return products;
+}
+
 const comboItemDoc = v.object({
   name: v.string(),
   price: v.optional(v.number()),
@@ -1064,18 +1103,13 @@ export const listPublishedWithOffset = query({
     const fetchLimit = (hasAttributeFilter || args.minPrice !== undefined || args.maxPrice !== undefined) ? 1000 : offset + limit + 10;
 
     if (args.search?.trim()) {
-      const searchLower = args.search.toLowerCase().trim();
       const fetchLimit = Math.min(offset + limit + 20, 500);
-      const searchQuery = ctx.db
-        .query("products")
-        .withSearchIndex("search_name", (q) => {
-          const builder = q.search("name", searchLower).eq("status", "Active");
-          return args.categoryId ? builder.eq("categoryId", args.categoryId) : builder;
-        });
-      products = await searchQuery.take(fetchLimit);
-      if (args.productTypeId) {
-        products = products.filter((p) => p.productTypeId === args.productTypeId);
-      }
+      products = await searchActiveProductsByNameOrSku(ctx, {
+        categoryId: args.categoryId,
+        productTypeId: args.productTypeId,
+        search: args.search,
+        limit: fetchLimit,
+      });
     } else if (args.categoryId) {
       let query = ctx.db
         .query("products")
@@ -1215,15 +1249,12 @@ export const searchPublished = query({
     let products;
 
     if (args.search?.trim()) {
-      const searchLower = args.search.toLowerCase().trim();
       const fetchLimit = Math.min(limit * 2, 200);
-      const searchQuery = ctx.db
-        .query("products")
-        .withSearchIndex("search_name", (q) => {
-          const builder = q.search("name", searchLower).eq("status", "Active");
-          return args.categoryId ? builder.eq("categoryId", args.categoryId) : builder;
-        });
-      products = await searchQuery.take(fetchLimit);
+      products = await searchActiveProductsByNameOrSku(ctx, {
+        categoryId: args.categoryId,
+        search: args.search,
+        limit: fetchLimit,
+      });
     } else if (args.categoryId) {
       products = await ctx.db
         .query("products")
