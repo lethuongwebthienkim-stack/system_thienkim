@@ -69,6 +69,16 @@ export function AttributeFilterGroupWidget({
   const [sliderMin, setSliderMin] = useState(minLimit);
   const [sliderMax, setSliderMax] = useState(maxLimit);
   const lastAppliedSlugsRef = useRef<string[] | null>(null);
+  const isRoutingRef = useRef(false);
+  const routingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (routingTimeoutRef.current) {
+        clearTimeout(routingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Sync slider state khi URL thay đổi từ bên ngoài
   const currentSelectedTermIds = selectedAttributes?.[group._id] || [];
@@ -79,7 +89,19 @@ export function AttributeFilterGroupWidget({
         lastAppliedSlugsRef.current.length === currentSelectedTermIds.length &&
         lastAppliedSlugsRef.current.every(slug => currentSelectedTermIds.includes(slug));
 
-      if (isSelfChange) return;
+      if (isSelfChange) {
+        isRoutingRef.current = false;
+        if (routingTimeoutRef.current) {
+          clearTimeout(routingTimeoutRef.current);
+          routingTimeoutRef.current = null;
+        }
+        return;
+      }
+
+      // Chặn đứng lệch pha props trung gian khi URL đang trong quá trình cập nhật
+      if (isRoutingRef.current) {
+        return;
+      }
 
       if (currentSelectedTermIds.length > 0) {
         const selectedValues = numericTerms
@@ -99,6 +121,15 @@ export function AttributeFilterGroupWidget({
   const applyRangeFilter = useCallback((newMin: number, newMax: number) => {
     setSliderMin(newMin);
     setSliderMax(newMax);
+    isRoutingRef.current = true;
+
+    if (routingTimeoutRef.current) {
+      clearTimeout(routingTimeoutRef.current);
+    }
+    routingTimeoutRef.current = setTimeout(() => {
+      isRoutingRef.current = false;
+    }, 1200); // 1.2s safety fallback
+
     if (newMin === minLimit && newMax === maxLimit) {
       lastAppliedSlugsRef.current = [];
       onAttributeChange?.(group.slug, [], false);
