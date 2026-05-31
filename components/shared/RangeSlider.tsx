@@ -58,14 +58,18 @@ export function RangeSlider({
   // Debounce timer ref
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Ref lưu giá trị tự trượt apply gần nhất để chống giật ngược khi URL update trễ
+  const lastAppliedValuesRef = useRef<[number, number] | null>(null);
+
   // Sync khi props thay đổi từ bên ngoài (URL change)
-  const prevExternalRef = useRef<[number, number]>([valueMin, valueMax]);
   useEffect(() => {
-    const [prevMin, prevMax] = prevExternalRef.current;
-    if (prevMin !== valueMin || prevMax !== valueMax) {
-      prevExternalRef.current = [valueMin, valueMax];
-      setLocalValues([valueMin, valueMax]);
+    if (lastAppliedValuesRef.current) {
+      const [appliedMin, appliedMax] = lastAppliedValuesRef.current;
+      if (appliedMin === valueMin && appliedMax === valueMax) {
+        return;
+      }
     }
+    setLocalValues([valueMin, valueMax]);
   }, [valueMin, valueMax]);
 
   // Dọn dẹp timer khi unmount
@@ -79,30 +83,32 @@ export function RangeSlider({
 
   const handleChange = useCallback(
     (values: number[]) => {
-      const [min, max] = values as [number, number];
-      setLocalValues([min, max]);
-      onValueChange?.(min, max);
+      const [minVal, maxVal] = values as [number, number];
+      setLocalValues([minVal, maxVal]);
+      onValueChange?.(minVal, maxVal);
 
-      // Debounce: hẹn giờ 500ms để trigger commit
+      // Debounce: hẹn giờ 400ms để trigger commit
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
       debounceTimerRef.current = setTimeout(() => {
-        onValueCommit?.(min, max);
-      }, 500);
+        lastAppliedValuesRef.current = [minVal, maxVal];
+        onValueCommit?.(minVal, maxVal);
+      }, 400);
     },
     [onValueChange, onValueCommit]
   );
 
   const handleCommit = useCallback(
     (values: number[]) => {
-      const [min, max] = values as [number, number];
+      const [minVal, maxVal] = values as [number, number];
       // Hủy timer đang chờ vì đã commit trực tiếp
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
-      setLocalValues([min, max]);
-      onValueCommit?.(min, max);
+      setLocalValues([minVal, maxVal]);
+      lastAppliedValuesRef.current = [minVal, maxVal];
+      onValueCommit?.(minVal, maxVal);
     },
     [onValueCommit]
   );
@@ -112,10 +118,18 @@ export function RangeSlider({
       clearTimeout(debounceTimerRef.current);
     }
     setLocalValues([minLimit, maxLimit]);
+    lastAppliedValuesRef.current = [minLimit, maxLimit];
     onValueCommit?.(minLimit, maxLimit);
   }, [minLimit, maxLimit, onValueCommit]);
 
   const [min, max] = localValues;
+
+  const formatVal = (val: number) => {
+    if (unit === 'đ' || unit === '₫' || val >= 1000) {
+      return val.toLocaleString('vi-VN');
+    }
+    return String(val);
+  };
 
   return (
     <div className="space-y-4 py-1 select-none">
@@ -127,7 +141,7 @@ export function RangeSlider({
             className="px-2.5 py-0.5 rounded-md font-mono text-sm tabular-nums"
             style={{ backgroundColor: primaryColor, color: '#fff' }}
           >
-            {min}{unit} – {max}{unit}
+            {formatVal(min)}{unit} – {formatVal(max)}{unit}
           </span>
           {(min !== minLimit || max !== maxLimit) && (
             <button
@@ -219,8 +233,8 @@ export function RangeSlider({
 
       {/* Min / Max limit labels */}
       <div className="flex justify-between text-xs font-mono" style={{ color: '#94a3b8' }}>
-        <span>{minLimit}{unit}</span>
-        <span>{maxLimit}{unit}</span>
+        <span>{formatVal(minLimit)}{unit}</span>
+        <span>{formatVal(maxLimit)}{unit}</span>
       </div>
     </div>
   );

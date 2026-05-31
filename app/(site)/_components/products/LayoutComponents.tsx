@@ -18,6 +18,7 @@ import {
   EmptyState 
 } from './ProductCardComponents';
 import { AttributeFilterGroupWidget } from './FilterComponents';
+import { RangeSlider } from '@/components/shared/RangeSlider';
 
 export type ProductSortOption = 'newest' | 'oldest' | 'popular' | 'price_asc' | 'price_desc' | 'name';
 export type ProductsSaleMode = 'cart' | 'contact' | 'affiliate';
@@ -306,114 +307,21 @@ function DoubleRangeSlider({
   tokens: any;
   brandColor: string;
 }) {
-  const [localValues, setLocalValues] = useState<[number, number]>([initialMin, initialMax]);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    setLocalValues([initialMin, initialMax]);
-  }, [initialMin, initialMax]);
-
-  useEffect(() => {
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, []);
-
-  const handleChange = (values: number[]) => {
-    const [newMin, newMax] = values as [number, number];
-    setLocalValues([newMin, newMax]);
-
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    debounceTimerRef.current = setTimeout(() => {
-      onChange(newMin, newMax);
-    }, 400);
-  };
-
-  const handleCommit = (values: number[]) => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
-    const [newMin, newMax] = values as [number, number];
-    onChange(newMin, newMax);
-  };
-
-  const formatK = (num: number) => {
-    if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(1).replace(/\.0$/, '')}M`;
-    }
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(0)}k`;
-    }
-    return String(num);
-  };
-
   const step = Math.max(1, Math.min(10000, Math.floor((max - min) / 100)));
 
   return (
-    <div className="flex flex-col gap-4 py-2">
-      <div className="relative w-full h-6 flex items-center">
-        <SliderPrimitive.Root
-          className="relative flex items-center w-full touch-none select-none"
-          min={min}
-          max={max}
-          step={step}
-          value={localValues}
-          onValueChange={handleChange}
-          onValueCommit={handleCommit}
-          minStepsBetweenThumbs={0}
-          style={{ height: 20 }}
-        >
-          {/* Active / Background Track */}
-          <SliderPrimitive.Track 
-            className="relative w-full rounded-full overflow-hidden" 
-            style={{ height: 4, backgroundColor: tokens.filterChipBg }}
-          >
-            <SliderPrimitive.Range 
-              className="absolute h-full rounded-full" 
-              style={{ backgroundColor: brandColor }} 
-            />
-          </SliderPrimitive.Track>
-
-          {/* Left Thumb */}
-          <SliderPrimitive.Thumb 
-            className="block rounded-full bg-white border-2 focus:outline-none relative after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:rounded-full cursor-grab active:cursor-grabbing transition-transform active:scale-125"
-            style={{ 
-              width: 16, 
-              height: 16, 
-              borderColor: brandColor, 
-              boxShadow: '0 2px 4px rgba(0,0,0,0.15)' 
-            }}
-            aria-label="Khoảng giá nhỏ nhất"
-          />
-
-          {/* Right Thumb */}
-          <SliderPrimitive.Thumb 
-            className="block rounded-full bg-white border-2 focus:outline-none relative after:content-[''] after:absolute after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:w-11 after:h-11 after:rounded-full cursor-grab active:cursor-grabbing transition-transform active:scale-125"
-            style={{ 
-              width: 16, 
-              height: 16, 
-              borderColor: brandColor, 
-              boxShadow: '0 2px 4px rgba(0,0,0,0.15)' 
-            }}
-            aria-label="Khoảng giá lớn nhất"
-          />
-        </SliderPrimitive.Root>
-      </div>
-
-      <div className="flex justify-between items-center text-sm font-semibold mt-1">
-        <div className="px-2 py-1 rounded border" style={{ borderColor: tokens.inputBorder, backgroundColor: tokens.inputBackground, color: tokens.inputText }}>
-          {formatK(localValues[0])}đ
-        </div>
-        <span className="text-slate-400 dark:text-slate-500 font-bold">-</span>
-        <div className="px-2 py-1 rounded border" style={{ borderColor: tokens.inputBorder, backgroundColor: tokens.inputBackground, color: tokens.inputText }}>
-          {formatK(localValues[1])}đ
-        </div>
-      </div>
-    </div>
+    <RangeSlider
+      minLimit={min}
+      maxLimit={max}
+      valueMin={initialMin}
+      valueMax={initialMax}
+      step={step}
+      primaryColor={brandColor}
+      trackColor={tokens.filterChipBg}
+      thumbBorderColor="#ffffff"
+      unit="đ"
+      onValueCommit={onChange}
+    />
   );
 }
 
