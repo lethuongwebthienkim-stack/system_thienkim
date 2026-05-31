@@ -664,8 +664,13 @@ export function CatalogLayout({
                     onChange={(minVal, maxVal) => {
                       if (!router) return;
                       const params = new URLSearchParams(window.location.search);
-                      params.set('minPrice', String(minVal));
-                      params.set('maxPrice', String(maxVal));
+                      if (minVal === priceStats!.minPrice && maxVal === priceStats!.maxPrice) {
+                        params.delete('minPrice');
+                        params.delete('maxPrice');
+                      } else {
+                        params.set('minPrice', String(minVal));
+                        params.set('maxPrice', String(maxVal));
+                      }
                       params.delete('page');
                       params.delete('priceRange');
                       router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
@@ -1028,8 +1033,13 @@ export function CatalogLayout({
                       onChange={(minVal, maxVal) => {
                         if (!router) return;
                         const params = new URLSearchParams(window.location.search);
-                        params.set('minPrice', String(minVal));
-                        params.set('maxPrice', String(maxVal));
+                        if (minVal === priceStats!.minPrice && maxVal === priceStats!.maxPrice) {
+                          params.delete('minPrice');
+                          params.delete('maxPrice');
+                        } else {
+                          params.set('minPrice', String(minVal));
+                          params.set('maxPrice', String(maxVal));
+                        }
                         params.delete('page');
                         params.delete('priceRange');
                         router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
@@ -1437,8 +1447,13 @@ export function ListLayout({
                     onChange={(minVal, maxVal) => {
                       if (!router) return;
                       const params = new URLSearchParams(window.location.search);
-                      params.set('minPrice', String(minVal));
-                      params.set('maxPrice', String(maxVal));
+                      if (minVal === priceStats!.minPrice && maxVal === priceStats!.maxPrice) {
+                        params.delete('minPrice');
+                        params.delete('maxPrice');
+                      } else {
+                        params.set('minPrice', String(minVal));
+                        params.set('maxPrice', String(maxVal));
+                      }
                       params.delete('page');
                       params.delete('priceRange');
                       router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
@@ -1802,8 +1817,13 @@ export function ListLayout({
                       onChange={(minVal, maxVal) => {
                         if (!router) return;
                         const params = new URLSearchParams(window.location.search);
-                        params.set('minPrice', String(minVal));
-                        params.set('maxPrice', String(maxVal));
+                        if (minVal === priceStats!.minPrice && maxVal === priceStats!.maxPrice) {
+                          params.delete('minPrice');
+                          params.delete('maxPrice');
+                        } else {
+                          params.set('minPrice', String(minVal));
+                          params.set('maxPrice', String(maxVal));
+                        }
                         params.delete('page');
                         params.delete('priceRange');
                         router.push(`${window.location.pathname}?${params.toString()}`, { scroll: false });
