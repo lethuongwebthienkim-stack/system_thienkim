@@ -238,6 +238,7 @@ type ProductDetailExperienceConfig = {
   showSocialButtons?: boolean;
   socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
   cartButtonsLayout?: 'stack' | 'grid-2';
+  highlightsPosition?: 'info_column' | 'image_column';
 };
 
 type BaseImageLayoutConfig = {
@@ -362,6 +363,7 @@ const DEFAULT_CONFIG: ProductDetailExperienceConfig = {
   showSocialButtons: false,
   socialButtons: [],
   cartButtonsLayout: 'stack',
+  highlightsPosition: 'image_column',
 };
 
 const LEGACY_COMBO_EFFECT_MAP = {
@@ -680,6 +682,7 @@ export default function ProductDetailExperiencePage() {
       showSocialButtons?: boolean;
       socialButtons?: Array<{ id: string; icon: string; label: string; url: string; active: boolean }>;
       cartButtonsLayout?: 'stack' | 'grid-2';
+      highlightsPosition?: 'info_column' | 'image_column';
       layouts?: Partial<Record<ProductsDetailStyle, Partial<ClassicLayoutConfig & ModernLayoutConfig & MinimalLayoutConfig & PremiumLayoutConfig & BaseImageLayoutConfig & {
         imageAspectRatio?: ProductImageAspectRatio;
       }>>>;
@@ -768,6 +771,7 @@ export default function ProductDetailExperiencePage() {
       showSocialButtons: raw?.showSocialButtons ?? false,
       socialButtons: raw?.socialButtons ?? [],
       cartButtonsLayout: raw?.cartButtonsLayout ?? 'stack',
+      highlightsPosition: raw?.highlightsPosition ?? 'image_column',
     };
   }, [experienceSetting?.value, legacyStyle, legacyHighlights]);
 
@@ -959,6 +963,7 @@ export default function ProductDetailExperiencePage() {
       showPriceLeftIcon: premiumLayoutConfig.showPriceLeftIcon,
       showPriceRightIcon: premiumLayoutConfig.showPriceRightIcon,
       cartButtonsLayout: config.cartButtonsLayout,
+      highlightsPosition: config.highlightsPosition,
     };
 
     return base;
@@ -1001,6 +1006,17 @@ export default function ProductDetailExperiencePage() {
         onChange={(v) => updateClassicLayoutConfig('showClassicHighlights', v)}
         accentColor={brandColor}
       />
+      {config.layouts.classic.showClassicHighlights && (
+        <SelectRow
+          label="Vị trí hiển thị"
+          value={config.highlightsPosition || 'image_column'}
+          options={[
+            { label: 'Dưới thông tin sản phẩm (cột phải)', value: 'info_column' },
+            { label: 'Dưới ảnh sản phẩm (cột trái)', value: 'image_column' },
+          ]}
+          onChange={(v) => setConfig(prev => ({ ...prev, highlightsPosition: v as 'info_column' | 'image_column' }))}
+        />
+      )}
       {classicHighlights.map((item, index) => {
         const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon];
         return (
