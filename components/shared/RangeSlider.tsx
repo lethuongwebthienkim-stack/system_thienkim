@@ -132,30 +132,7 @@ export function RangeSlider({
   };
 
   return (
-    <div className="space-y-4 py-1 select-none">
-      {/* Badge hiển thị dải đang chọn */}
-      <div className="flex items-center justify-between text-sm font-medium">
-        <span style={{ color: '#64748b' }}>Dải chọn:</span>
-        <div className="flex items-center gap-1.5">
-          <span
-            className="px-2.5 py-0.5 rounded-md font-mono text-sm tabular-nums"
-            style={{ backgroundColor: primaryColor, color: '#fff' }}
-          >
-            {formatVal(min)}{unit} – {formatVal(max)}{unit}
-          </span>
-          {(min !== minLimit || max !== maxLimit) && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-slate-600 flex items-center justify-center"
-              title="Đặt lại khoảng lọc"
-            >
-              <X size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-
+    <div className="space-y-3 py-1 select-none">
       {/* Radix Slider */}
       <SliderPrimitive.Root
         className="relative flex items-center w-full touch-none"
@@ -231,10 +208,24 @@ export function RangeSlider({
         />
       </SliderPrimitive.Root>
 
-      {/* Min / Max limit labels */}
-      <div className="flex justify-between text-xs font-mono" style={{ color: '#94a3b8' }}>
-        <span>{formatVal(minLimit)}{unit}</span>
-        <span>{formatVal(maxLimit)}{unit}</span>
+      {/* Min / Max hiển thị động giá trị đang chọn bên dưới, kèm nút Reset */}
+      <div className="flex justify-between items-center text-xs font-mono font-semibold" style={{ color: '#64748b' }}>
+        <span>{formatVal(min)}{unit}</span>
+        
+        {((min !== minLimit || max !== maxLimit)) ? (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="px-2 py-0.5 rounded border border-slate-200 dark:border-slate-800 text-[10px] hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 hover:text-slate-600 flex items-center gap-1 font-sans font-normal"
+            title="Đặt lại khoảng lọc"
+          >
+            <X size={10} /> Đặt lại
+          </button>
+        ) : (
+          <span className="text-slate-300 dark:text-slate-700 font-bold">-</span>
+        )}
+
+        <span>{formatVal(max)}{unit}</span>
       </div>
     </div>
   );
