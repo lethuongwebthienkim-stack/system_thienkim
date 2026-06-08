@@ -64,8 +64,9 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('saved');
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editorResetKey, setEditorResetKey] = useState(0);
-  const [snapshotVersion, setSnapshotVersion] = useState(0);
+
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [isSnapshotReady, setIsSnapshotReady] = useState(false);
   const selectedCategorySlug = useMemo(
     () => categoriesData?.find((category) => category._id === categoryId)?.slug,
     [categoriesData, categoryId]
@@ -129,9 +130,9 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
   }), [authorName, categoryId, additionalCategoryIds, normalizedContent, renderType, markdownRender, htmlRender, excerpt, metaDescription, metaTitle, slug, status, resolvedPublishedAt, thumbnail, title, thumbnailStorageId]);
 
   const hasChanges = useMemo(() => {
-    if (!initialSnapshotRef.current) {return false;}
+    if (!isSnapshotReady || !initialSnapshotRef.current) {return false;}
     return JSON.stringify(initialSnapshotRef.current) !== JSON.stringify(currentSnapshot);
-  }, [currentSnapshot, snapshotVersion]);
+  }, [currentSnapshot, isSnapshotReady]);
 
   useEffect(() => {
     if (saveStatus === 'saving') {return;}
@@ -198,7 +199,7 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
   };
 
   useEffect(() => {
-    if (postData && !isDataLoaded) {
+    if (postData && additionalCategoryIdsData !== undefined && !isDataLoaded) {
       setTitle(postData.title);
       setSlug(postData.slug);
       setContent(postData.content);
@@ -223,30 +224,19 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
       const isScheduled = Boolean(postData.publishedAt && postData.publishedAt > now + SCHEDULE_SKEW_MS);
       setPublishImmediately(!isScheduled);
       setPublishAtLocal(isScheduled && postData.publishedAt ? toLocalDatetimeInput(postData.publishedAt) : '');
-      initialSnapshotRef.current = {
-        authorName: (postData.authorName ?? '').trim(),
-        categoryId: postData.categoryId,
-        additionalCategoryIds: additionalCategoryIdsData ?? [],
-        content: normalizeRichText(postData.content),
-        renderType: normalizedRenderType,
-        markdownRender: (postData.markdownRender ?? '').trim(),
-        htmlRender: (postData.htmlRender ?? '').trim(),
-        excerpt: (postData.excerpt ?? '').trim(),
-        metaDescription: (postData.metaDescription ?? '').trim(),
-        metaTitle: (postData.metaTitle ?? '').trim(),
-        slug: postData.slug.trim(),
-        status: postData.status,
-        publishedAt: isScheduled ? postData.publishedAt : undefined,
-        thumbnail: postData.thumbnail ?? '',
-        title: postData.title.trim(),
-        thumbnailStorageId: postData.thumbnail
-          ? ((postData as { thumbnailStorageId?: Id<'_storage'> }).thumbnailStorageId ?? null)
-          : null,
-      };
-      setSnapshotVersion((prev) => prev + 1);
       setIsDataLoaded(true);
     }
   }, [postData, additionalCategoryIdsData, hasMarkdownRender, hasHtmlRender, isDataLoaded]);
+
+  // Set initialSnapshotRef AFTER state has been committed (next render after isDataLoaded=true).
+  // Using setIsSnapshotReady(true) to trigger a re-render so hasChanges useMemo re-computes
+  // with the correct initialSnapshotRef.current, ensuring no false dirty state on initial load.
+  useEffect(() => {
+    if (isDataLoaded && !isSnapshotReady) {
+      initialSnapshotRef.current = currentSnapshot;
+      setIsSnapshotReady(true);
+    }
+  }, [isDataLoaded, isSnapshotReady, currentSnapshot]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -316,7 +306,6 @@ export default function PostEditPage({ params }: { params: Promise<{ id: string 
         setMetaDescription(resolvedMetaDescriptionValue);
       }
       initialSnapshotRef.current = persistedSnapshot;
-      setSnapshotVersion((prev) => prev + 1);
       setSaveStatus('saved');
       toast.success("Cập nhật bài viết thành công");
     } catch (error) {

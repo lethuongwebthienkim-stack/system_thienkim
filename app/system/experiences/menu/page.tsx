@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useMutation, useQuery } from 'convex/react';
 import { toast } from 'sonner';
 import { api } from '@/convex/_generated/api';
-import { Briefcase, CreditCard, Eye, FileText, Heart, LayoutTemplate, Loader2, Mail, Package, Save, ShoppingCart, Users } from 'lucide-react';
+import { BookOpen, Briefcase, CreditCard, Eye, FileText, Heart, LayoutTemplate, Loader2, Mail, Package, Save, ShoppingCart, Users } from 'lucide-react';
 import { Button, Card, CardContent, CardHeader, CardTitle, Input, Label, cn } from '@/app/admin/components/ui';
 import { useBrandColors } from '@/components/site/hooks';
 import {
@@ -44,7 +44,7 @@ const DEFAULT_CONFIG: HeaderMenuConfig = {
   cart: { show: true },
   cta: { show: true, text: 'Liên hệ', url: '/contact' },
   login: { show: true, text: 'Đăng nhập' },
-  search: { placeholder: 'Tìm kiếm...', searchPosts: true, searchProducts: true, searchServices: true, show: true },
+  search: { placeholder: 'Tìm kiếm...', searchPosts: true, searchProducts: true, searchServices: true, searchCourses: true, show: true },
   topbar: {
     email: 'contact@example.com',
     hotline: '1900 1234',
@@ -62,12 +62,14 @@ const LAYOUT_STYLES: LayoutOption<HeaderLayoutStyle>[] = [
   { id: 'classic', label: 'Classic', description: 'Header tiêu chuẩn, menu ngang đơn giản.' },
   { id: 'topbar', label: 'Topbar', description: 'Có topbar, search, tiện ích nhanh.' },
   { id: 'allbirds', label: 'Allbirds', description: 'Logo trái, menu giữa, actions bên phải.' },
+  { id: 'darkglass', label: 'Dark Glass', description: 'Header tối backdrop-blur, pill sticky, social icons.' },
 ];
 
 const HINTS = [
   'Menu items được quản lý ở /admin/menus.',
   'Topbar phù hợp site bán hàng cần hotline + search.',
   'Allbirds phù hợp brand cần header tối giản, tập trung nav.',
+  'Dark Glass phù hợp studio, creative agency, portfolio — nền tối backdrop-blur.',
   'Tắt Tên thương hiệu hoặc CTA để tăng không gian menu trước khi More.',
   'Logo lớn + bật Tên thương hiệu + CTA sẽ làm menu phải co lại trước khi More.',
   'Login chỉ hiển thị khi bật Module Khách hàng + tính năng Đăng nhập KH.',
@@ -121,8 +123,10 @@ export default function HeaderMenuExperiencePage() {
   const productsModule = useQuery(api.admin.modules.getModuleByKey, { key: 'products' });
   const postsModule = useQuery(api.admin.modules.getModuleByKey, { key: 'posts' });
   const servicesModule = useQuery(api.admin.modules.getModuleByKey, { key: 'services' });
+  const coursesModule = useQuery(api.admin.modules.getModuleByKey, { key: 'courses' });
   const customersModule = useQuery(api.admin.modules.getModuleByKey, { key: 'customers' });
   const ordersModule = useQuery(api.admin.modules.getModuleByKey, { key: 'orders' });
+  const commerceCapabilities = useQuery(api.cart.getCommerceCapabilities, {});
   const customerLoginFeature = useQuery(api.admin.modules.getModuleFeature, { moduleKey: 'customers', featureKey: 'enableLogin' });
 
   const setMultipleSettings = useMutation(api.settings.setMultiple);
@@ -182,8 +186,10 @@ export default function HeaderMenuExperiencePage() {
     || productsModule === undefined
     || postsModule === undefined
     || servicesModule === undefined
+    || coursesModule === undefined
     || customersModule === undefined
     || ordersModule === undefined
+    || commerceCapabilities === undefined
     || customerLoginFeature === undefined;
 
   const resolvedBrandColor = brandColor || brandColors.primary || '#f97316';
@@ -301,6 +307,7 @@ export default function HeaderMenuExperiencePage() {
     const productsEnabled = productsModule?.enabled ?? false;
     const postsEnabled = postsModule?.enabled ?? false;
     const servicesEnabled = servicesModule?.enabled ?? false;
+    const coursesEnabled = coursesModule?.enabled ?? false;
     const ordersEnabled = ordersModule?.enabled ?? false;
     const loginEnabled = (customersModule?.enabled ?? false) && (customerLoginFeature?.enabled ?? false);
 
@@ -309,6 +316,7 @@ export default function HeaderMenuExperiencePage() {
       searchProducts: productsEnabled ? normalizedConfig.search.searchProducts : false,
       searchPosts: postsEnabled ? normalizedConfig.search.searchPosts : false,
       searchServices: servicesEnabled ? normalizedConfig.search.searchServices : false,
+      searchCourses: coursesEnabled ? normalizedConfig.search.searchCourses : false,
     };
 
     const effectiveSloganEnabled = normalizedConfig.topbar.sloganEnabled ?? true;
@@ -316,7 +324,7 @@ export default function HeaderMenuExperiencePage() {
 
     return {
       ...normalizedConfig,
-      cart: { ...normalizedConfig.cart, show: normalizedConfig.cart.show && cartEnabled },
+      cart: { ...normalizedConfig.cart, show: normalizedConfig.cart.show && (commerceCapabilities?.cartAvailable ?? cartEnabled) },
       wishlist: { ...normalizedConfig.wishlist, show: normalizedConfig.wishlist.show && wishlistEnabled },
       login: { ...normalizedConfig.login, show: normalizedConfig.login.show && loginEnabled },
       topbar: {
@@ -327,7 +335,7 @@ export default function HeaderMenuExperiencePage() {
       },
       search: {
         ...search,
-        show: search.show && (search.searchProducts || search.searchPosts || search.searchServices),
+        show: Boolean(search.show && (search.searchProducts || search.searchPosts || search.searchServices || search.searchCourses)),
       },
     };
   }, [
@@ -337,9 +345,11 @@ export default function HeaderMenuExperiencePage() {
     productsModule?.enabled,
     postsModule?.enabled,
     servicesModule?.enabled,
+    coursesModule?.enabled,
     ordersModule?.enabled,
     customersModule?.enabled,
     customerLoginFeature?.enabled,
+    commerceCapabilities?.cartAvailable,
     resolvedTopbarSlogan,
   ]);
 
@@ -366,23 +376,24 @@ export default function HeaderMenuExperiencePage() {
     []
   );
   const headerSpacingLabel = headerSpacingOptions[(config.headerSpacingLevel ?? 5) - 1]?.label ?? 'Cân bằng';
-  const cartEnabled = cartModule?.enabled ?? false;
   const wishlistEnabled = wishlistModule?.enabled ?? false;
   const productsEnabled = productsModule?.enabled ?? false;
   const postsEnabled = postsModule?.enabled ?? false;
   const servicesEnabled = servicesModule?.enabled ?? false;
+  const coursesEnabled = coursesModule?.enabled ?? false;
   const ordersEnabled = ordersModule?.enabled ?? false;
   const loginEnabled = (customersModule?.enabled ?? false) && (customerLoginFeature?.enabled ?? false);
-  const canUseSearch = productsEnabled || postsEnabled || servicesEnabled;
+  const cartAvailable = commerceCapabilities?.cartAvailable ?? false;
+  const canUseSearch = productsEnabled || postsEnabled || servicesEnabled || coursesEnabled;
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const cartEnabled = cartModule?.enabled ?? false;
       const wishlistEnabled = wishlistModule?.enabled ?? false;
       const productsEnabled = productsModule?.enabled ?? false;
       const postsEnabled = postsModule?.enabled ?? false;
       const servicesEnabled = servicesModule?.enabled ?? false;
+      const coursesEnabled = coursesModule?.enabled ?? false;
       const customersEnabled = customersModule?.enabled ?? false;
       const ordersEnabled = ordersModule?.enabled ?? false;
       const loginEnabled = customersEnabled && (customerLoginFeature?.enabled ?? false);
@@ -396,8 +407,9 @@ export default function HeaderMenuExperiencePage() {
           searchProducts: productsEnabled ? normalizedConfig.search.searchProducts : false,
           searchPosts: postsEnabled ? normalizedConfig.search.searchPosts : false,
           searchServices: servicesEnabled ? normalizedConfig.search.searchServices : false,
+          searchCourses: coursesEnabled ? normalizedConfig.search.searchCourses : false,
         },
-        cart: { ...normalizedConfig.cart, show: normalizedConfig.cart.show && cartEnabled },
+        cart: { ...normalizedConfig.cart, show: normalizedConfig.cart.show && cartAvailable },
         wishlist: { ...normalizedConfig.wishlist, show: normalizedConfig.wishlist.show && wishlistEnabled },
         login: { ...normalizedConfig.login, show: normalizedConfig.login.show && loginEnabled },
         topbar: {
@@ -406,7 +418,7 @@ export default function HeaderMenuExperiencePage() {
         },
       };
 
-      if (!productsEnabled && !postsEnabled && !servicesEnabled) {
+      if (!productsEnabled && !postsEnabled && !servicesEnabled && !coursesEnabled) {
         configToSave.search = { ...configToSave.search, show: false };
       }
       const { email: _email, hotline: _hotline, useSettingsData: _useSettingsData, ...topbarNext } = configToSave.topbar as HeaderMenuConfig['topbar'] & { useSettingsData?: boolean };
@@ -511,10 +523,10 @@ export default function HeaderMenuExperiencePage() {
             />
             <ToggleRow
               label="Cart"
-              checked={config.cart.show && cartEnabled}
+              checked={config.cart.show && cartAvailable}
               onChange={(v) => updateCart('show', v)}
               accentColor={resolvedBrandColor}
-              disabled={!cartEnabled}
+              disabled={!cartAvailable}
             />
             <ToggleRow
               label="Wishlist"
@@ -690,82 +702,90 @@ export default function HeaderMenuExperiencePage() {
               </div>
             )}
           </ControlCard>
-          <ControlCard title="Topbar & Search">
-            <div className="space-y-2">
-              <div className="space-y-1">
-                <Label className="text-xs">Hotline</Label>
-                <Input
-                  value={settingsPhone ?? ''}
-                  className="h-8 text-sm"
-                  disabled
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Email</Label>
-                <Input
-                  value={settingsEmail ?? ''}
-                  className="h-8 text-sm"
-                  disabled
-                />
-              </div>
-              <ToggleRow
-                label="Hiển thị hotline"
-                checked={config.topbar.showHotline ?? true}
-                onChange={(v) => updateTopbar('showHotline', v)}
-                accentColor={resolvedBrandColor}
-              />
-              <ToggleRow
-                label="Hiển thị email"
-                checked={config.topbar.showEmail ?? true}
-                onChange={(v) => updateTopbar('showEmail', v)}
-                accentColor={resolvedBrandColor}
-              />
-              <ToggleRow
-                label="Slogan topbar"
-                checked={config.topbar.sloganEnabled ?? true}
-                onChange={(v) => updateTopbar('sloganEnabled', v)}
-                accentColor={resolvedBrandColor}
-              />
-              <div className="space-y-1">
-                <Label className="text-xs">Slogan</Label>
-                <Input
-                  value={resolvedTopbarSlogan}
-                  className="h-8 text-sm"
-                  disabled
-                />
-              </div>
-              <ToggleRow
-                label="Theo dõi đơn"
-                checked={config.topbar.showTrackOrder && ordersEnabled}
-                onChange={(v) => updateTopbar('showTrackOrder', v)}
-                accentColor={resolvedBrandColor}
-                disabled={!ordersEnabled}
-              />
-              {config.search.show && (
-                <div className="pt-2">
-                  <p className="text-xs font-medium text-slate-500">Search theo module</p>
-                  <ModuleFeatureStatus
-                    label="Sản phẩm"
-                    enabled={productsModule?.enabled ?? false}
-                    href="/system/modules/products"
-                    moduleName="Module Sản phẩm"
-                  />
-                  <ModuleFeatureStatus
-                    label="Bài viết"
-                    enabled={postsModule?.enabled ?? false}
-                    href="/system/modules/posts"
-                    moduleName="Module Bài viết"
-                  />
-                  <ModuleFeatureStatus
-                    label="Dịch vụ"
-                    enabled={servicesModule?.enabled ?? false}
-                    href="/system/modules/services"
-                    moduleName="Module Dịch vụ"
+          {previewStyle !== 'darkglass' && (
+            <ControlCard title="Topbar & Search">
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <Label className="text-xs">Hotline</Label>
+                  <Input
+                    value={settingsPhone ?? ''}
+                    className="h-8 text-sm"
+                    disabled
                   />
                 </div>
-              )}
-            </div>
-          </ControlCard>
+                <div className="space-y-1">
+                  <Label className="text-xs">Email</Label>
+                  <Input
+                    value={settingsEmail ?? ''}
+                    className="h-8 text-sm"
+                    disabled
+                  />
+                </div>
+                <ToggleRow
+                  label="Hiển thị hotline"
+                  checked={config.topbar.showHotline ?? true}
+                  onChange={(v) => updateTopbar('showHotline', v)}
+                  accentColor={resolvedBrandColor}
+                />
+                <ToggleRow
+                  label="Hiển thị email"
+                  checked={config.topbar.showEmail ?? true}
+                  onChange={(v) => updateTopbar('showEmail', v)}
+                  accentColor={resolvedBrandColor}
+                />
+                <ToggleRow
+                  label="Slogan topbar"
+                  checked={config.topbar.sloganEnabled ?? true}
+                  onChange={(v) => updateTopbar('sloganEnabled', v)}
+                  accentColor={resolvedBrandColor}
+                />
+                <div className="space-y-1">
+                  <Label className="text-xs">Slogan</Label>
+                  <Input
+                    value={resolvedTopbarSlogan}
+                    className="h-8 text-sm"
+                    disabled
+                  />
+                </div>
+                <ToggleRow
+                  label="Theo dõi đơn"
+                  checked={config.topbar.showTrackOrder && ordersEnabled}
+                  onChange={(v) => updateTopbar('showTrackOrder', v)}
+                  accentColor={resolvedBrandColor}
+                  disabled={!ordersEnabled}
+                />
+                {config.search.show && (
+                  <div className="pt-2">
+                    <p className="text-xs font-medium text-slate-500">Search theo module</p>
+                    <ModuleFeatureStatus
+                      label="Sản phẩm"
+                      enabled={productsModule?.enabled ?? false}
+                      href="/system/modules/products"
+                      moduleName="Module Sản phẩm"
+                    />
+                    <ModuleFeatureStatus
+                      label="Bài viết"
+                      enabled={postsModule?.enabled ?? false}
+                      href="/system/modules/posts"
+                      moduleName="Module Bài viết"
+                    />
+                    <ModuleFeatureStatus
+                      label="Dịch vụ"
+                      enabled={servicesModule?.enabled ?? false}
+                      href="/system/modules/services"
+                      moduleName="Module Dịch vụ"
+                    />
+                    <ModuleFeatureStatus
+                      label="Khóa học"
+                      enabled={coursesModule?.enabled ?? false}
+                      href="/system/modules/courses"
+                      moduleName="Module Khóa học"
+                    />
+                  </div>
+                )}
+              </div>
+            </ControlCard>
+          )}
           {previewStyle === 'classic' && (
             <ControlCard title="Giao diện Classic">
               <div className="space-y-2">
@@ -828,7 +848,65 @@ export default function HeaderMenuExperiencePage() {
             </ControlCard>
           )}
 
-          <Card className="p-2 lg:col-span-4">
+          {previewStyle === 'darkglass' && (
+            <ControlCard title="Giao diện Dark Glass">
+              <div className="space-y-3">
+                <p className="text-[11px] leading-5 text-slate-500">
+                  Style tối, backdrop-blur, sticky pill header lấy cảm hứng từ creative studio.
+                  Màu nền cố định đen bán trong suốt — không phụ thuộc màu thương hiệu.
+                </p>
+                <ToggleRow
+                  label="CTA button"
+                  checked={config.cta.show}
+                  onChange={(v) => updateCta('show', v)}
+                  accentColor={resolvedBrandColor}
+                />
+                {config.cta.show && (
+                  <div className="space-y-2 pt-1">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Nhãn CTA</Label>
+                      <Input
+                        value={config.cta.text ?? 'Liên hệ'}
+                        onChange={(event) => updateCta('text', event.target.value)}
+                        className="h-8 text-sm"
+                        placeholder="Liên hệ"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Đường dẫn CTA</Label>
+                      <Input
+                        value={config.cta.url ?? '/contact'}
+                        onChange={(event) => updateCta('url', event.target.value)}
+                        className="h-8 text-sm"
+                        placeholder="/contact"
+                      />
+                    </div>
+                  </div>
+                )}
+                <ToggleRow
+                  label="Sticky desktop"
+                  checked={config.headerStickyDesktop ?? config.headerSticky}
+                  onChange={updateHeaderStickyDesktop}
+                  accentColor={resolvedBrandColor}
+                />
+                <ToggleRow
+                  label="Sticky mobile"
+                  checked={config.headerStickyMobile ?? config.headerSticky}
+                  onChange={updateHeaderStickyMobile}
+                  accentColor={resolvedBrandColor}
+                />
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900">
+                  <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Social icons</p>
+                  <p className="text-[11px] leading-5 text-slate-400">
+                    Social icons (YouTube, TikTok, Facebook, Instagram) lấy URL từ Settings → Social Media.
+                    Chỉnh sửa tại <a href="/system/settings" className="text-cyan-600 hover:underline">System Settings</a>.
+                  </p>
+                </div>
+              </div>
+            </ControlCard>
+          )}
+
+          <Card className="p-2 col-span-full">
             <div className="mb-2">
               <ExampleLinks
                 links={[{ label: 'Trang chủ', url: '/' }]}
@@ -882,6 +960,13 @@ export default function HeaderMenuExperiencePage() {
                 icon={Briefcase}
                 title="Dịch vụ"
                 colorScheme="cyan"
+              />
+              <ExperienceModuleLink
+                enabled={coursesModule?.enabled ?? false}
+                href="/system/modules/courses"
+                icon={BookOpen}
+                title="Khóa học"
+                colorScheme="blue"
               />
               <ExperienceModuleLink
                 enabled={customersModule?.enabled ?? false}
@@ -974,6 +1059,7 @@ export default function HeaderMenuExperiencePage() {
                 productsEnabled={productsModule?.enabled ?? false}
                 postsEnabled={postsModule?.enabled ?? false}
                 servicesEnabled={servicesModule?.enabled ?? false}
+                coursesEnabled={coursesModule?.enabled ?? false}
               />
             </BrowserFrame>
           </div>

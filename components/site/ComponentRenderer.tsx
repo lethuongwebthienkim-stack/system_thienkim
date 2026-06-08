@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import useEmblaCarousel from 'embla-carousel-react';
 import { PublicImage as Image } from '@/components/shared/PublicImage';
 import dynamic from 'next/dynamic';
@@ -92,7 +93,8 @@ import { PartnersCleanShared } from '@/app/admin/home-components/partners/_compo
 import { PartnersDividerShared } from '@/app/admin/home-components/partners/_components/PartnersDividerShared';
 import { PartnersGridShared } from '@/app/admin/home-components/partners/_components/PartnersGridShared';
 import { PartnersLogoCloudShared } from '@/app/admin/home-components/partners/_components/PartnersLogoCloudShared';
-import { getPartnersSectionSpacingClassName, normalizePartnersAlign, normalizePartnersCornerRadius, normalizePartnersDisplayMode, normalizePartnersLogoSize, normalizePartnersShowBorder, normalizePartnersSpacing, normalizePartnersStyle } from '@/app/admin/home-components/partners/_types';
+import { PartnersGlassLogoCloudShared } from '@/app/admin/home-components/partners/_components/PartnersGlassLogoCloudShared';
+import { getPartnersSectionSpacingClassName, normalizePartnersAlign, normalizePartnersCornerRadius, normalizePartnersDisplayMode, normalizePartnersLogoColorIntensity, normalizePartnersLogoSize, normalizePartnersShowBorder, normalizePartnersSpacing, normalizePartnersStyle, type PartnersLogoColorMode } from '@/app/admin/home-components/partners/_types';
 import type { FooterBrandMode, FooterConfig, FooterCornerRadius, FooterLogoBackgroundStyle, FooterStyle } from '@/app/admin/home-components/footer/_types';
 import type { ClientsBrandMode, ClientsHeaderAlign } from '@/app/admin/home-components/clients/_types';
 import { normalizeClientsCornerRadius } from '@/app/admin/home-components/clients/_types';
@@ -1344,6 +1346,21 @@ function StatsSection({ config, brandColor, secondary, mode, title: _title }: { 
     return `flex flex-col ${alignClass}`;
   };
 
+  const getItemAlignClass = (align?: 'left' | 'center' | 'right') => {
+    if (align === 'left') return 'items-start text-left';
+    if (align === 'right') return 'items-end text-right';
+    return 'items-center text-center';
+  };
+
+  const getMediaWrapperClass = (placement?: 'top' | 'left', align?: 'left' | 'center' | 'right') => {
+    if (placement === 'left') {
+      return 'mb-0 flex shrink-0 items-center justify-center self-center';
+    }
+    if (align === 'left') return 'flex justify-start';
+    if (align === 'right') return 'flex justify-end';
+    return 'flex justify-center';
+  };
+
   // Style 1: Thanh ngang - Full width bar với dividers
   if (style === 'horizontal') {
     const colors = getHorizontalColors(brandColor, secondary, mode);
@@ -1352,13 +1369,13 @@ function StatsSection({ config, brandColor, secondary, mode, title: _title }: { 
         <div className="max-w-5xl mx-auto">
           <div 
             className="w-full rounded-lg shadow-sm overflow-hidden border"
-            style={{ backgroundColor: 'white', borderColor: colors.border }}
+            style={{ backgroundColor: colors.sectionBg, borderColor: colors.border }}
           >
             <div className="flex flex-col md:flex-row items-center justify-between divide-y md:divide-y-0 md:divide-x divide-slate-200">
               {items.map((item, idx) => {
                 const IconCmp = item.iconType === 'lucide' && item.iconName ? resolveStatsIconComponent(item.iconName) : null;
                 const iconElement = item.iconType === 'lucide' && IconCmp ? (
-                  <IconCmp size={32} style={{ color: brandColor }} />
+                  <IconCmp size={32} style={{ color: colors.iconColor }} />
                 ) : item.iconType === 'upload' && item.iconUrl ? (
                   <img src={item.iconUrl} alt="" className="w-8 h-8 md:w-11 md:h-11 object-contain" />
                 ) : item.iconType === 'url' && item.iconUrl ? (
@@ -1371,15 +1388,15 @@ function StatsSection({ config, brandColor, secondary, mode, title: _title }: { 
                   className={`flex-1 w-full py-6 px-4 justify-center cursor-default ${getItemContainerClass(mediaPlacement, mediaAlign)}`}
                 >
                   {iconElement && (
-                    <div className={mediaPlacement === 'left' ? 'mb-0 flex shrink-0 items-center justify-center self-center' : 'mb-2'}>
+                    <div className={cn(mediaPlacement === 'left' ? 'mb-0' : 'mb-2', getMediaWrapperClass(mediaPlacement, mediaAlign))}>
                       {iconElement}
                     </div>
                   )}
-                  <div className={mediaPlacement === 'left' ? 'flex-1' : ''}>
-                    <span className="text-3xl md:text-4xl font-bold tracking-tight tabular-nums leading-none mb-1" style={{ color: brandColor }}>
+                  <div className={cn("flex flex-col", mediaPlacement === 'left' ? 'flex-1' : getItemAlignClass(mediaAlign))}>
+                    <span className="text-3xl md:text-4xl font-bold tracking-tight tabular-nums leading-none mb-1" style={{ color: colors.valueColor }}>
                       {item.value}
                     </span>
-                    <h3 className="text-xs font-medium uppercase tracking-wider text-slate-600">
+                    <h3 className="text-xs font-medium uppercase tracking-wider" style={{ color: colors.labelColor }}>
                       {item.label}
                     </h3>
                   </div>
@@ -1403,7 +1420,7 @@ function StatsSection({ config, brandColor, secondary, mode, title: _title }: { 
             {items.map((item, idx) => {
               const IconCmp = item.iconType === 'lucide' && item.iconName ? resolveStatsIconComponent(item.iconName) : null;
               const iconElement = item.iconType === 'lucide' && IconCmp ? (
-                <IconCmp size={28} style={{ color: brandColor }} />
+                <IconCmp size={28} style={{ color: colors.iconColor }} />
               ) : item.iconType === 'upload' && item.iconUrl ? (
                 <img src={item.iconUrl} alt="" className="w-12 h-12 md:w-16 md:h-16 object-cover" />
               ) : item.iconType === 'url' && item.iconUrl ? (
@@ -1417,18 +1434,18 @@ function StatsSection({ config, brandColor, secondary, mode, title: _title }: { 
                 style={{ borderColor: colors.border }}
               >
                 {iconElement && (
-                  <div className={mediaPlacement === 'left' ? 'mb-0 flex shrink-0 items-center justify-center self-center' : 'mb-2'}>
+                  <div className={cn(mediaPlacement === 'left' ? 'mb-0' : 'mb-2', getMediaWrapperClass(mediaPlacement, mediaAlign))}>
                     {iconElement}
                   </div>
                 )}
-                <div className={mediaPlacement === 'left' ? 'flex-1' : ''}>
+                <div className={cn("flex flex-col", mediaPlacement === 'left' ? 'flex-1' : getItemAlignClass(mediaAlign))}>
                   <span 
                     className="text-3xl font-bold mb-1 tracking-tight tabular-nums"
-                    style={{ color: brandColor }}
+                    style={{ color: colors.valueColor }}
                   >
                     {item.value}
                   </span>
-                  <h3 className="text-sm font-semibold text-slate-700">
+                  <h3 className="text-sm font-semibold" style={{ color: colors.labelColor }}>
                     {item.label}
                   </h3>
                   {mediaPlacement !== 'left' && (
@@ -2076,7 +2093,7 @@ function TestimonialsSection({ config, brandColor, secondary, mode, title }: { c
 // Partners: 6 Professional Styles (Grid, Marquee, Mono, Badge, Carousel, Featured)
 type GalleryStyle = 'spotlight' | 'explore' | 'stories' | 'grid' | 'marquee' | 'masonry' | 'mono' | 'badge' | 'carousel' | 'featured' | 'clean' | 'divider';
 type GalleryCornerRadius = 'none' | 'sm' | 'lg';
-type GalleryDesktopColumns = 3 | 4;
+type GalleryDesktopColumns = 3 | 4 | 6;
 
 function normalizeGalleryCornerRadius(value: unknown, noBorderRadius?: unknown): GalleryCornerRadius {
   if (noBorderRadius === true) {
@@ -2095,7 +2112,7 @@ function normalizeGalleryCornerRadius(value: unknown, noBorderRadius?: unknown):
 }
 
 function normalizeGalleryDesktopColumns(value: unknown): GalleryDesktopColumns {
-  return value === 3 ? 3 : 4;
+  return value === 3 ? 3 : value === 6 ? 6 : 4;
 }
 
 function getGalleryCornerRadiusClassName(value: GalleryCornerRadius): string {
@@ -2168,8 +2185,23 @@ const GalleryLightbox = ({
   onNavigate?: (direction: 'prev' | 'next') => void;
   colors: GalleryColorTokens;
 }) => {
+  const [mounted, setMounted] = React.useState(false);
   const originalBodyOverflowRef = React.useRef<string | null>(null);
   const isOpen = Boolean(photo?.url);
+  const [imageKey, setImageKey] = React.useState(0);
+  const touchStartRef = React.useRef<{ x: number; y: number } | null>(null);
+
+  React.useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  // Update imageKey on index change for transition
+  React.useEffect(() => {
+    if (typeof currentIndex === 'number') {
+      setImageKey(currentIndex);
+    }
+  }, [currentIndex]);
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -2195,20 +2227,40 @@ const GalleryLightbox = ({
     };
   }, [isOpen, onClose, onNavigate]);
 
-  if (!photo || !photo.url) {return null;}
+  if (!photo || !photo.url || !mounted) {return null;}
 
   const hasMultiple = photos && photos.length > 1 && onNavigate;
 
-  return (
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || !onNavigate) {return;}
+    const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+    // Only horizontal swipe if dx > 50px and more horizontal than vertical
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      onNavigate(dx < 0 ? 'next' : 'prev');
+    }
+  };
+
+  const lightboxContent = (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center animate-in fade-in duration-200"
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
       onClick={onClose}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
-      <div className="absolute inset-0 bg-slate-950" onClick={onClose} />
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/95 animate-in fade-in duration-300" />
+
+      {/* Close button */}
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 right-4 p-2 rounded-full border transition-colors z-[70]"
+        className="absolute top-3 right-3 md:top-5 md:right-5 w-11 h-11 md:w-12 md:h-12 rounded-full border flex items-center justify-center transition-all z-[10020] hover:scale-110"
         style={{
           backgroundColor: colors.lightboxControlBg,
           borderColor: colors.lightboxControlBorder,
@@ -2216,13 +2268,16 @@ const GalleryLightbox = ({
         }}
         aria-label="Đóng"
       >
-        <X size={24} />
+        <X size={22} />
       </button>
+
+      {/* Navigation arrows */}
       {hasMultiple && (
         <>
-          <button 
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onNavigate('prev'); }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full border flex items-center justify-center transition-colors z-[70]"
+            className="absolute left-2 md:left-5 top-1/2 -translate-y-1/2 w-11 h-11 md:w-12 md:h-12 rounded-full border flex items-center justify-center transition-all z-[10020] hover:scale-110 active:scale-95"
             style={{
               backgroundColor: colors.lightboxControlBg,
               borderColor: colors.lightboxControlBorder,
@@ -2230,11 +2285,12 @@ const GalleryLightbox = ({
             }}
             aria-label="Ảnh trước"
           >
-            <ChevronLeft size={24} />
+            <ChevronLeft size={26} />
           </button>
-          <button 
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onNavigate('next'); }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full border flex items-center justify-center transition-colors z-[70]"
+            className="absolute right-2 md:right-5 top-1/2 -translate-y-1/2 w-11 h-11 md:w-12 md:h-12 rounded-full border flex items-center justify-center transition-all z-[10020] hover:scale-110 active:scale-95"
             style={{
               backgroundColor: colors.lightboxControlBg,
               borderColor: colors.lightboxControlBorder,
@@ -2242,13 +2298,15 @@ const GalleryLightbox = ({
             }}
             aria-label="Ảnh sau"
           >
-            <ChevronRight size={24} />
+            <ChevronRight size={26} />
           </button>
         </>
       )}
+
+      {/* Counter */}
       {hasMultiple && typeof currentIndex === 'number' && (
         <div
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 text-sm z-[70] px-3 py-1 rounded-full border"
+          className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 text-sm z-[10020] px-4 py-1.5 rounded-full border font-medium"
           style={{
             backgroundColor: colors.lightboxCounterBg,
             color: colors.lightboxCounterText,
@@ -2258,16 +2316,26 @@ const GalleryLightbox = ({
           {currentIndex + 1} / {photos.length}
         </div>
       )}
-      <div className="relative z-[70] max-w-5xl w-full max-h-[90vh] p-4 flex flex-col items-center justify-center" onClick={e =>{  e.stopPropagation(); }}>
-        <SiteImage 
-          src={photo.url} 
-          alt="Lightbox" 
-          className="max-h-[90vh] max-w-full object-contain shadow-sm animate-in zoom-in-95 duration-300" 
+
+      {/* Image container — near fullscreen */}
+      <div
+        className="relative z-[10000] w-full h-full flex items-center justify-center px-14 md:px-20 py-16 md:py-14"
+        onClick={e => { e.stopPropagation(); onClose(); }}
+      >
+        <SiteImage
+          key={imageKey}
+          src={photo.url}
+          alt="Lightbox"
+          className="max-h-full max-w-full object-contain animate-in fade-in zoom-in-95 duration-300"
+          onClick={e => { e.stopPropagation(); }}
         />
       </div>
     </div>
   );
+
+  return createPortal(lightboxContent, document.body);
 };
+
 
 // ============ TRUST BADGES / CERTIFICATIONS SECTION ============
 // 6 Styles: grid, cards, stack, wall, carousel, seal
@@ -2456,7 +2524,7 @@ function TrustBadgesSection({
 
   const sharedHeader = <TrustBadgesSectionHeader brandColor={brandColor} config={headerConfig} fallbackSubtitle={headerConfig.subtitle} title={title} />;
 
-  const TrustCue = ({ compact = false }: { compact?: boolean }) => (
+  const renderTrustCue = (compact = false) => (
     <TrustBadgesTrustCue colors={colors} compact={compact} text={trustCueText} />
   );
 
@@ -2475,7 +2543,7 @@ function TrustBadgesSection({
                 className={cn('group relative flex min-h-[164px] flex-col overflow-hidden cursor-zoom-in transition-all duration-300 hover:-translate-y-0.5', radiusClassName)}
                 style={{ border: cardBorder, backgroundColor: colors.neutralSurface, boxShadow: '0 16px 40px rgba(15, 23, 42, 0.06)' }}
               >
-                <div className="absolute left-3 top-3 z-10"><TrustCue compact /></div>
+                <div className="absolute left-3 top-3 z-10">{renderTrustCue(true)}</div>
                 <div className={cn('flex flex-1 items-center justify-center p-5 pt-10', TRUST_BADGES_A4_ASPECT_CLASS)} style={{ backgroundColor: colors.neutralBackground }}>
                   {item.url ? (
                     <SiteImage src={item.url} className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-105" alt={item.name ?? ''} />
@@ -2537,7 +2605,7 @@ function TrustBadgesSection({
                 style={{ border: cardBorder, backgroundColor: colors.neutralSurface, boxShadow: '0 18px 45px rgba(15, 23, 42, 0.08)' }}
               >
                 <div className={cn(TRUST_BADGES_A4_ASPECT_CLASS, 'flex items-center justify-center p-5 md:p-6 relative overflow-hidden')} style={{ backgroundColor: colors.neutralBackground }}>
-                  <div className="absolute left-4 top-4 z-20"><TrustCue compact /></div>
+                  <div className="absolute left-4 top-4 z-20">{renderTrustCue(true)}</div>
                   {item.url ? (
                     <SiteImage src={item.url} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500 z-10" alt={item.name ?? ''} />
                   ) : (
@@ -2577,7 +2645,7 @@ function TrustBadgesSection({
           <div className={cn('grid items-stretch', compactStack ? 'gap-3 md:grid-cols-[0.46fr_1.9fr]' : 'gap-4 md:grid-cols-[0.82fr_1.35fr]')}>
             <div className={cn('flex h-full flex-col border bg-white shadow-sm', compactStack ? 'p-3' : 'p-4 md:p-5', radiusClassName)} style={{ borderColor: renderConfig.showBorder ? colors.neutralBorder : 'transparent', boxShadow: '0 18px 45px rgba(15, 23, 42, 0.06)' }}>
               <div className={compactStack ? 'mb-3' : 'mb-4'}>
-                <TrustCue />
+                {renderTrustCue()}
                 <p className={cn('mt-3 font-bold', compactStack ? 'text-sm' : 'text-base')} style={{ color: colors.heading }}>{stackHeading}</p>
                 <p className={cn('mt-2 text-xs', compactStack ? 'leading-4' : 'leading-5')} style={{ color: colors.mutedText }}>{stackDescription}</p>
               </div>
@@ -2641,7 +2709,7 @@ function TrustBadgesSection({
               >
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div className="h-1.5 w-10 rounded-full" style={{ backgroundColor: colors.sectionAccentBar }} />
-                  <TrustCue compact />
+                  {renderTrustCue(true)}
                 </div>
                 <div className={cn('flex items-center justify-center p-3 relative overflow-hidden', TRUST_BADGES_A4_ASPECT_CLASS, innerRadiusClassName)} style={{ backgroundColor: colors.neutralBackground, border: cardBorder }}>
                   {item.url ? (
@@ -2851,8 +2919,8 @@ function GallerySection({ config, brandColor, secondary, mode, title, type }: { 
   const galleryCornerRadius = normalizeGalleryCornerRadius(config.cornerRadius, config.noBorderRadius);
   const galleryRoundedClass = getGalleryCornerRadiusClassName(galleryCornerRadius);
   const galleryDesktopColumns = normalizeGalleryDesktopColumns(config.desktopColumns);
-  const galleryGridColumnsClass = galleryDesktopColumns === 3 ? 'grid-cols-3' : 'grid-cols-4';
-  const galleryMasonryColumnsClass = galleryDesktopColumns === 3 ? 'columns-3' : 'columns-4';
+  const galleryGridColumnsClass = galleryDesktopColumns === 3 ? 'grid-cols-3' : galleryDesktopColumns === 6 ? 'grid-cols-6' : 'grid-cols-4';
+  const galleryMasonryColumnsClass = galleryDesktopColumns === 3 ? 'columns-3' : galleryDesktopColumns === 6 ? 'columns-6' : 'columns-4';
 
   React.useEffect(() => {
     if (style !== 'marquee') {return;}
@@ -3023,7 +3091,7 @@ function GallerySection({ config, brandColor, secondary, mode, title, type }: { 
     if (normalizedItems.length === 0) {return renderGalleryEmptyState();}
 
     return (
-      <div className={cn('grid gap-3 grid-cols-3', galleryDesktopColumns === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4')}>
+      <div className={cn('grid gap-3 grid-cols-2 md:grid-cols-3', galleryDesktopColumns === 3 ? 'lg:grid-cols-3' : galleryDesktopColumns === 6 ? 'lg:grid-cols-6' : 'lg:grid-cols-4')}>
         {normalizedItems.map((photo) => (
           <div
             key={photo.id}
@@ -3310,7 +3378,7 @@ function GallerySection({ config, brandColor, secondary, mode, title, type }: { 
     const sectionSpacingClassName = getSectionSpacingClassName(config.noVerticalMargin === true ? 'none' : normalizeSectionSpacing(config.spacing));
     
     return (
-      <section className={cn('w-full', sectionSpacingClassName)} style={{ backgroundColor: colors.neutralSurface }}>
+      <section className={cn('w-full', sectionSpacingClassName)} style={{ backgroundColor: 'transparent' }}>
         <div className={cn(
           'mx-auto px-3',
           galleryFullWidth ? 'max-w-none' : 'max-w-7xl',
@@ -3360,9 +3428,9 @@ function GallerySection({ config, brandColor, secondary, mode, title, type }: { 
   // Extract header config for Partners
   const partnersHeaderConfig = extractSectionHeaderConfig(config);
 
-  const renderPartnersWithHeader = (content: React.ReactNode) => {
+  const renderPartnersWithHeader = (content: React.ReactNode, bgClass = 'bg-white', isDark = false) => {
     return (
-      <section className={cn('w-full bg-white px-3', getPartnersSectionSpacingClassName(partnersSpacing, 'siteOuter'))}>
+      <section className={cn('w-full px-3', bgClass, getPartnersSectionSpacingClassName(partnersSpacing, 'siteOuter'))}>
         <div className="mx-auto w-full max-w-7xl">
           {!partnersHeaderConfig.hideHeader && (
             <SectionHeader
@@ -3378,6 +3446,7 @@ function GallerySection({ config, brandColor, secondary, mode, title, type }: { 
               subtitleAboveTitle={partnersHeaderConfig.subtitleAboveTitle}
               uppercaseText={partnersHeaderConfig.uppercaseText}
               brandColor={brandColor}
+              className={cn(isDark && '[&_h2]:text-white [&_p]:text-slate-400 [&_span]:text-slate-400')}
             />
           )}
           {content}
@@ -3501,6 +3570,55 @@ function GallerySection({ config, brandColor, secondary, mode, title, type }: { 
           <SiteImage src={item.url} alt={item.name ?? 'Hình ảnh'} className={className} width={180} height={80} mode="logo" />
         )}
       />
+    );
+  }
+
+  if (style === 'glassLogoCloud') {
+    const normalizedItems = items.map((item, idx) => ({ ...item, id: idx }));
+    const logoColorMode = (config.logoColorMode as PartnersLogoColorMode) || 'grayscale';
+    const logoColorIntensity = normalizePartnersLogoColorIntensity(config.logoColorIntensity, logoColorMode);
+
+    return (
+      <div className="w-full bg-white">
+        {!partnersHeaderConfig.hideHeader && (
+          <div className={cn('mx-auto w-full max-w-7xl px-4 sm:px-6', partnersSpacing === 'none' ? 'pt-0' : partnersSpacing === 'compact' ? 'pt-4 md:pt-6' : 'pt-8 md:pt-12')}>
+            <SectionHeader
+              title={title}
+              subtitle={partnersHeaderConfig.subtitle}
+              badgeText={partnersHeaderConfig.badgeText}
+              hideHeader={partnersHeaderConfig.hideHeader}
+              showTitle={partnersHeaderConfig.showTitle}
+              showSubtitle={partnersHeaderConfig.showSubtitle}
+              showBadge={partnersHeaderConfig.showBadge}
+              headerAlign={partnersHeaderConfig.headerAlign}
+              titleColorPrimary={partnersHeaderConfig.titleColorPrimary}
+              subtitleAboveTitle={partnersHeaderConfig.subtitleAboveTitle}
+              uppercaseText={partnersHeaderConfig.uppercaseText}
+              brandColor={brandColor}
+            />
+          </div>
+        )}
+        <div className={cn('w-full bg-gradient-to-r from-zinc-950 via-zinc-900/90 to-zinc-950 border-t border-b border-zinc-800/80 z-20', getPartnersSectionSpacingClassName(partnersSpacing, 'glassLogoCloud', true))}>
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6">
+            <PartnersGlassLogoCloudShared
+              items={normalizedItems}
+              brandColor={brandColor}
+              secondary={secondary}
+              mode={mode}
+              cornerRadius={partnersCornerRadius}
+              logoSize={partnersLogoSize}
+              showBorder={partnersShowBorder}
+              spacing={partnersSpacing}
+              logoColorMode={logoColorMode}
+              logoColorIntensity={logoColorIntensity}
+              openInNewTab={false}
+              renderImage={(item, className) => (
+                <SiteImage src={item.url} alt={item.name ?? 'Hình ảnh'} className={className} width={180} height={80} mode="logo" />
+              )}
+            />
+          </div>
+        </div>
+      </div>
     );
   }
 

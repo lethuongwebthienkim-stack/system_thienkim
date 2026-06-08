@@ -1,6 +1,8 @@
 'use client';
 
 import React from 'react';
+import { useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
 import Link from 'next/link';
 import {
   Building2,
@@ -1020,6 +1022,225 @@ const renderCentered = ({
   );
 };
 
+const renderKanban = ({
+  info,
+  config,
+  tokens,
+  currentDevice,
+  activeSocials,
+  mapData,
+  sourcePath,
+  isPreview,
+  isDarkBg,
+}: {
+  info: ReturnType<typeof getInfo>;
+  config: ContactConfigState;
+  tokens: ContactColorTokens;
+  currentDevice: PreviewDevice;
+  activeSocials: ContactSocialLink[];
+  mapData?: ContactMapData;
+  sourcePath?: string;
+  isPreview: boolean;
+  isDarkBg: boolean;
+}) => {
+  const contactItems = getDisplayItems(config, isPreview);
+  const hasForm = Boolean(config.showForm);
+  const hasMap = Boolean(config.showMap);
+
+  // Tự động tính toán độ tương phản chữ (trắng/đen) trên nền màu primary của nút gửi
+  const color = (tokens.primary || '').trim();
+  let isPrimaryDark = false;
+  if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+    const r = Number.parseInt(color.slice(1, 3), 16);
+    const g = Number.parseInt(color.slice(3, 5), 16);
+    const b = Number.parseInt(color.slice(5, 7), 16);
+    const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    isPrimaryDark = luma < 128;
+  }
+
+  // Cấu hình tokens màu sắc cho style Kanban (đồng bộ thương hiệu, tối ưu độ tương phản nền tối)
+  const kanbanTokens = {
+    ...tokens,
+    valueText: isDarkBg ? '#ffffff' : '#18181b', // Màu chữ giá trị sáng rõ trên nền tối
+    labelText: isDarkBg ? '#a1a1aa' : '#52525b', // Màu chữ nhãn dễ đọc
+    iconTintColor: tokens.primary, // Icon mang màu thương hiệu
+    iconTintBackground: isDarkBg ? '#27272a' : '#f4f4f5',
+    primary: tokens.primary,
+    formBackground: 'transparent',
+    formBorder: isDarkBg ? '#27272a' : '#e4e4e7',
+    formFieldBackground: isDarkBg ? '#09090b' : '#ffffff',
+    formFieldText: isDarkBg ? '#ffffff' : '#09090b',
+    formFieldBorder: isDarkBg ? '#27272a' : '#e4e4e7',
+    formFieldPlaceholder: isDarkBg ? '#71717a' : '#a1a1aa',
+    formFieldFocus: tokens.primary, // Focus input sáng màu thương hiệu
+    formButtonBackground: tokens.primary, // Nút gửi mang màu chính thương hiệu thay vì trắng toát
+    formButtonText: isPrimaryDark ? '#ffffff' : '#09090b', // Tự động chọn chữ trắng hoặc đen
+    formButtonBorder: tokens.primary,
+    formTitle: isDarkBg ? '#ffffff' : '#09090b',
+    formDescription: isDarkBg ? '#a1a1aa' : '#52525b',
+    formHelperText: isDarkBg ? '#a1a1aa' : '#71717a',
+    formAccent: tokens.primary,
+    mapPlaceholderBg: isDarkBg ? '#18181b' : '#f4f4f5',
+    mapPlaceholderIcon: isDarkBg ? '#a1a1aa' : '#a1a1aa',
+  };
+
+  let columnsCount = 1;
+  if (hasForm) {
+    columnsCount++;
+  }
+  if (hasMap) {
+    columnsCount++;
+  }
+
+  const gridClass = isPreview
+    ? currentDevice === 'mobile'
+      ? 'grid-cols-1'
+      : columnsCount === 3
+        ? 'grid-cols-3'
+        : columnsCount === 2
+          ? 'grid-cols-2'
+          : 'grid-cols-1'
+    : columnsCount === 3
+      ? 'grid-cols-1 lg:grid-cols-3'
+      : columnsCount === 2
+        ? 'grid-cols-1 lg:grid-cols-2'
+        : 'grid-cols-1';
+
+  return (
+    <div
+      className="w-full p-4 border transition-colors duration-300 rounded-sm"
+      style={{
+        backgroundColor: isDarkBg ? 'rgba(9, 9, 11, 0.3)' : 'rgba(244, 244, 245, 0.4)',
+        borderColor: isDarkBg ? '#27272a' : '#e4e4e7',
+      }}
+    >
+      <div className={cn('grid gap-4 items-stretch', gridClass)}>
+        {/* Cột 1: Thông tin liên hệ */}
+        <div className="flex flex-col space-y-3">
+          <div className="border-b pb-1.5" style={{ borderColor: isDarkBg ? '#27272a' : '#e4e4e7' }}>
+            <span className="text-[10px] font-extrabold tracking-[0.15em] uppercase" style={{ color: isDarkBg ? '#a1a1aa' : '#71717a' }}>
+              {info.texts.badge || 'Thông tin liên hệ'}
+            </span>
+          </div>
+          <div className="space-y-2 flex-1">
+            {contactItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start gap-2.5 p-2.5 border rounded-sm transition-all duration-200 group border-l-[3px]"
+                style={{
+                  backgroundColor: isDarkBg ? '#18181b' : '#ffffff', // Nền xám sẫm đục giúp card nổi bật trên nền đen
+                  borderColor: isDarkBg ? '#27272a' : '#e4e4e7',
+                  borderLeftColor: tokens.primary, // Viền trái tag mang màu thương hiệu
+                }}
+              >
+                <div className="shrink-0 mt-0.5" style={{ color: kanbanTokens.primary }}>
+                  {renderContactIcon(item.icon, 14)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-bold text-[10px] uppercase tracking-wider mb-0.5" style={{ color: isDarkBg ? '#a1a1aa' : '#52525b' }}>{item.label}</h4>
+                  {renderItemValue(item, kanbanTokens, isPreview, 'text-xs font-semibold leading-relaxed')}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {activeSocials.length > 0 && (
+            <div className="pt-3 border-t" style={{ borderColor: isDarkBg ? '#27272a' : '#e4e4e7' }}>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {activeSocials.map((social, idx) => {
+                  const Icon = getSocialIconComponent(social.platform);
+                  const original = SOCIAL_ORIGINAL_COLORS[social.platform];
+                  const bg = original?.bg || (isDarkBg ? '#18181b' : '#ffffff');
+                  const border = original?.bg || (isDarkBg ? '#27272a' : '#e4e4e7');
+                  const color = original?.icon || (isDarkBg ? '#f4f4f5' : '#18181b');
+
+                  return (
+                    <a
+                      key={`${social.id}-${social.platform}-${idx}`}
+                      href={resolveSocialHref(social)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-7 h-7 rounded-sm border flex items-center justify-center transition-all duration-200 hover:scale-105 hover:opacity-95"
+                      style={{
+                        backgroundColor: bg,
+                        borderColor: border,
+                        color: color,
+                      }}
+                      aria-label={social.platform || 'social'}
+                    >
+                      <Icon size={12} />
+                    </a>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Cột 2: Form Inquiry */}
+        {hasForm && (
+          <div className="flex flex-col space-y-3">
+            <div className="border-b pb-1.5" style={{ borderColor: isDarkBg ? '#27272a' : '#e4e4e7' }}>
+              <span className="text-[10px] font-extrabold tracking-[0.15em] uppercase" style={{ color: isDarkBg ? '#a1a1aa' : '#71717a' }}>
+                {info.heading || 'Gửi yêu cầu'}
+              </span>
+            </div>
+            <div
+              className={cn(
+                "p-3 border rounded-sm flex-1",
+                " [&_input]:rounded-none [&_textarea]:rounded-none [&_button]:rounded-none [&_input]:text-xs [&_textarea]:text-xs [&_button]:text-xs",
+                " [&_input]:px-2.5 [&_textarea]:px-2.5 [&_input]:py-2 [&_textarea]:py-2 [&_button]:py-2.5",
+                isDarkBg 
+                  ? "[&_input]:bg-[#09090b] [&_textarea]:bg-[#09090b] [&_input]:border-zinc-800 [&_textarea]:border-zinc-800 [&_input]:text-zinc-100 [&_textarea]:text-zinc-100 hover:[&_button]:opacity-90 [&_svg]:hidden"
+                  : "[&_input]:bg-white [&_textarea]:bg-white [&_input]:border-zinc-200 [&_textarea]:border-zinc-200 [&_input]:text-zinc-900 [&_textarea]:text-zinc-900 hover:[&_button]:opacity-90 [&_svg]:hidden"
+              )}
+              style={{
+                backgroundColor: isDarkBg ? '#18181b' : '#ffffff', // Card form nổi bật
+                borderColor: isDarkBg ? '#27272a' : '#e4e4e7',
+              }}
+            >
+              <ContactInquiryForm
+                brandColor={kanbanTokens.primary}
+                secondaryColor={kanbanTokens.secondary}
+                title={undefined}
+                description={undefined}
+                submitLabel={info.submitLabel}
+                responseTimeText={info.responseText}
+                fields={config.formFields}
+                tokens={kanbanTokens}
+                sourcePath={sourcePath}
+                subjectFallback={info.subjectFallback}
+                withContainer={false}
+                isPreview={isPreview}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Cột 3: Bản đồ Map */}
+        {hasMap && (
+          <div className="flex flex-col space-y-3">
+            <div className="border-b pb-1.5" style={{ borderColor: isDarkBg ? '#27272a' : '#e4e4e7' }}>
+              <span className="text-[10px] font-extrabold tracking-[0.15em] uppercase" style={{ color: isDarkBg ? '#a1a1aa' : '#71717a' }}>
+                Bản đồ vị trí
+              </span>
+            </div>
+            <div
+              className="border rounded-sm flex-1 overflow-hidden relative min-h-[220px]"
+              style={{
+                borderColor: isDarkBg ? '#27272a' : '#e4e4e7',
+                backgroundColor: isDarkBg ? '#18181b' : '#ffffff', // Card bản đồ đồng nhất
+              }}
+            >
+              {renderMapOrPlaceholder({ mapData, fallbackEmbed: config.mapEmbed, tokens: kanbanTokens, className: 'absolute inset-0', isPreview })}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export function ContactSectionShared({
   config,
   style,
@@ -1036,7 +1257,33 @@ export function ContactSectionShared({
   const activeSocials = (config.socialLinks ?? []).filter((social) => social.url && social.url.trim().length > 0);
   const containerClass = getRootContainerClass(context, currentDevice);
 
+  const systemConfig = useQuery(api.homeComponentSystemConfig.getConfig);
+  const isDarkBg = React.useMemo(() => {
+    if (!systemConfig?.homePageBackground) {
+      return false;
+    }
+    const { type, customColor } = systemConfig.homePageBackground;
+    if (type === 'black') {
+      return true;
+    }
+    if (type === 'custom' && customColor) {
+      const color = customColor.trim();
+      if (/^#[0-9a-fA-F]{6}$/.test(color)) {
+        const r = Number.parseInt(color.slice(1, 3), 16);
+        const g = Number.parseInt(color.slice(3, 5), 16);
+        const b = Number.parseInt(color.slice(5, 7), 16);
+        const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        return luma < 128;
+      }
+    }
+    return false;
+  }, [systemConfig?.homePageBackground]);
+
   const content = (() => {
+    if (style === 'kanban') {
+      return renderKanban({ info, config, tokens, currentDevice, activeSocials, mapData, sourcePath, isPreview, isDarkBg });
+    }
+
     if (style === 'modern') {
       return renderModern({ info, config, tokens, currentDevice, activeSocials, mapData, sourcePath, isPreview });
     }

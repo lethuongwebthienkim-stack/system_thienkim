@@ -1333,3 +1333,66 @@ export const applyHomepageSnapshot = mutation({
   },
   returns: v.any(),
 });
+
+/**
+ * MIGRATION: Tách `payload` từ homeComponentSnapshots (legacy) sang homeComponentSnapshotPayloads.
+ * Chỉ chạy 1 lần trong quá trình nâng core — sau đó xóa `payload` optional khỏi schema (Contract phase).
+ * Quy trình: Expand → [Migrate này] → Contract (xóa payload optional trong schema.ts).
+ */
+export const migrateSnapshotPayloadsToSeparateTable = mutation({
+  args: {},
+  handler: async (ctx): Promise<{ migrated: number; skipped: number; errors: string[] }> => {
+    const snapshots = await ctx.db
+      .query('homeComponentSnapshots')
+      .withIndex('by_createdAt')
+      .collect();
+
+    let migrated = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (const snapshot of snapshots) {
+      // Kiểm tra nếu đã có payload row trong bảng riêng
+      const existingPayloadRow = await ctx.db
+        .query('homeComponentSnapshotPayloads')
+        .withIndex('by_snapshotId', (q) => q.eq('snapshotId', snapshot._id))
+        .unique();
+
+      const legacyPayload = (snapshot as Record<string, unknown>).payload;
+
+      if (!legacyPayload) {
+        // Không có payload cũ → bỏ qua
+        skipped++;
+        continue;
+      }
+
+      if (existingPayloadRow) {
+        // Đã migrate rồi → chỉ xóa payload cũ khỏi snapshot doc (as any vì field không còn trong schema)
+        await ctx.db.patch(snapshot._id, { payload: undefined } as any);
+        skipped++;
+        continue;
+      }
+
+      try {
+        // Insert payload vào bảng riêng
+        await ctx.db.insert('homeComponentSnapshotPayloads', {
+          snapshotId: snapshot._id,
+          payload: legacyPayload,
+        });
+        // Xóa field payload khỏi snapshot doc (as any vì field không còn trong schema)
+        await ctx.db.patch(snapshot._id, { payload: undefined } as any);
+        migrated++;
+      } catch (err) {
+        errors.push(`snapshot ${snapshot._id as string}: ${String(err)}`);
+      }
+    }
+
+    return { migrated, skipped, errors };
+  },
+  returns: v.object({
+    migrated: v.number(),
+    skipped: v.number(),
+    errors: v.array(v.string()),
+  }),
+});
+

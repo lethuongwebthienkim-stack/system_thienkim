@@ -566,9 +566,9 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
   ]);
 
   const hasChanges = useMemo(() => {
-    if (!initialSnapshotRef.current) {return false;}
+    if (!isDataLoaded || !initialSnapshotRef.current) {return false;}
     return JSON.stringify(initialSnapshotRef.current) !== JSON.stringify(currentSnapshot);
-  }, [currentSnapshot, snapshotVersion]);
+  }, [currentSnapshot, snapshotVersion, isDataLoaded]);
 
   useEffect(() => {
     if (saveStatus === 'saving') {return;}
@@ -693,7 +693,7 @@ function ProductEditContent({ params }: { params: Promise<{ id: string }> }) {
   };
 
   useEffect(() => {
-    if (productData && !isDataLoaded && optionsData !== undefined && valuesData !== undefined && variantsData !== undefined && assignedTermIdsData !== undefined) {
+    if (productData && !isDataLoaded && additionalCategoryIdsData !== undefined && optionsData !== undefined && valuesData !== undefined && variantsData !== undefined && assignedTermIdsData !== undefined) {
       if (enableProductTypes && productData.productTypeId && formConfig === undefined) {
         return;
       }

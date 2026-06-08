@@ -116,6 +116,7 @@ export default function ServiceEditPage({ params }: { params: Promise<{ id: stri
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editorResetKey, setEditorResetKey] = useState(0);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
   const selectedCategorySlug = useMemo(
     () => categoriesData?.find((category) => category._id === categoryId)?.slug,
     [categoriesData, categoryId]
@@ -275,9 +276,9 @@ export default function ServiceEditPage({ params }: { params: Promise<{ id: stri
   ]);
 
   const hasChanges = useMemo(() => {
-    if (!initialSnapshotRef.current) {return false;}
+    if (!isDataLoaded || !initialSnapshotRef.current) {return false;}
     return JSON.stringify(initialSnapshotRef.current) !== JSON.stringify(currentSnapshot);
-  }, [currentSnapshot, snapshotVersion]);
+  }, [currentSnapshot, snapshotVersion, isDataLoaded]);
 
   useEffect(() => {
     if (saveStatus === 'saving') {return;}
@@ -291,7 +292,7 @@ export default function ServiceEditPage({ params }: { params: Promise<{ id: stri
   }, [hasChanges, saveStatus]);
 
   useEffect(() => {
-    if (serviceData) {
+    if (serviceData && additionalCategoryIdsData !== undefined && !isDataLoaded) {
       setTitle(serviceData.title);
       setSlug(serviceData.slug);
       setContent(serviceData.content);
@@ -348,8 +349,9 @@ export default function ServiceEditPage({ params }: { params: Promise<{ id: stri
         title: serviceData.title.trim(),
       };
       setSnapshotVersion((prev) => prev + 1);
+      setIsDataLoaded(true);
     }
-  }, [serviceData, additionalCategoryIdsData, hasMarkdownRender, hasHtmlRender]);
+  }, [serviceData, additionalCategoryIdsData, hasMarkdownRender, hasHtmlRender, isDataLoaded]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
