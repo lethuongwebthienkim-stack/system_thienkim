@@ -3422,14 +3422,14 @@ function PremiumStyle({
                           key={combo.id || index}
                           onClick={handleComboClick}
                           className={cn(
-                            "flex flex-col justify-between transition-all cursor-pointer relative select-none shrink-0 flex-grow-0 border-2",
+                            "flex flex-col justify-between transition-all cursor-pointer relative select-none shrink-0 flex-grow-0 border-2 hover:scale-[1.01] active:scale-[0.99]",
                             cornerRadius === 'none' ? 'rounded-none' : cornerRadius === 'sm' ? 'rounded-lg' : 'rounded-xl',
                             (product.combos?.length ?? 0) > 2 ? "w-[calc(50%-8px)] md:w-[290px]" : "w-[calc(50%-8px)] md:w-[340px]"
                           )}
                           style={{
                             backgroundColor: tokens.surface,
                             borderColor: isSelected ? activeColor : isBestSeller ? '#f59e0b' : (tokens.border || '#e2e8f0'),
-                            boxShadow: isSelected ? `0 4px 12px ${activeColor}15` : undefined
+                            boxShadow: isSelected ? `0 6px 16px ${activeColor}18` : undefined
                           }}
                         >
                           {/* ★ BÁN CHẠY badge lệch lên trên bên phải */}
@@ -3446,30 +3446,25 @@ function PremiumStyle({
                             </div>
                           )}
 
-                          {/* Body của Card (Phần trên) */}
-                          <div className="pt-5 pb-4 pl-8 pr-2 md:pt-6 md:pb-5 md:pl-10 md:pr-3 flex flex-col items-center justify-center relative flex-1 text-center min-w-0">
-                            {/* Nút Radio chọn hoặc Check chọn nằm bên trái absolute */}
-                            <div className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 shrink-0 z-10">
-                              <div
-                                className="h-4 w-4 md:h-5 md:w-5 rounded-full flex items-center justify-center transition-all"
-                                style={{ 
-                                  border: isSelected ? 'none' : `1.5px solid ${activeColor}`,
-                                  backgroundColor: isSelected ? activeColor : 'transparent'
-                                }}
+                          {/* Body của Card (Phần trên) - Căn giữa đối xứng */}
+                          <div className="pt-6 pb-4 px-3 md:pt-7 md:pb-5 md:px-4 flex flex-col items-center justify-center relative flex-1 text-center min-w-0">
+                            {/* Badge Checkmark nhỏ ở góc trên bên phải khi được chọn */}
+                            {isSelected && (
+                              <div 
+                                className="absolute top-2 right-2 h-4 w-4 md:h-5 md:w-5 rounded-full flex items-center justify-center shadow-sm z-10"
+                                style={{ backgroundColor: activeColor }}
                               >
-                                {isSelected && (
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" className="h-2.5 w-2.5 md:h-3 md:w-3 text-white">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                )}
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" className="h-2.5 w-2.5 md:h-3 md:w-3 text-white">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
                               </div>
-                            </div>
+                            )}
 
-                            {/* Thông tin nội dung (Căn giữa hoàn toàn trong vùng đệm còn lại) */}
+                            {/* Thông tin nội dung (Căn giữa hoàn toàn) */}
                             <div className="flex-1 w-full space-y-1.5 flex flex-col items-center justify-center text-center">
                               {/* Badge tên combo tròn dẹt */}
                               <span
-                                className="inline-block px-2 py-0.5 md:px-3.5 md:py-1 text-[8.5px] xs:text-[9.5px] md:text-[11px] font-black rounded-full text-white uppercase tracking-wider leading-none shadow-sm whitespace-nowrap"
+                                className="inline-block px-2.5 py-0.5 md:px-3.5 md:py-1 text-[8.5px] xs:text-[9.5px] md:text-[11px] font-black rounded-full text-white uppercase tracking-wider leading-none shadow-sm whitespace-nowrap"
                                 style={{ backgroundColor: activeColor }}
                               >
                                 {cleanName}
