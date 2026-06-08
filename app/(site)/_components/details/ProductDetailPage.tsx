@@ -3424,7 +3424,7 @@ function PremiumStyle({
                           className={cn(
                             "flex flex-col justify-between transition-all cursor-pointer relative select-none shrink-0 flex-grow-0 border-2",
                             cornerRadius === 'none' ? 'rounded-none' : cornerRadius === 'sm' ? 'rounded-lg' : 'rounded-xl',
-                            (product.combos?.length ?? 0) > 2 ? "w-[260px] md:w-[290px]" : "flex-grow flex-shrink min-w-[240px] max-w-[340px]"
+                            (product.combos?.length ?? 0) > 2 ? "w-[calc(50%-8px)] md:w-[290px]" : "w-[calc(50%-8px)] md:w-[340px]"
                           )}
                           style={{
                             backgroundColor: tokens.surface,
@@ -3447,43 +3447,43 @@ function PremiumStyle({
                           )}
 
                           {/* Body của Card (Phần trên) */}
-                          <div className="pt-6 pb-5 pl-12 pr-12 flex flex-col items-center justify-center relative flex-1 text-center">
+                          <div className="pt-5 pb-4 pl-8 pr-2 md:pt-6 md:pb-5 md:pl-10 md:pr-3 flex flex-col items-center justify-center relative flex-1 text-center min-w-0">
                             {/* Nút Radio chọn hoặc Check chọn nằm bên trái absolute */}
-                            <div className="absolute left-4 top-1/2 -translate-y-1/2 shrink-0 z-10">
+                            <div className="absolute left-2 md:left-3 top-1/2 -translate-y-1/2 shrink-0 z-10">
                               <div
-                                className="h-5 w-5 rounded-full flex items-center justify-center transition-all"
+                                className="h-4 w-4 md:h-5 md:w-5 rounded-full flex items-center justify-center transition-all"
                                 style={{ 
                                   border: isSelected ? 'none' : `1.5px solid ${activeColor}`,
                                   backgroundColor: isSelected ? activeColor : 'transparent'
                                 }}
                               >
                                 {isSelected && (
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" className="h-3 w-3 text-white">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" className="h-2.5 w-2.5 md:h-3 md:w-3 text-white">
                                     <polyline points="20 6 9 17 4 12" />
                                   </svg>
                                 )}
                               </div>
                             </div>
 
-                            {/* Thông tin nội dung (Căn giữa hoàn toàn) */}
-                            <div className="flex-1 w-full space-y-2.5 flex flex-col items-center justify-center text-center">
+                            {/* Thông tin nội dung (Căn giữa hoàn toàn trong vùng đệm còn lại) */}
+                            <div className="flex-1 w-full space-y-1.5 flex flex-col items-center justify-center text-center">
                               {/* Badge tên combo tròn dẹt */}
                               <span
-                                className="inline-block px-3.5 py-1 text-[10px] md:text-[11px] font-black rounded-full text-white uppercase tracking-wider leading-none shadow-sm"
+                                className="inline-block px-2 py-0.5 md:px-3.5 md:py-1 text-[8.5px] xs:text-[9.5px] md:text-[11px] font-black rounded-full text-white uppercase tracking-wider leading-none shadow-sm whitespace-nowrap"
                                 style={{ backgroundColor: activeColor }}
                               >
                                 {cleanName}
                               </span>
 
                               {combo.description && (
-                                <p className="text-[11px] leading-snug font-medium text-slate-500 max-w-[90%] line-clamp-1">
+                                <p className="text-[9.5px] md:text-[11px] leading-snug font-medium text-slate-500 max-w-[95%] line-clamp-1">
                                   {combo.description}
                                 </p>
                               )}
 
                               {/* Giá tiền lớn đỏ thương hiệu */}
-                              <div className="leading-none py-1">
-                                <span className="text-2xl md:text-3xl font-black tracking-tight" style={{ color: activeColor }}>
+                              <div className="leading-none py-0.5">
+                                <span className="text-[16px] xs:text-[18px] md:text-2xl font-black tracking-tight whitespace-nowrap" style={{ color: activeColor }}>
                                   {comboPrice ? formatPrice(comboPrice) : 'Liên hệ'}
                                 </span>
                               </div>
@@ -3491,7 +3491,7 @@ function PremiumStyle({
                               {/* Box màu nhạt "Chi ~xxx/chai" hình viên thuốc */}
                               {avgPricePerBottle > 0 && (
                                 <div 
-                                  className="inline-block px-3 py-1 text-[10px] font-black rounded-full"
+                                  className="inline-block px-2.5 py-0.5 text-[8.5px] xs:text-[9.5px] md:text-[10px] font-black rounded-full whitespace-nowrap"
                                   style={{ 
                                     backgroundColor: isBestSeller ? '#fff3e0' : (brandColor ? `${brandColor}12` : '#ffebee'),
                                     color: activeColor
@@ -3506,7 +3506,7 @@ function PremiumStyle({
                           {/* Footer của Card (Phần dưới: Tiết kiệm) */}
                           <div 
                             className={cn(
-                              "px-4 py-3 border-t flex items-center justify-center text-[10px] font-medium",
+                              "px-2 py-2 md:px-3 md:py-2.5 border-t flex items-center justify-center text-[9px] xs:text-[10px] font-medium",
                               cornerRadius === 'none' ? 'rounded-b-none' : cornerRadius === 'sm' ? 'rounded-b-[6px]' : 'rounded-b-[10px]'
                             )} 
                             style={{ 
@@ -3515,20 +3515,20 @@ function PremiumStyle({
                               color: tokens.bodyText
                             }}
                           >
-                            <div className="flex items-center gap-2 justify-center text-center">
+                            <div className="flex items-center gap-1 md:gap-1.5 justify-center text-center">
                               {/* Icon heo đất hoặc hộp quà vẽ cực kì tinh tế */}
                               <span className="shrink-0">
                                 {isBestSeller ? (
-                                  <Gift size={18} className="shrink-0" style={{ color: '#d97706' }} />
+                                  <Gift className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" style={{ color: '#d97706' }} />
                                 ) : (
-                                  <PiggyBank size={18} className="shrink-0" style={{ color: brandColor || '#b91c1c' }} />
+                                  <PiggyBank className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" style={{ color: brandColor || '#b91c1c' }} />
                                 )}
                               </span>
                               <div className="text-left space-y-0.5">
-                                <p className="font-extrabold text-[11px] leading-tight" style={{ color: activeColor }}>
+                                <p className="font-extrabold text-[9px] xs:text-[10px] md:text-[11px] leading-tight whitespace-nowrap" style={{ color: activeColor }}>
                                   Tiết kiệm {savingAmount > 0 ? formatPrice(savingAmount) : 'nhiều hơn'}
                                 </p>
-                                <p className="text-[9px] opacity-75 leading-none font-semibold text-slate-500">so với mua lẻ</p>
+                                <p className="text-[7.5px] xs:text-[8.5px] md:text-[9px] opacity-75 leading-none font-semibold text-slate-500 whitespace-nowrap">so với mua lẻ</p>
                               </div>
                             </div>
                           </div>
