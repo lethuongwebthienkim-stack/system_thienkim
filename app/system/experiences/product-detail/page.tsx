@@ -999,12 +999,10 @@ export default function ProductDetailExperiencePage() {
           options={config.highlightsPosition === 'image_column'
             ? [
                 { label: 'Dính sát (Không khoảng cách)', value: 'none' },
-                { label: 'Ít (4px)', value: 'low' },
                 { label: 'Nhiều (Mặc định)', value: 'high' },
               ]
             : [
                 { label: 'Nhiều (Mặc định)', value: 'high' },
-                { label: 'Ít (Bằng một nửa)', value: 'low' },
                 { label: 'Bỏ (Không khoảng cách)', value: 'none' },
               ]
           }
