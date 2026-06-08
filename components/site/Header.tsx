@@ -951,29 +951,35 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
   };
 
   // Grouped List pattern (iOS Settings style):
-  // Tất cả items trong 1 card bo góc trắng, divider hairline rõ nét
+  // border-b trực tiếp trên item — reliable, không bị lệch như div height:1
   const renderMobileNodes = (nodes: MenuItemWithChildren[], layer: MobileLayerColors = lightMenuLayer): React.ReactNode => {
     if (nodes.length === 0) return null;
+    // Màu chevron: primary thương hiệu để user nhận ra ngay "có thể bấm vào"
+    const chevronColor = layer === darkGlassLayer ? 'rgba(255,255,255,0.7)' : tokens.primary;
     return (
       <div
-        className="rounded-xl border overflow-hidden"
-        style={{ backgroundColor: layer.bg, borderColor: layer.border }}
+        className="rounded-xl overflow-hidden"
+        style={{ backgroundColor: layer.bg, border: `1.5px solid ${layer.border}` }}
       >
         {nodes.map((node, idx) => {
           const hasChildren = node.children && node.children.length > 0;
           const isLast = idx === nodes.length - 1;
 
           return (
-            <div key={node._id}>
+            <div
+              key={node._id}
+              className={!isLast ? 'border-b' : ''}
+              style={!isLast ? { borderColor: layer.border } : {}}
+            >
               {hasChildren ? (
                 <button
                   type="button"
                   onClick={() => setMenuStack(prev => [...prev, node])}
-                  className="flex items-center justify-between w-full py-4 px-5 text-sm font-medium text-left transition-colors active:opacity-60"
+                  className="flex items-center justify-between w-full py-4 px-5 text-sm font-semibold text-left active:opacity-60"
                   style={{ color: layer.text, ...menuVars }}
                 >
                   <span>{node.label}</span>
-                  <ChevronRight size={15} className="opacity-35 shrink-0" />
+                  <ChevronRight size={18} className="shrink-0" style={{ color: chevronColor }} />
                 </button>
               ) : (
                 <Link
@@ -981,15 +987,11 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                   target={node.openInNewTab ? '_blank' : undefined}
                   rel={node.openInNewTab ? 'noreferrer' : undefined}
                   onClick={() => { setMobileMenuOpen(false); setMenuStack([]); }}
-                  className="block w-full py-4 px-5 text-sm font-medium transition-colors active:opacity-60"
+                  className="block w-full py-4 px-5 text-sm font-semibold active:opacity-60"
                   style={{ color: layer.text, ...menuVars }}
                 >
                   {node.label}
                 </Link>
-              )}
-              {/* Hairline divider — full width, ẩn ở item cuối */}
-              {!isLast && (
-                <div className="ml-5" style={{ height: 1, backgroundColor: layer.border }} />
               )}
             </div>
           );
