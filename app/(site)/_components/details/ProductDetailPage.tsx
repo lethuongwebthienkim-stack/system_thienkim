@@ -3016,7 +3016,20 @@ function PremiumStyle({
 
             {/* Highlights động từ cài đặt dưới ảnh sản phẩm */}
             {highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition !== 'info_column' && (
-              <div className="grid grid-cols-3 gap-2 border-t pt-4" style={{ borderColor: tokens.divider }}>
+              <div
+                className={
+                  highlightsSpacing === 'none'
+                    ? 'grid grid-cols-3 gap-2'
+                    : highlightsSpacing === 'low'
+                      ? 'grid grid-cols-3 gap-2 border-t pt-2'
+                      : 'grid grid-cols-3 gap-2 border-t pt-4'
+                }
+                style={
+                  highlightsSpacing === 'none'
+                    ? { marginTop: 0 }
+                    : { borderColor: tokens.divider }
+                }
+              >
                 {highlights.map((item, index) => {
                   const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || BadgeCheck;
                   return (
