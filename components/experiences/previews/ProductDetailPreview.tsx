@@ -812,19 +812,61 @@ export function ProductDetailPreview({
     return () => observer.disconnect();
   }, [layoutStyle]);
 
-  const renderHighlights = () => (
-    <div className="grid grid-cols-3 gap-4 p-4 rounded-xl" style={{ backgroundColor: tokens.highlightBg }}>
-      {highlightItems.map((item, index) => {
-        const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] ?? Star;
-        return (
-          <div key={`${item.icon}-${index}`} className="text-center">
-            <Icon size={24} className="mx-auto mb-2" style={{ color: tokens.highlightIcon }} />
-            <p className="text-xs" style={{ color: tokens.highlightText }}>{item.text}</p>
-          </div>
-        );
-      })}
-    </div>
-  );
+  const renderHighlights = (position: 'image_column' | 'info_column' = 'image_column') => {
+    if (highlightItems.length === 0) return null;
+    const isNoneSpacing = highlightsSpacing === 'none';
+    const isImageCol = position === 'image_column';
+    const isSingleImage = PREVIEW_IMAGES.length <= 1;
+
+    // Xác định class bo góc cho container highlights
+    let borderRadiusClass = 'rounded-2xl';
+    if (layoutStyle === 'minimal') {
+      borderRadiusClass = isNoneSpacing && isImageCol && isSingleImage ? 'rounded-b-sm rounded-t-none' : 'rounded-sm';
+    } else {
+      borderRadiusClass = isNoneSpacing && isImageCol && isSingleImage ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl';
+    }
+
+    // Padding & gap
+    const paddingClass = isNoneSpacing && isImageCol && isSingleImage ? 'p-3' : 'p-4';
+    const gapClass = isNoneSpacing ? 'gap-x-5 gap-y-2' : 'gap-x-6 gap-y-3';
+
+    return (
+      <div
+        className={`flex flex-wrap items-center justify-center ${gapClass} w-full ${borderRadiusClass} ${paddingClass} animate-fadeIn transition-all duration-300`}
+        style={{
+          backgroundColor: isNoneSpacing && isImageCol && isSingleImage
+            ? (tokens.highlightBg || tokens.surfaceMuted || 'rgba(0,0,0,0.02)')
+            : (tokens.highlightBg || 'transparent'),
+          border: isNoneSpacing && isImageCol && isSingleImage ? 'none' : `1px solid ${tokens.divider || 'rgba(0,0,0,0.08)'}`,
+          marginTop: isNoneSpacing ? 0 : undefined
+        }}
+      >
+        {highlightItems.map((item, index) => {
+          const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] ?? Star;
+          return (
+            <div
+              key={`${item.icon}-${index}`}
+              className="flex items-center gap-2 max-w-[200px]"
+            >
+              <div className="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-primary/5 dark:bg-primary/10">
+                <Icon
+                  size={14}
+                  className="stroke-[1.75]"
+                  style={{ color: tokens.primary }}
+                />
+              </div>
+              <span
+                className="text-[11px] md:text-xs font-semibold leading-tight line-clamp-2"
+                style={{ color: tokens.bodyText }}
+              >
+                {item.text}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   const renderPreviewDescriptionImages = () => {
     if (!showAllProductImagesSection || PREVIEW_IMAGES.length === 0) {
@@ -857,9 +899,17 @@ export function ProductDetailPreview({
           <>
             <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-8'}`}>
             <div className="space-y-3">
-              <div className={imageFrame.frameWidthClassName}>
+              <div className={`${imageFrame.frameWidthClassName} ${
+                showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                  ? 'mb-0'
+                  : 'mb-3 md:mb-4'
+              }`}>
                 <div
-                  className={`relative rounded-xl overflow-hidden ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                  className={`relative overflow-hidden ${
+                    showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                      ? 'rounded-t-xl rounded-b-none'
+                      : 'rounded-xl'
+                  } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                   style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                   role={canOpenLightbox ? 'button' : undefined}
                   tabIndex={canOpenLightbox ? 0 : -1}
@@ -925,8 +975,8 @@ export function ProductDetailPreview({
                 </>
               )}
               {showHighlightBlock && highlightsPosition === 'image_column' && (
-                <div className={`${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`}>
-                  {renderHighlights()}
+                <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
+                  {renderHighlights('image_column')}
                 </div>
               )}
             </div>
@@ -1048,8 +1098,8 @@ export function ProductDetailPreview({
               )}
 
               {showHighlightBlock && highlightsPosition !== 'image_column' && (
-                <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6 animate-fadeIn`}>
-                  {renderHighlights()}
+                <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6`}>
+                  {renderHighlights('info_column')}
                 </div>
               )}
             </div>
@@ -1109,9 +1159,17 @@ export function ProductDetailPreview({
                 {heroStyle === 'split' ? (
                   <div className={`overflow-hidden ${heroContainerClass}`} style={heroContainerStyle}>
                     <div className="grid md:grid-cols-2 gap-3 items-center p-3 md:p-5">
-                      <div className={imageFrame.frameWidthClassName}>
+                      <div className={`${imageFrame.frameWidthClassName} ${
+                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                          ? 'mb-0'
+                          : ''
+                      }`}>
                     <div
-                      className={`relative rounded-xl overflow-hidden ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                      className={`relative overflow-hidden ${
+                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                          ? 'rounded-t-xl rounded-b-none'
+                          : 'rounded-xl'
+                      } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                       style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                       role={canOpenLightbox ? 'button' : undefined}
                       tabIndex={canOpenLightbox ? 0 : -1}
@@ -1155,9 +1213,17 @@ export function ProductDetailPreview({
                 ) : (
                   <div className={`overflow-hidden ${heroContainerClass}`} style={heroContainerStyle}>
                     <div className={heroImageWrapperClass}>
-                  <div className={`${imageFrame.frameWidthClassName} overflow-hidden`}>
+                  <div className={`${imageFrame.frameWidthClassName} overflow-hidden ${
+                    showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                      ? 'mb-0'
+                      : ''
+                  }`}>
                     <div
-                      className={`relative overflow-hidden rounded-xl ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                      className={`relative overflow-hidden ${
+                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                          ? 'rounded-t-xl rounded-b-none'
+                          : 'rounded-xl'
+                      } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                       style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                       role={canOpenLightbox ? 'button' : undefined}
                       tabIndex={canOpenLightbox ? 0 : -1}
@@ -1215,8 +1281,8 @@ export function ProductDetailPreview({
                   </>
                 )}
                 {showHighlightBlock && highlightsPosition === 'image_column' && (
-                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`}>
-                    {renderHighlights()}
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
+                    {renderHighlights('image_column')}
                   </div>
                 )}
               </div>
@@ -1362,8 +1428,8 @@ export function ProductDetailPreview({
                 )}
 
                 {showHighlightBlock && highlightsPosition !== 'image_column' && (
-                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6 animate-fadeIn`}>
-                    {renderHighlights()}
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6`}>
+                    {renderHighlights('info_column')}
                   </div>
                 )}
               </div>
@@ -1427,10 +1493,18 @@ export function ProductDetailPreview({
                     </div>
                   )}
 
-                  <div className={`flex-1 ${imageFrame.frameWidthClassName}`}>
+                  <div className={`flex-1 ${imageFrame.frameWidthClassName} ${
+                    showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                      ? 'mb-0'
+                      : ''
+                  }`}>
                     <div
                       ref={mainImageRef}
-                      className={`relative w-full rounded-sm overflow-hidden ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                      className={`relative w-full overflow-hidden ${
+                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                          ? 'rounded-t-sm rounded-b-none'
+                          : 'rounded-sm'
+                      } group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                       style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                       role={canOpenLightbox ? 'button' : undefined}
                       tabIndex={canOpenLightbox ? 0 : -1}
@@ -1471,8 +1545,8 @@ export function ProductDetailPreview({
                   </div>
                 </div>
                 {showHighlightBlock && highlightsPosition === 'image_column' && (
-                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn w-full`}>
-                    {renderHighlights()}
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} w-full`}>
+                    {renderHighlights('image_column')}
                   </div>
                 )}
               </div>
@@ -1594,8 +1668,8 @@ export function ProductDetailPreview({
                 )}
 
                 {showHighlightBlock && highlightsPosition !== 'image_column' && (
-                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6 animate-fadeIn`}>
-                    {renderHighlights()}
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6`}>
+                    {renderHighlights('info_column')}
                   </div>
                 )}
 
@@ -1692,9 +1766,17 @@ export function ProductDetailPreview({
                   )}
 
                   {/* Ảnh chính */}
-                  <div className="flex-1">
+                  <div className={`flex-1 ${
+                    showHighlightBlock && highlightsPosition !== 'info_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                      ? 'mb-0'
+                      : ''
+                  }`}>
                     <div
-                      className={`relative rounded-2xl overflow-hidden ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                      className={`relative overflow-hidden ${
+                        showHighlightBlock && highlightsPosition !== 'info_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                          ? 'rounded-t-2xl rounded-b-none'
+                          : 'rounded-2xl'
+                      } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                       style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                       onClick={canOpenLightbox ? () => openLightboxAt(activeImageIndex) : undefined}
                       onKeyDown={handleLightboxKeyDown}
@@ -1758,29 +1840,8 @@ export function ProductDetailPreview({
 
                 {/* Highlights cài đặt dưới ảnh */}
                 {showHighlightBlock && highlightsPosition !== 'info_column' && (
-                  <div
-                    className={
-                      highlightsSpacing === 'none'
-                        ? 'grid grid-cols-3 gap-2'
-                        : highlightsSpacing === 'low'
-                          ? 'grid grid-cols-3 gap-2 border-t pt-2'
-                          : 'grid grid-cols-3 gap-2 border-t pt-4'
-                    }
-                    style={
-                      highlightsSpacing === 'none'
-                        ? { marginTop: 0 }
-                        : { borderColor: tokens.divider }
-                    }
-                  >
-                    {highlightItems.map((item, index) => {
-                      const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || Star;
-                      return (
-                        <div key={`${item.icon}-${index}`} className="flex flex-col items-center text-center p-2 rounded-xl" style={{ backgroundColor: tokens.surfaceMuted }}>
-                          <Icon size={18} style={{ color: tokens.primary }} />
-                          <span className="text-[10px] md:text-xs font-medium mt-1 line-clamp-1" style={{ color: tokens.bodyText }}>{item.text}</span>
-                        </div>
-                      );
-                    })}
+                  <div className="w-full">
+                    {renderHighlights('image_column')}
                   </div>
                 )}
               </div>
@@ -1969,16 +2030,8 @@ export function ProductDetailPreview({
                 )}
 
                 {showHighlightBlock && highlightsPosition === 'info_column' && (
-                  <div className={`grid grid-cols-3 gap-2 border-t pt-4 ${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`} style={{ borderColor: tokens.divider }}>
-                    {highlightItems.map((item, index) => {
-                      const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || Star;
-                      return (
-                        <div key={`${item.icon}-${index}`} className="flex flex-col items-center text-center p-2 rounded-xl" style={{ backgroundColor: tokens.surfaceMuted }}>
-                          <Icon size={18} style={{ color: tokens.primary }} />
-                          <span className="text-[10px] md:text-xs font-medium mt-1 line-clamp-1" style={{ color: tokens.bodyText }}>{item.text}</span>
-                        </div>
-                      );
-                    })}
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
+                    {renderHighlights('info_column')}
                   </div>
                 )}
               </div>

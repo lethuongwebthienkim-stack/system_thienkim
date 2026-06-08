@@ -1595,18 +1595,71 @@ function BlurredProductImage({ src, alt, sizes, fallbackSrc }: { src?: string | 
   );
 }
 
-function HighlightsGrid({ highlights, tokens }: { highlights: ClassicHighlightItem[]; tokens: ProductDetailColors }) {
-  if (highlights.length === 0) {
+function HighlightsGrid({
+  highlights,
+  tokens,
+  spacing,
+  layoutStyle = 'classic',
+  isSingleImage = false,
+  position = 'image_column'
+}: {
+  highlights: ClassicHighlightItem[];
+  tokens: ProductDetailColors;
+  spacing?: 'low' | 'high' | 'none';
+  layoutStyle?: 'classic' | 'modern' | 'minimal' | 'premium';
+  isSingleImage?: boolean;
+  position?: 'image_column' | 'info_column';
+}) {
+  if (!highlights || highlights.length === 0) {
     return null;
   }
+
+  const isNoneSpacing = spacing === 'none';
+  const isImageCol = position === 'image_column';
+  
+  // Xác định class bo góc cho container highlights
+  let borderRadiusClass = 'rounded-2xl';
+  if (layoutStyle === 'minimal') {
+    borderRadiusClass = isNoneSpacing && isImageCol && isSingleImage ? 'rounded-b-sm rounded-t-none' : 'rounded-sm';
+  } else {
+    borderRadiusClass = isNoneSpacing && isImageCol && isSingleImage ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl';
+  }
+
+  // Padding & gap
+  const paddingClass = isNoneSpacing && isImageCol && isSingleImage ? 'p-3' : 'p-4';
+  const gapClass = isNoneSpacing ? 'gap-x-5 gap-y-2' : 'gap-x-6 gap-y-3';
+  
   return (
-    <div className="grid grid-cols-3 gap-4 p-4 rounded-xl" style={{ backgroundColor: tokens.highlightBg }}>
+    <div
+      className={`flex flex-wrap items-center justify-center ${gapClass} w-full ${borderRadiusClass} ${paddingClass} animate-fadeIn transition-all duration-300`}
+      style={{
+        backgroundColor: isNoneSpacing && isImageCol && isSingleImage
+          ? (tokens.highlightBg || tokens.surfaceMuted || 'rgba(0,0,0,0.02)')
+          : (tokens.highlightBg || 'transparent'),
+        border: isNoneSpacing && isImageCol && isSingleImage ? 'none' : `1px solid ${tokens.divider || 'rgba(0,0,0,0.08)'}`,
+        marginTop: isNoneSpacing ? 0 : undefined
+      }}
+    >
       {highlights.map((item, index) => {
-        const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon];
+        const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || BadgeCheck;
         return (
-          <div key={`${item.icon}-${index}`} className="text-center">
-            <Icon size={24} className="mx-auto mb-2" style={{ color: tokens.highlightIcon }} />
-            <p className="text-xs" style={{ color: tokens.highlightText }}>{item.text}</p>
+          <div
+            key={`${item.icon}-${index}`}
+            className="flex items-center gap-2 max-w-[200px]"
+          >
+            <div className="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-primary/5 dark:bg-primary/10">
+              <Icon
+                size={14}
+                className="stroke-[1.75]"
+                style={{ color: tokens.primary }}
+              />
+            </div>
+            <span
+              className="text-[11px] md:text-xs font-semibold leading-tight line-clamp-2"
+              style={{ color: tokens.bodyText }}
+            >
+              {item.text}
+            </span>
           </div>
         );
       })}
@@ -2222,9 +2275,17 @@ function ClassicStyle({
         <div className="lg:grid lg:grid-cols-2 lg:gap-12">
           {/* Product Images */}
           <div className="mb-6 lg:mb-0">
-            <div className={`${imageFrame.frameWidthClassName} mb-3 md:mb-4 group/carousel relative`}>
+            <div className={`${imageFrame.frameWidthClassName} ${
+              highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                ? 'mb-0'
+                : 'mb-3 md:mb-4'
+            } group/carousel relative`}>
               <div
-                className={`relative rounded-2xl overflow-hidden ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                className={`relative overflow-hidden ${
+                  highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                    ? 'rounded-t-2xl rounded-b-none'
+                    : 'rounded-2xl'
+                } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                 style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                 role={canOpenLightbox ? 'button' : undefined}
                 tabIndex={canOpenLightbox ? 0 : -1}
@@ -2293,17 +2354,14 @@ function ClassicStyle({
               </>
             )}
             {highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && (
-              <div className={`grid grid-cols-3 gap-4 p-4 rounded-xl ${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`} style={{ backgroundColor: tokens.highlightBg }}>
-                {highlights.map((item, index) => {
-                  const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon];
-                  return (
-                    <div key={`${item.icon}-${index}`} className="text-center">
-                      <Icon size={24} className="mx-auto mb-2 animate-bounce-slow" style={{ color: tokens.highlightIcon }} />
-                      <p className="text-xs" style={{ color: tokens.highlightText }}>{item.text}</p>
-                    </div>
-                  );
-                })}
-              </div>
+              <HighlightsGrid
+                highlights={highlights}
+                tokens={tokens}
+                spacing={highlightsSpacing}
+                layoutStyle="classic"
+                isSingleImage={images.length <= 1}
+                position="image_column"
+              />
             )}
           </div>
 
@@ -2458,16 +2516,15 @@ function ClassicStyle({
             )}
 
             {highlightsEnabled && highlights.length > 0 && highlightsPosition !== 'image_column' && (
-              <div className={`grid grid-cols-3 gap-4 p-4 rounded-xl ${getHighlightsSpacingClass(highlightsSpacing)} mb-8 animate-fadeIn`} style={{ backgroundColor: tokens.highlightBg }}>
-                {highlights.map((item, index) => {
-                  const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon];
-                  return (
-                    <div key={`${item.icon}-${index}`} className="text-center">
-                      <Icon size={24} className="mx-auto mb-2" style={{ color: tokens.highlightIcon }} />
-                      <p className="text-xs" style={{ color: tokens.highlightText }}>{item.text}</p>
-                    </div>
-                  );
-                })}
+              <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-8`}>
+                <HighlightsGrid
+                  highlights={highlights}
+                  tokens={tokens}
+                  spacing={highlightsSpacing}
+                  layoutStyle="classic"
+                  isSingleImage={images.length <= 1}
+                  position="info_column"
+                />
               </div>
             )}
 
@@ -2941,9 +2998,17 @@ function PremiumStyle({
 
               {/* Ảnh chính */}
               <div className="flex-1">
-                <div className={`${imageFrame.frameWidthClassName} group/carousel relative`}>
+                <div className={`${imageFrame.frameWidthClassName} ${
+                  highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition !== 'info_column' && highlightsSpacing === 'none' && images.length <= 1
+                    ? 'mb-0'
+                    : ''
+                } group/carousel relative`}>
                   <div
-                    className={`relative rounded-2xl overflow-hidden ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                    className={`relative overflow-hidden ${
+                      highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition !== 'info_column' && highlightsSpacing === 'none' && images.length <= 1
+                        ? 'rounded-t-2xl rounded-b-none'
+                        : 'rounded-2xl'
+                    } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                     style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                     role={canOpenLightbox ? 'button' : undefined}
                     tabIndex={canOpenLightbox ? 0 : -1}
@@ -3016,30 +3081,14 @@ function PremiumStyle({
 
             {/* Highlights động từ cài đặt dưới ảnh sản phẩm */}
             {highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition !== 'info_column' && (
-              <div
-                className={
-                  highlightsSpacing === 'none'
-                    ? 'grid grid-cols-3 gap-2'
-                    : highlightsSpacing === 'low'
-                      ? 'grid grid-cols-3 gap-2 border-t pt-2'
-                      : 'grid grid-cols-3 gap-2 border-t pt-4'
-                }
-                style={
-                  highlightsSpacing === 'none'
-                    ? { marginTop: 0 }
-                    : { borderColor: tokens.divider }
-                }
-              >
-                {highlights.map((item, index) => {
-                  const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || BadgeCheck;
-                  return (
-                    <div key={`${item.icon}-${index}`} className="flex flex-col items-center text-center p-2.5 rounded-2xl" style={{ backgroundColor: tokens.surfaceMuted }}>
-                      <Icon size={20} style={{ color: tokens.primary }} />
-                      <span className="text-[10px] md:text-xs font-semibold mt-1 line-clamp-1" style={{ color: tokens.bodyText }}>{item.text}</span>
-                    </div>
-                  );
-                })}
-              </div>
+              <HighlightsGrid
+                highlights={highlights}
+                tokens={tokens}
+                spacing={highlightsSpacing}
+                layoutStyle="premium"
+                isSingleImage={images.length <= 1}
+                position="image_column"
+              />
             )}
           </div>
 
@@ -3367,16 +3416,15 @@ function PremiumStyle({
             )}
 
             {highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition === 'info_column' && (
-              <div className={`grid grid-cols-3 gap-2 border-t pt-4 ${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`} style={{ borderColor: tokens.divider }}>
-                {highlights.map((item, index) => {
-                  const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon] || BadgeCheck;
-                  return (
-                    <div key={`${item.icon}-${index}`} className="flex flex-col items-center text-center p-2.5 rounded-2xl" style={{ backgroundColor: tokens.surfaceMuted }}>
-                      <Icon size={20} style={{ color: tokens.primary }} />
-                      <span className="text-[10px] md:text-xs font-semibold mt-1 line-clamp-1" style={{ color: tokens.bodyText }}>{item.text}</span>
-                    </div>
-                  );
-                })}
+              <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
+                <HighlightsGrid
+                  highlights={highlights}
+                  tokens={tokens}
+                  spacing={highlightsSpacing}
+                  layoutStyle="premium"
+                  isSingleImage={images.length <= 1}
+                  position="info_column"
+                />
               </div>
             )}
           </div>
@@ -4267,9 +4315,17 @@ function ModernStyle({
             {heroStyle === 'split' ? (
               <div className={`overflow-hidden ${heroContainerClass}`} style={heroContainerStyle}>
                 <div className="grid md:grid-cols-2 gap-3 items-center p-3 md:p-5">
-                  <div className={imageFrame.frameWidthClassName}>
+                  <div className={`${imageFrame.frameWidthClassName} ${
+                    showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                      ? 'mb-0'
+                      : ''
+                  }`}>
                     <div
-                      className={`relative rounded-xl overflow-hidden group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                      className={`relative overflow-hidden ${
+                        showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                          ? 'rounded-t-xl rounded-b-none'
+                          : 'rounded-xl'
+                      } group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                       style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                       role={canOpenLightbox ? 'button' : undefined}
                       tabIndex={canOpenLightbox ? 0 : -1}
@@ -4334,9 +4390,17 @@ function ModernStyle({
             ) : (
               <div className={`overflow-hidden ${heroContainerClass}`} style={heroContainerStyle}>
                 <div className={heroImageWrapperClass}>
-                  <div className={imageFrame.frameWidthClassName}>
+                  <div className={`${imageFrame.frameWidthClassName} ${
+                    showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                      ? 'mb-0'
+                      : ''
+                  }`}>
                     <div
-                      className={`relative overflow-hidden rounded-xl group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                      className={`relative overflow-hidden ${
+                        showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                          ? 'rounded-t-xl rounded-b-none'
+                          : 'rounded-xl'
+                      } group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                       style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                       role={canOpenLightbox ? 'button' : undefined}
                       tabIndex={canOpenLightbox ? 0 : -1}
@@ -4418,9 +4482,14 @@ function ModernStyle({
               </>
             )}
             {showHighlights && highlightsPosition === 'image_column' && (
-              <div className={`${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`}>
-                <HighlightsGrid highlights={highlights} tokens={tokens} />
-              </div>
+              <HighlightsGrid
+                highlights={highlights}
+                tokens={tokens}
+                spacing={highlightsSpacing}
+                layoutStyle="modern"
+                isSingleImage={images.length <= 1}
+                position="image_column"
+              />
             )}
           </div>
 
@@ -4579,8 +4648,15 @@ function ModernStyle({
             )}
 
             {showHighlights && highlightsPosition !== 'image_column' && (
-              <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6 animate-fadeIn`}>
-                <HighlightsGrid highlights={highlights} tokens={tokens} />
+              <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6`}>
+                <HighlightsGrid
+                  highlights={highlights}
+                  tokens={tokens}
+                  spacing={highlightsSpacing}
+                  layoutStyle="modern"
+                  isSingleImage={images.length <= 1}
+                  position="info_column"
+                />
               </div>
             )}
           </div>
@@ -4972,10 +5048,18 @@ function MinimalStyle({
                   </div>
                 )}
 
-                <div className={`flex-1 ${imageFrame.frameWidthClassName}`}>
+                <div className={`flex-1 ${imageFrame.frameWidthClassName} ${
+                  showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                    ? 'mb-0'
+                    : ''
+                }`}>
                   <div
                     ref={mainImageRef}
-                    className={`relative w-full rounded-sm overflow-hidden group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                    className={`relative w-full overflow-hidden ${
+                      showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                        ? 'rounded-t-sm rounded-b-none'
+                        : 'rounded-sm'
+                    } group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                     style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                     role={canOpenLightbox ? 'button' : undefined}
                     tabIndex={canOpenLightbox ? 0 : -1}
@@ -5037,9 +5121,14 @@ function MinimalStyle({
                 </div>
               </div>
               {showHighlights && highlightsPosition === 'image_column' && (
-                <div className={`${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn w-full`}>
-                  <HighlightsGrid highlights={highlights} tokens={tokens} />
-                </div>
+                <HighlightsGrid
+                  highlights={highlights}
+                  tokens={tokens}
+                  spacing={highlightsSpacing}
+                  layoutStyle="minimal"
+                  isSingleImage={images.length <= 1}
+                  position="image_column"
+                />
               )}
             </div>
           </div>
@@ -5172,8 +5261,15 @@ function MinimalStyle({
             )}
 
             {showHighlights && highlightsPosition !== 'image_column' && (
-              <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6 animate-fadeIn`}>
-                <HighlightsGrid highlights={highlights} tokens={tokens} />
+              <div className={`${getHighlightsSpacingClass(highlightsSpacing)} mb-6`}>
+                <HighlightsGrid
+                  highlights={highlights}
+                  tokens={tokens}
+                  spacing={highlightsSpacing}
+                  layoutStyle="minimal"
+                  isSingleImage={images.length <= 1}
+                  position="info_column"
+                />
               </div>
             )}
           </div>
