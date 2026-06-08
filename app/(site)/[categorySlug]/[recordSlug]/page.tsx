@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 import { api } from '@/convex/_generated/api';
 import { getConvexClient } from '@/lib/convex';
-import ProductDetailPage from './_components/ProductDetailPage';
-import PostDetailPage from './_components/PostDetailPage';
-import ServiceDetailPage from './_components/ServiceDetailPage';
+import ProductDetailPage from '@/app/(site)/_components/details/ProductDetailPage';
+import PostDetailPage from '@/app/(site)/_components/details/PostDetailPage';
+import ServiceDetailPage from '@/app/(site)/_components/details/ServiceDetailPage';
 import CourseDetailPage from '@/app/(site)/_components/courses/CourseDetailPage';
 import ResourceDetailPage from '@/app/(site)/_components/resources/ResourceDetailPage';
 import ProjectDetailPage from '@/app/(site)/projects/[slug]/page';
