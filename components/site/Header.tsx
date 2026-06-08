@@ -9,7 +9,7 @@ import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
 import { useBrandColors, useSiteSettings } from './hooks';
 import dynamic from 'next/dynamic';
-import { ChevronDown, ChevronRight, Heart, LogOut, Mail, Package, Phone, Search, User } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Mail, Package, Phone, Search, User, X } from 'lucide-react';
 import { CartIcon } from './CartIcon';
 import { useCustomerAuth } from '@/app/(site)/auth/context';
 import { getMenuColors, resolveMenuLayerColors, type MenuColors, type MenuLayerColorConfig } from './header/colors';
@@ -416,12 +416,12 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
       };
   
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [menuStack, setMenuStack] = useState<MenuItemWithChildren[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [activeLevel3Id, setActiveLevel3Id] = useState<string | null>(null);
   const [activeLevel4Id, setActiveLevel4Id] = useState<string | null>(null);
-  const [expandedMobileItems, setExpandedMobileItems] = useState<string[]>([]);
   const [visibleRootCount, setVisibleRootCount] = useState<number | null>(null);
   const [dropdownAlign, setDropdownAlign] = useState<Record<string, DropdownAlign>>({});
   const [flyoutDirection, setFlyoutDirection] = useState<Record<string, 'left' | 'right'>>({});
@@ -672,14 +672,14 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
   const showTopbarEmail = Boolean(topbarConfig.show !== false && (topbarConfig.showEmail ?? true) && topbarConfig.email);
 
 
-  const toggleMobileItem = (id: string) => {
-    setExpandedMobileItems(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
-  };
 
   const handleMobileMenuToggle = useCallback(() => {
-    setMobileMenuOpen(prev => !prev);
+    setMobileMenuOpen(prev => {
+      if (prev) {
+        setMenuStack([]);
+      }
+      return !prev;
+    });
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -928,79 +928,114 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
     );
   });
 
-  const renderMobileNodes = (nodes: MenuItemWithChildren[], parentKey = 'root', level = 1): React.ReactNode => nodes.map((node) => {
-    const nodeKey = `${parentKey}-${node._id}`;
-    const isExpanded = expandedMobileItems.includes(nodeKey);
-
-    // Dynamic backgrounds adapted to level and brand tokens
-    const cardBgColor = level === 1 ? tokens.surface : tokens.surfaceAlt;
+  const renderMobileNodes = (nodes: MenuItemWithChildren[], isDarkGlass = false): React.ReactNode => nodes.map((node) => {
+    const hasChildren = node.children && node.children.length > 0;
+    const textColor = isDarkGlass ? '#ffffff' : tokens.mobileMenuItemText;
+    const cardBg = isDarkGlass ? 'rgba(255, 255, 255, 0.05)' : tokens.surface;
+    const borderColor = isDarkGlass ? 'rgba(255, 255, 255, 0.1)' : tokens.border;
 
     return (
       <div key={node._id} className="mb-2 last:mb-0">
         <div 
           className="rounded-xl border transition-colors overflow-hidden flex items-stretch"
           style={{ 
-            backgroundColor: cardBgColor, 
-            borderColor: tokens.border 
+            backgroundColor: cardBg, 
+            borderColor 
           }}
         >
-          {node.children.length > 0 ? (
-            <>
-              <Link
-                href={node.url}
-                target={node.openInNewTab ? '_blank' : undefined}
-                rel={node.openInNewTab ? 'noreferrer' : undefined}
-                onClick={() => { setMobileMenuOpen(false); }}
-                className="flex-1 py-3 px-4 text-sm font-semibold transition-colors hover:opacity-80"
-                style={{ color: tokens.mobileMenuItemText, ...menuVars }}
-              >
-                {node.label}
-              </Link>
-              <div 
-                className="w-[1px] self-stretch" 
-                style={{ backgroundColor: tokens.border }}
-              />
-              <button
-                type="button"
-                aria-label={`Mở menu con ${node.label}`}
-                aria-expanded={isExpanded}
-                aria-controls={`mobile-menu-${nodeKey}`}
-                onClick={(event) => {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  toggleMobileItem(nodeKey);
-                }}
-                className="w-12 flex items-center justify-center transition-colors hover:opacity-75 shrink-0"
-                style={{ color: tokens.mobileMenuItemText, ...menuVars }}
-              >
-                <ChevronDown size={14} className={cn('transition-transform duration-300', isExpanded && 'rotate-180')} />
-              </button>
-            </>
+          {hasChildren ? (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuStack(prev => [...prev, node]);
+              }}
+              className="flex-grow flex items-center justify-between py-3.5 px-5 text-sm font-semibold transition-colors hover:opacity-85 text-left w-full"
+              style={{ color: textColor, ...menuVars }}
+            >
+              <span>{node.label}</span>
+              <ChevronRight size={16} className="opacity-60" />
+            </button>
           ) : (
             <Link
               href={node.url}
               target={node.openInNewTab ? '_blank' : undefined}
               rel={node.openInNewTab ? 'noreferrer' : undefined}
-              onClick={() => { setMobileMenuOpen(false); }}
-              className="block w-full py-3 px-4 text-sm font-semibold transition-colors hover:opacity-80"
-              style={{ color: tokens.mobileMenuItemText, ...menuVars }}
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setMenuStack([]);
+              }}
+              className="block w-full py-3.5 px-5 text-sm font-semibold transition-colors hover:opacity-80"
+              style={{ color: textColor, ...menuVars }}
             >
               {node.label}
             </Link>
           )}
         </div>
-        {node.children.length > 0 && isExpanded && (
-          <div 
-            id={`mobile-menu-${nodeKey}`} 
-            className="mt-2 ml-4 pl-4 border-l space-y-2 pb-2 transition-all duration-300"
-            style={{ borderColor: tokens.border }}
-          >
-            {renderMobileNodes(node.children, nodeKey, level + 1)}
-          </div>
-        )}
       </div>
     );
   });
+
+  const renderMobileMenuContent = (isDarkGlass = false) => {
+    const currentNode = menuStack[menuStack.length - 1] || null;
+    const displayItems = currentNode ? currentNode.children : menuTree;
+    const textColor = isDarkGlass ? '#ffffff' : tokens.mobileMenuItemText;
+    const borderColor = isDarkGlass ? 'rgba(255, 255, 255, 0.1)' : tokens.border;
+
+    return (
+      <div className="flex flex-col h-full w-full">
+        {/* Drill-down Submenu Header */}
+        {menuStack.length > 0 && (
+          <div className="flex items-center justify-between border-b px-4 py-3 bg-black/[0.01] dark:bg-white/[0.01]" style={{ borderColor }}>
+            <button 
+              onClick={() => setMenuStack(prev => prev.slice(0, -1))} 
+              className="p-2 -ml-2 hover:opacity-75 flex items-center justify-center shrink-0"
+              style={{ color: textColor }}
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <span className="font-bold text-sm flex-1 text-center truncate px-2" style={{ color: textColor }}>
+              {currentNode?.label}
+            </span>
+            <button 
+              onClick={() => { setMobileMenuOpen(false); setMenuStack([]); }} 
+              className="p-2 -mr-2 hover:opacity-75 flex items-center justify-center shrink-0"
+              style={{ color: textColor }}
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
+        
+        {/* Menu list */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[70vh]">
+          {currentNode && (
+            <div className="mb-2">
+              <div 
+                className="rounded-xl border transition-colors overflow-hidden"
+                style={{ 
+                  backgroundColor: isDarkGlass ? 'rgba(255, 255, 255, 0.12)' : tokens.primary, 
+                  borderColor: isDarkGlass ? 'rgba(255, 255, 255, 0.2)' : tokens.primary 
+                }}
+              >
+                <Link
+                  href={currentNode.url}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setMenuStack([]);
+                  }}
+                  className="block w-full py-3.5 px-5 text-sm font-bold transition-colors hover:opacity-90 text-center"
+                  style={{ color: isDarkGlass ? '#ffffff' : tokens.textInverse }}
+                >
+                  Xem tất cả {currentNode.label}
+                </Link>
+              </div>
+            </div>
+          )}
+          {renderMobileNodes(displayItems, isDarkGlass)}
+        </div>
+      </div>
+    );
+  };
 
   // Classic Style
   if (headerStyle === 'classic') {
@@ -1491,12 +1526,12 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t" style={{ borderColor: tokens.border, backgroundColor: tokens.mobileMenuBg }}>
-            {renderMobileNodes(menuTree)}
+            {renderMobileMenuContent(false)}
             {config.cta?.show && (
-              <div className="p-4">
+              <div className="p-4 border-t" style={{ borderColor: tokens.border }}>
               <Link 
                   href={ctaHref} 
-                  onClick={() =>{  setMobileMenuOpen(false); }}
+                  onClick={() =>{  setMobileMenuOpen(false); setMenuStack([]); }}
                   className="block w-full py-2.5 text-sm font-medium rounded-lg text-center" 
                   style={{ backgroundColor: tokens.ctaBg, color: tokens.ctaText }}
                 >
@@ -1864,12 +1899,12 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         {/* Mobile Menu */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
-            {renderMobileNodes(menuTree)}
+            {renderMobileMenuContent(false)}
             {config.cta?.show && (
-              <div className="p-4">
+              <div className="p-4 border-t" style={{ borderColor: tokens.border }}>
                 <Link
                   href={ctaHref}
-                  onClick={() =>{  setMobileMenuOpen(false); }}
+                  onClick={() =>{  setMobileMenuOpen(false); setMenuStack([]); }}
                   className="block w-full py-2.5 text-sm font-medium rounded-lg text-center"
                   style={{ backgroundColor: tokens.ctaBg, color: tokens.ctaText }}
                 >
@@ -2324,30 +2359,31 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         {mobileMenuOpen && (
           <div className="fixed inset-0 z-50 lg:hidden flex justify-end bg-black/60 backdrop-blur-sm">
             <div className="w-4/5 max-w-[320px] h-full bg-black/95 backdrop-blur-md border-l border-white/10 shadow-2xl flex flex-col">
-              <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                {renderDarkGlassLogo(40)}
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="text-white p-1"
-                >
-                  ✕
-                </button>
+              {menuStack.length === 0 ? (
+                <div className="p-6 border-b border-white/10 flex items-center justify-between">
+                  {renderDarkGlassLogo(40)}
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); setMenuStack([]); }}
+                    className="text-white p-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : null}
+              <div className="flex-1 overflow-y-auto py-2">
+                {renderMobileMenuContent(true)}
               </div>
-              <div className="flex-1 overflow-y-auto py-4">
-                {renderMobileNodes(menuTree)}
-                {config.cta?.show && (
-                  <div className="p-4">
-                    <Link
-                      href={ctaHref}
-                      onClick={() => { setMobileMenuOpen(false); }}
-                      className="block w-full py-2.5 text-sm font-semibold rounded-full text-center bg-white text-black hover:bg-gray-100 transition-colors"
-                    >
-                      {config.cta.text ?? 'Liên hệ'}
-                    </Link>
-                  </div>
-                )}
-
-              </div>
+              {config.cta?.show && (
+                <div className="p-4 border-t border-white/10">
+                  <Link
+                    href={ctaHref}
+                    onClick={() => { setMobileMenuOpen(false); setMenuStack([]); }}
+                    className="block w-full py-2.5 text-sm font-semibold rounded-full text-center bg-white text-black hover:bg-gray-100 transition-colors"
+                  >
+                    {config.cta.text ?? 'Liên hệ'}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -2746,12 +2782,12 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
 
         {mobileMenuOpen && (
           <div className="lg:hidden border-t" style={{ borderColor: tokens.border, backgroundColor: tokens.mobileMenuBg }}>
-            {renderMobileNodes(menuTree)}
+            {renderMobileMenuContent(false)}
             {config.cta?.show && (
-              <div className="p-4">
+              <div className="p-4 border-t" style={{ borderColor: tokens.border }}>
                 <Link
                   href={ctaHref}
-                  onClick={() => { setMobileMenuOpen(false); }}
+                  onClick={() => { setMobileMenuOpen(false); setMenuStack([]); }}
                   className="block w-full py-2.5 text-sm font-medium rounded-lg text-center"
                   style={{ backgroundColor: tokens.ctaBg, color: tokens.ctaText }}
                 >
