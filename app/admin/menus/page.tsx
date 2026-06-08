@@ -474,7 +474,7 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
             label: pt.name,
             reasons: ['Loại sản phẩm'],
             score: 89 - ptIndex,
-            url: `/products?type=${pt.slug}`
+            url: `/${pt.slug}`
           });
 
           if (maxChildDepth >= 2) {
@@ -486,7 +486,7 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
                 label: cat.name,
                 reasons: [`Danh mục thuộc ${pt.name}`],
                 score: 80 - catIndex,
-                url: buildCategoryPath({ categorySlug: cat.slug, mode: routeMode, moduleKey: 'products' })
+                url: `/${pt.slug}/${cat.slug}`
               });
             });
 
@@ -499,7 +499,7 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
                 label: group.name,
                 reasons: [`Bộ lọc đặc biệt của ${pt.name}`],
                 score: 70 - groupIndex,
-                url: `/products?type=${pt.slug}&${group.code}=all`
+                url: `/${pt.slug}/${group.slug}`
               });
 
               if (maxChildDepth >= 3) {
@@ -510,7 +510,7 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
                     label: term.name,
                     reasons: [`Giá trị của ${group.name}`],
                     score: 60 - termIndex,
-                    url: `/products?type=${pt.slug}&${group.code}=${term.slug}`
+                    url: `/${pt.slug}/${group.slug}/${term.slug}`
                   });
                 });
               }
@@ -522,7 +522,7 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
                 label: 'Mức giá',
                 reasons: [`Khoảng giá của ${pt.name}`],
                 score: 50,
-                url: `/products?type=${pt.slug}&price=all`
+                url: `/${pt.slug}`
               });
               if (maxChildDepth >= 3) {
                 pt.priceRanges.forEach((range, rangeIndex) => {
@@ -531,7 +531,7 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
                     label: range.label,
                     reasons: [`Mức giá`],
                     score: 40 - rangeIndex,
-                    url: `/products?type=${pt.slug}&price=${range.slug}`
+                    url: `/${pt.slug}/${range.slug}`
                   });
                 });
               }
@@ -547,7 +547,7 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
           label: group.name,
           reasons: ['Bộ lọc đặc biệt'],
           score: 85 - idx,
-          url: `/products?${group.code}=all`
+          url: `/products/${group.slug}`
         });
       });
 
