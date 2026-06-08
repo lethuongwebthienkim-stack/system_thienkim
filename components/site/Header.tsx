@@ -928,20 +928,25 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
     );
   });
 
-  const renderMobileNodes = (nodes: MenuItemWithChildren[], parentKey = 'root'): React.ReactNode => nodes.map((node) => {
+  const renderMobileNodes = (nodes: MenuItemWithChildren[], parentKey = 'root', level = 1): React.ReactNode => nodes.map((node) => {
     const nodeKey = `${parentKey}-${node._id}`;
     const isExpanded = expandedMobileItems.includes(nodeKey);
 
     return (
-      <div key={node._id}>
+      <div 
+        key={node._id}
+        className={cn(
+          level === 1 && "border-b border-black/[0.03] dark:border-white/[0.03] last:border-b-0"
+        )}
+      >
         {node.children.length > 0 ? (
-          <div className="w-full px-6 py-3 text-left flex items-center justify-between text-sm font-medium transition-colors hover:bg-[var(--menu-dropdown-hover-bg)]">
+          <div className="w-full text-left flex items-center justify-between transition-colors hover:bg-[var(--menu-dropdown-hover-bg)]">
             <Link
               href={node.url}
               target={node.openInNewTab ? '_blank' : undefined}
               rel={node.openInNewTab ? 'noreferrer' : undefined}
               onClick={() => { setMobileMenuOpen(false); }}
-              className="flex-1 transition-colors hover:text-[var(--menu-hover-text)]"
+              className="flex-1 py-3.5 pl-6 pr-2 text-sm font-medium transition-colors hover:text-[var(--menu-hover-text)]"
               style={{ color: tokens.mobileMenuItemText, ...menuVars }}
             >
               {node.label}
@@ -956,10 +961,10 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                 event.stopPropagation();
                 toggleMobileItem(nodeKey);
               }}
-              className="ml-3 flex items-center justify-center"
+              className="w-11 h-11 flex items-center justify-center rounded-lg bg-black/[0.03] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors mr-4 shrink-0"
               style={{ color: tokens.mobileMenuItemText, ...menuVars }}
             >
-              <ChevronDown size={16} className={cn('transition-transform', isExpanded && 'rotate-180')} />
+              <ChevronDown size={14} className={cn('transition-transform duration-300', isExpanded && 'rotate-180')} />
             </button>
           </div>
         ) : (
@@ -968,7 +973,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
             target={node.openInNewTab ? '_blank' : undefined}
             rel={node.openInNewTab ? 'noreferrer' : undefined}
             onClick={() => { setMobileMenuOpen(false); }}
-            className="block w-full px-6 py-3 text-left text-sm font-medium transition-colors hover:bg-[var(--menu-dropdown-hover-bg)] hover:text-[var(--menu-hover-text)]"
+            className="block w-full py-3.5 pl-6 pr-6 text-left text-sm font-medium transition-colors hover:bg-[var(--menu-dropdown-hover-bg)] hover:text-[var(--menu-hover-text)]"
             style={{ color: tokens.mobileMenuItemText, ...menuVars }}
           >
             {node.label}
@@ -976,8 +981,13 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         )}
         {node.children.length > 0 && isExpanded && (
           <div id={`mobile-menu-${nodeKey}`} style={{ backgroundColor: tokens.surface }}>
-            <div className="border-l-2 ml-6" style={{ borderColor: tokens.mobileMenuSubItemBorder }}>
-              {renderMobileNodes(node.children, nodeKey)}
+            <div 
+              className={cn(
+                "pl-4 transition-all duration-300",
+                level === 1 ? "bg-black/[0.02] dark:bg-white/[0.02]" : "bg-black/[0.04] dark:bg-white/[0.04]"
+              )}
+            >
+              {renderMobileNodes(node.children, nodeKey, level + 1)}
             </div>
           </div>
         )}
