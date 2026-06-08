@@ -43,7 +43,7 @@ import { getFaqColors } from '@/app/admin/home-components/faq/_lib/colors';
 import { useCustomerAuth } from '@/app/(site)/auth/context';
 import { notifyAddToCart, useCart } from '@/lib/cart';
 import { useCartConfig, useCheckoutConfig } from '@/lib/experiences';
-import { ArrowLeft, Award, BadgeCheck, Bell, Bolt, Calendar, Camera, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, CreditCard, Gift, Globe, Heart, HeartHandshake, Leaf, Lock, MapPin, MessageSquare, Minus, Package, Phone, Plus, Reply, RotateCcw, Share2, Shield, ShoppingBag, ShoppingCart, Star, ThumbsUp, Truck, Facebook, Instagram, Youtube, Mail, Send } from 'lucide-react';
+import { ArrowLeft, Award, BadgeCheck, Bell, Bolt, Calendar, Camera, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock, CreditCard, Gift, Globe, Heart, HeartHandshake, Leaf, Lock, MapPin, MessageSquare, Minus, Package, Phone, PiggyBank, Plus, Reply, RotateCcw, Share2, Shield, ShoppingBag, ShoppingCart, Star, ThumbsUp, Truck, Facebook, Instagram, Youtube, Mail, Send } from 'lucide-react';
 import { VariantSelector, type VariantSelectorOption } from '@/components/products/VariantSelector';
 import type { Id } from '@/convex/_generated/dataModel';
 import { getPublicPriceLabel } from '@/lib/products/public-price';
@@ -3422,7 +3422,7 @@ function PremiumStyle({
                           key={combo.id || index}
                           onClick={handleComboClick}
                           className={cn(
-                            "flex flex-col justify-between transition-all cursor-pointer relative select-none shrink-0 flex-grow-0 overflow-hidden border-2",
+                            "flex flex-col justify-between transition-all cursor-pointer relative select-none shrink-0 flex-grow-0 border-2",
                             cornerRadius === 'none' ? 'rounded-none' : cornerRadius === 'sm' ? 'rounded-lg' : 'rounded-xl',
                             (product.combos?.length ?? 0) > 2 ? "w-[260px] md:w-[290px]" : "flex-grow flex-shrink min-w-[240px] max-w-[340px]"
                           )}
@@ -3505,7 +3505,10 @@ function PremiumStyle({
 
                           {/* Footer của Card (Phần dưới: Tiết kiệm) */}
                           <div 
-                            className="px-4 py-3 border-t flex items-center justify-center text-[10px] font-medium" 
+                            className={cn(
+                              "px-4 py-3 border-t flex items-center justify-center text-[10px] font-medium",
+                              cornerRadius === 'none' ? 'rounded-b-none' : cornerRadius === 'sm' ? 'rounded-b-[6px]' : 'rounded-b-[10px]'
+                            )} 
                             style={{ 
                               borderColor: isBestSeller ? '#fde8c3' : (brandColor ? `${brandColor}15` : '#f3f4f6'),
                               backgroundColor: isBestSeller ? '#fffbeb' : (brandColor ? `${brandColor}06` : '#fdf2f2'),
@@ -3516,18 +3519,9 @@ function PremiumStyle({
                               {/* Icon heo đất hoặc hộp quà vẽ cực kì tinh tế */}
                               <span className="shrink-0">
                                 {isBestSeller ? (
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" style={{ color: '#d97706' }}>
-                                    <path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
+                                  <Gift size={18} className="shrink-0" style={{ color: '#d97706' }} />
                                 ) : (
-                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" style={{ color: brandColor || '#b91c1c' }}>
-                                    {/* Thân heo tròn line-art */}
-                                    <path d="M19 12c0 3.3-2.7 6-6 6-1.6 0-3-.6-4.1-1.6L5.8 19.5c-.4.4-1.1.1-1.1-.5v-3.3c-1-1.1-1.7-2.6-1.7-4.2 0-3.3 2.7-6 6-6 1.3 0 2.6.4 3.6 1.2L15 5.5c.4-.4 1-.4 1.4 0l1.4 1.4c.4.4.4 1 0 1.4l-1.2 1.2c.8 1.1 1.4 2.5 1.4 3.9z" strokeLinecap="round" strokeLinejoin="round" />
-                                    {/* Mắt */}
-                                    <circle cx="9" cy="11" r="0.75" fill="currentColor" />
-                                    {/* Khe tiền trên lưng */}
-                                    <path d="M10 7.5h3" strokeLinecap="round" strokeLinejoin="round" />
-                                  </svg>
+                                  <PiggyBank size={18} className="shrink-0" style={{ color: brandColor || '#b91c1c' }} />
                                 )}
                               </span>
                               <div className="text-left space-y-0.5">
