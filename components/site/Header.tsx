@@ -932,63 +932,70 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
     const nodeKey = `${parentKey}-${node._id}`;
     const isExpanded = expandedMobileItems.includes(nodeKey);
 
+    // Dynamic backgrounds adapted to level and brand tokens
+    const cardBgColor = level === 1 ? tokens.surface : tokens.surfaceAlt;
+
     return (
-      <div 
-        key={node._id}
-        className={cn(
-          level === 1 && "border-b border-black/[0.03] dark:border-white/[0.03] last:border-b-0"
-        )}
-      >
-        {node.children.length > 0 ? (
-          <div className="w-full text-left flex items-center justify-between transition-colors hover:bg-[var(--menu-dropdown-hover-bg)]">
+      <div key={node._id} className="mb-2 last:mb-0">
+        <div 
+          className="rounded-xl border transition-colors overflow-hidden flex items-stretch"
+          style={{ 
+            backgroundColor: cardBgColor, 
+            borderColor: tokens.border 
+          }}
+        >
+          {node.children.length > 0 ? (
+            <>
+              <Link
+                href={node.url}
+                target={node.openInNewTab ? '_blank' : undefined}
+                rel={node.openInNewTab ? 'noreferrer' : undefined}
+                onClick={() => { setMobileMenuOpen(false); }}
+                className="flex-1 py-3 px-4 text-sm font-semibold transition-colors hover:opacity-80"
+                style={{ color: tokens.mobileMenuItemText, ...menuVars }}
+              >
+                {node.label}
+              </Link>
+              <div 
+                className="w-[1px] self-stretch" 
+                style={{ backgroundColor: tokens.border }}
+              />
+              <button
+                type="button"
+                aria-label={`Mở menu con ${node.label}`}
+                aria-expanded={isExpanded}
+                aria-controls={`mobile-menu-${nodeKey}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  toggleMobileItem(nodeKey);
+                }}
+                className="w-12 flex items-center justify-center transition-colors hover:opacity-75 shrink-0"
+                style={{ color: tokens.mobileMenuItemText, ...menuVars }}
+              >
+                <ChevronDown size={14} className={cn('transition-transform duration-300', isExpanded && 'rotate-180')} />
+              </button>
+            </>
+          ) : (
             <Link
               href={node.url}
               target={node.openInNewTab ? '_blank' : undefined}
               rel={node.openInNewTab ? 'noreferrer' : undefined}
               onClick={() => { setMobileMenuOpen(false); }}
-              className="flex-1 py-3.5 pl-6 pr-2 text-sm font-medium transition-colors hover:text-[var(--menu-hover-text)]"
+              className="block w-full py-3 px-4 text-sm font-semibold transition-colors hover:opacity-80"
               style={{ color: tokens.mobileMenuItemText, ...menuVars }}
             >
               {node.label}
             </Link>
-            <button
-              type="button"
-              aria-label={`Mở menu con ${node.label}`}
-              aria-expanded={isExpanded}
-              aria-controls={`mobile-menu-${nodeKey}`}
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                toggleMobileItem(nodeKey);
-              }}
-              className="w-11 h-11 flex items-center justify-center rounded-lg bg-black/[0.03] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors mr-4 shrink-0"
-              style={{ color: tokens.mobileMenuItemText, ...menuVars }}
-            >
-              <ChevronDown size={14} className={cn('transition-transform duration-300', isExpanded && 'rotate-180')} />
-            </button>
-          </div>
-        ) : (
-          <Link
-            href={node.url}
-            target={node.openInNewTab ? '_blank' : undefined}
-            rel={node.openInNewTab ? 'noreferrer' : undefined}
-            onClick={() => { setMobileMenuOpen(false); }}
-            className="block w-full py-3.5 pl-6 pr-6 text-left text-sm font-medium transition-colors hover:bg-[var(--menu-dropdown-hover-bg)] hover:text-[var(--menu-hover-text)]"
-            style={{ color: tokens.mobileMenuItemText, ...menuVars }}
-          >
-            {node.label}
-          </Link>
-        )}
+          )}
+        </div>
         {node.children.length > 0 && isExpanded && (
-          <div id={`mobile-menu-${nodeKey}`} style={{ backgroundColor: tokens.surface }}>
-            <div 
-              className={cn(
-                "pl-4 transition-all duration-300",
-                level === 1 ? "bg-black/[0.02] dark:bg-white/[0.02]" : "bg-black/[0.04] dark:bg-white/[0.04]"
-              )}
-            >
-              {renderMobileNodes(node.children, nodeKey, level + 1)}
-            </div>
+          <div 
+            id={`mobile-menu-${nodeKey}`} 
+            className="mt-2 ml-4 pl-4 border-l space-y-2 pb-2 transition-all duration-300"
+            style={{ borderColor: tokens.border }}
+          >
+            {renderMobileNodes(node.children, nodeKey, level + 1)}
           </div>
         )}
       </div>
