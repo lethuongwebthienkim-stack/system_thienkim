@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation';
+
+export const revalidate = 60; // trust pages: tái render sau 60 giây, không cache lâu như layout (1800s)
 import { TrustPageContent } from '@/app/(site)/_components/TrustPageContent';
 import { getIASettings } from '@/lib/ia/settings';
 import { findTrustPageSlot } from '@/lib/ia/trust-pages';
