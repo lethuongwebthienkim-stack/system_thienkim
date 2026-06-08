@@ -5055,14 +5055,14 @@ function MinimalStyle({
                 )}
 
                 <div className={`flex-1 ${imageFrame.frameWidthClassName} ${
-                  showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                  showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
                     ? 'mb-0'
                     : ''
                 }`}>
                   <div
                     ref={mainImageRef}
                     className={`relative w-full overflow-hidden ${
-                      showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                      showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
                         ? 'rounded-t-sm rounded-b-none'
                         : 'rounded-sm'
                     } group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
@@ -5124,18 +5124,19 @@ function MinimalStyle({
                       </span>
                     )}
                   </div>
+
+                  {showHighlights && highlightsPosition === 'image_column' && (
+                    <HighlightsGrid
+                      highlights={highlights}
+                      tokens={tokens}
+                      spacing={highlightsSpacing}
+                      layoutStyle="minimal"
+                      isSingleImage={images.length <= 1}
+                      position="image_column"
+                    />
+                  )}
                 </div>
               </div>
-              {showHighlights && highlightsPosition === 'image_column' && (
-                <HighlightsGrid
-                  highlights={highlights}
-                  tokens={tokens}
-                  spacing={highlightsSpacing}
-                  layoutStyle="minimal"
-                  isSingleImage={images.length <= 1}
-                  position="image_column"
-                />
-              )}
             </div>
           </div>
 

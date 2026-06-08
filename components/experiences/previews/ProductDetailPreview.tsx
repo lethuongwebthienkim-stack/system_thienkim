@@ -818,15 +818,24 @@ export function ProductDetailPreview({
     const isImageCol = position === 'image_column';
     const isSingleImage = PREVIEW_IMAGES.length <= 1;
     
-    // Cho phép ghép sát đối với layoutStyle === 'premium' bất kể isSingleImage thế nào (vì thumbnail nằm dọc bên trái)
-    const shouldAttach = isNoneSpacing && isImageCol && (isSingleImage || layoutStyle === 'premium');
+    // Cho phép ghép sát đối với layoutStyle === 'premium' hoặc 'minimal' bất kể isSingleImage thế nào
+    const shouldAttach = isNoneSpacing && isImageCol && (isSingleImage || layoutStyle === 'premium' || layoutStyle === 'minimal');
 
     // Xác định class bo góc cho container highlights
     let borderRadiusClass = 'rounded-2xl';
     if (layoutStyle === 'minimal') {
-      borderRadiusClass = shouldAttach ? 'rounded-b-sm rounded-t-none' : 'rounded-sm';
+      borderRadiusClass = shouldAttach 
+        ? 'rounded-b-sm rounded-t-none' 
+        : (isNoneSpacing && isImageCol ? 'rounded-b-sm rounded-t-none md:rounded-t-sm' : 'rounded-sm');
     } else {
-      borderRadiusClass = shouldAttach ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl';
+      if (shouldAttach) {
+        borderRadiusClass = 'rounded-b-2xl rounded-t-none';
+      } else if (isNoneSpacing && isImageCol) {
+        // Cho layout classic và modern có nhiều ảnh trên mobile (không có thumbnail rail ngang)
+        borderRadiusClass = 'rounded-b-2xl rounded-t-none md:rounded-t-2xl';
+      } else {
+        borderRadiusClass = 'rounded-2xl';
+      }
     }
 
     // Padding & gap
@@ -910,14 +919,14 @@ export function ProductDetailPreview({
             <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-2 gap-8'}`}>
             <div className="space-y-3">
               <div className={`${imageFrame.frameWidthClassName} ${
-                showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
-                  ? 'mb-0'
+                showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
+                  ? (PREVIEW_IMAGES.length <= 1 ? 'mb-0' : 'mb-0 md:mb-4')
                   : 'mb-3 md:mb-4'
               }`}>
                 <div
                   className={`relative overflow-hidden ${
-                    showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
-                      ? 'rounded-t-xl rounded-b-none'
+                    showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
+                      ? (PREVIEW_IMAGES.length <= 1 ? 'rounded-t-xl rounded-b-none' : 'rounded-t-xl rounded-b-none md:rounded-b-xl')
                       : 'rounded-xl'
                   } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                   style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
@@ -1170,14 +1179,14 @@ export function ProductDetailPreview({
                   <div className={`overflow-hidden ${heroContainerClass}`} style={heroContainerStyle}>
                     <div className="grid md:grid-cols-2 gap-3 items-center p-3 md:p-5">
                       <div className={`${imageFrame.frameWidthClassName} ${
-                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
-                          ? 'mb-0'
+                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
+                          ? (PREVIEW_IMAGES.length <= 1 ? 'mb-0' : 'mb-0 md:mb-0')
                           : ''
                       }`}>
                     <div
                       className={`relative overflow-hidden ${
-                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
-                          ? 'rounded-t-xl rounded-b-none'
+                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
+                          ? (PREVIEW_IMAGES.length <= 1 ? 'rounded-t-xl rounded-b-none' : 'rounded-t-xl rounded-b-none md:rounded-b-xl')
                           : 'rounded-xl'
                       } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                       style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
@@ -1224,14 +1233,14 @@ export function ProductDetailPreview({
                   <div className={`overflow-hidden ${heroContainerClass}`} style={heroContainerStyle}>
                     <div className={heroImageWrapperClass}>
                   <div className={`${imageFrame.frameWidthClassName} overflow-hidden ${
-                    showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
-                      ? 'mb-0'
+                    showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
+                      ? (PREVIEW_IMAGES.length <= 1 ? 'mb-0' : 'mb-0 md:mb-0')
                       : ''
                   }`}>
                     <div
                       className={`relative overflow-hidden ${
-                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
-                          ? 'rounded-t-xl rounded-b-none'
+                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
+                          ? (PREVIEW_IMAGES.length <= 1 ? 'rounded-t-xl rounded-b-none' : 'rounded-t-xl rounded-b-none md:rounded-b-xl')
                           : 'rounded-xl'
                       } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                       style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
@@ -1504,14 +1513,14 @@ export function ProductDetailPreview({
                   )}
 
                   <div className={`flex-1 ${imageFrame.frameWidthClassName} ${
-                    showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                    showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
                       ? 'mb-0'
                       : ''
                   }`}>
                     <div
                       ref={mainImageRef}
                       className={`relative w-full overflow-hidden ${
-                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                        showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
                           ? 'rounded-t-sm rounded-b-none'
                           : 'rounded-sm'
                       } group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
@@ -1552,13 +1561,14 @@ export function ProductDetailPreview({
                         </div>
                       )}
                     </div>
+
+                    {showHighlightBlock && highlightsPosition === 'image_column' && (
+                      <div className={`${getHighlightsSpacingClass(highlightsSpacing)} w-full`}>
+                        {renderHighlights('image_column')}
+                      </div>
+                    )}
                   </div>
                 </div>
-                {showHighlightBlock && highlightsPosition === 'image_column' && (
-                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} w-full`}>
-                    {renderHighlights('image_column')}
-                  </div>
-                )}
               </div>
 
               <div className="lg:col-span-5 px-0 md:px-2 py-2 lg:py-0 flex flex-col justify-center">
