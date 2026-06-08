@@ -1962,9 +1962,9 @@ export function ProductDetailPreview({
                         discountPercent > 0 ? "col-span-8 pr-2" : "col-span-12"
                       )}>
                         <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>GIÁ ƯU ĐÃI HÔM NAY ✨</p>
-                        <span className="text-2xl md:text-3xl font-extrabold block leading-tight" style={{ color: tokens.priceColor }}>{formatVND(price)}</span>
+                        <span className="text-2xl md:text-3xl font-extrabold block leading-tight" style={{ color: tokens.primary }}>{formatVND(price)}</span>
                         {discountPercent > 0 && (
-                          <p className="text-[10px] md:text-xs font-semibold" style={{ color: tokens.priceColor }}>
+                          <p className="text-[10px] md:text-xs font-semibold" style={{ color: tokens.primary }}>
                             Tiết kiệm {formatVND(originalPrice - price)} so với giá gốc
                           </p>
                         )}

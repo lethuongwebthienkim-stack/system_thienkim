@@ -1633,27 +1633,6 @@ export default function ProductDetailExperiencePage() {
 
                       <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
                         <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider">Cấu hình Icon nền giá</p>
-                        
-                        <div className="grid grid-cols-2 gap-2">
-                          <ToggleRow
-                            label="Hiện Icon Trái"
-                            checked={premiumLayoutConfig.showPriceLeftIcon ?? true}
-                            onChange={(v) => updateLayoutConfig('showPriceLeftIcon' as keyof typeof currentLayoutConfig, v as never)}
-                            accentColor={brandColor}
-                          />
-                          {premiumLayoutConfig.showPriceLeftIcon !== false && (
-                            <div>
-                              <label className="text-[10px] text-slate-400 block mb-1">Icon Trái (Mặc định Ribbon)</label>
-                              <IconPopoverPicker
-                                value={premiumLayoutConfig.priceLeftIcon ?? 'Award'}
-                                onChange={(v) => updateLayoutConfig('priceLeftIcon' as keyof typeof currentLayoutConfig, v as never)}
-                                options={PREMIUM_ICON_OPTIONS}
-                                brandColor={brandColor}
-                                compact
-                              />
-                            </div>
-                          )}
-                        </div>
 
                         <div className="grid grid-cols-2 gap-2">
                           <ToggleRow
