@@ -817,27 +817,30 @@ export function ProductDetailPreview({
     const isNoneSpacing = highlightsSpacing === 'none';
     const isImageCol = position === 'image_column';
     const isSingleImage = PREVIEW_IMAGES.length <= 1;
+    
+    // Cho phép ghép sát đối với layoutStyle === 'premium' bất kể isSingleImage thế nào (vì thumbnail nằm dọc bên trái)
+    const shouldAttach = isNoneSpacing && isImageCol && (isSingleImage || layoutStyle === 'premium');
 
     // Xác định class bo góc cho container highlights
     let borderRadiusClass = 'rounded-2xl';
     if (layoutStyle === 'minimal') {
-      borderRadiusClass = isNoneSpacing && isImageCol && isSingleImage ? 'rounded-b-sm rounded-t-none' : 'rounded-sm';
+      borderRadiusClass = shouldAttach ? 'rounded-b-sm rounded-t-none' : 'rounded-sm';
     } else {
-      borderRadiusClass = isNoneSpacing && isImageCol && isSingleImage ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl';
+      borderRadiusClass = shouldAttach ? 'rounded-b-2xl rounded-t-none' : 'rounded-2xl';
     }
 
     // Padding & gap
-    const paddingClass = isNoneSpacing && isImageCol && isSingleImage ? 'p-3' : 'p-4';
+    const paddingClass = shouldAttach ? 'p-3' : 'p-4';
     const gapClass = isNoneSpacing ? 'gap-x-5 gap-y-2' : 'gap-x-6 gap-y-3';
 
     return (
       <div
         className={`flex flex-wrap items-center justify-center ${gapClass} w-full ${borderRadiusClass} ${paddingClass} animate-fadeIn transition-all duration-300`}
         style={{
-          backgroundColor: isNoneSpacing && isImageCol && isSingleImage
+          backgroundColor: shouldAttach
             ? (tokens.highlightBg || tokens.surfaceMuted || 'rgba(0,0,0,0.02)')
             : (tokens.highlightBg || 'transparent'),
-          border: isNoneSpacing && isImageCol && isSingleImage ? 'none' : `1px solid ${tokens.divider || 'rgba(0,0,0,0.08)'}`,
+          border: shouldAttach ? 'none' : `1px solid ${tokens.divider || 'rgba(0,0,0,0.08)'}`,
           marginTop: isNoneSpacing ? 0 : undefined
         }}
       >
@@ -1760,20 +1763,20 @@ export function ProductDetailPreview({
                         tokens={tokens}
                         thumbnailAspectRatio={imageFrame.thumbnailAspectRatio}
                         onActiveIndexChange={setActiveImageIndex}
-                        itemClassName="w-full rounded-lg"
+                        itemClassName="w-20 rounded-lg"
                       />
                     </div>
                   )}
 
                   {/* Ảnh chính */}
                   <div className={`flex-1 ${
-                    showHighlightBlock && highlightsPosition !== 'info_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                    showHighlightBlock && highlightsPosition !== 'info_column' && highlightsSpacing === 'none'
                       ? 'mb-0'
                       : ''
                   }`}>
                     <div
                       className={`relative overflow-hidden ${
-                        showHighlightBlock && highlightsPosition !== 'info_column' && highlightsSpacing === 'none' && PREVIEW_IMAGES.length <= 1
+                        showHighlightBlock && highlightsPosition !== 'info_column' && highlightsSpacing === 'none'
                           ? 'rounded-t-2xl rounded-b-none'
                           : 'rounded-2xl'
                       } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
@@ -1815,6 +1818,13 @@ export function ProductDetailPreview({
                         </div>
                       )}
                     </div>
+
+                    {/* Highlights cài đặt dưới ảnh */}
+                    {showHighlightBlock && highlightsPosition !== 'info_column' && (
+                      <div className="w-full">
+                        {renderHighlights('image_column')}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1835,13 +1845,6 @@ export function ProductDetailPreview({
                         <img src={img} alt="" className="h-full w-full object-contain" />
                       </div>
                     ))}
-                  </div>
-                )}
-
-                {/* Highlights cài đặt dưới ảnh */}
-                {showHighlightBlock && highlightsPosition !== 'info_column' && (
-                  <div className="w-full">
-                    {renderHighlights('image_column')}
                   </div>
                 )}
               </div>
