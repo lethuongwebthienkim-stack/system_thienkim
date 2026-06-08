@@ -3176,27 +3176,34 @@ function PremiumStyle({
                     {renderPremiumIcon(priceRightIcon, 120) || <Gift size={120} />}
                   </div>
                 )}
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 relative z-10">
                   {showPriceLeftIcon !== false && (
-                    <div className="p-2 rounded-xl" style={{ backgroundColor: tokens.surface, color: tokens.primary }}>
+                    <div className="p-2 rounded-xl shrink-0" style={{ backgroundColor: tokens.surface, color: tokens.primary }}>
                       {renderPremiumIcon(priceLeftIcon, 20) || <Award size={20} />}
                     </div>
                   )}
-                  <div className="flex-1 space-y-1">
-                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>GIÁ ƯU ĐÃI HÔM NAY</p>
-                    <div className="flex flex-col md:flex-row md:items-baseline gap-1 md:gap-3">
-                      <span className="text-2xl md:text-3xl font-extrabold" style={{ color: tokens.priceColor }}>{priceDisplay.label}</span>
+                  <div className="flex-1 grid grid-cols-12 gap-3 items-center">
+                    {/* Cột trái: Giá bán ưu đãi và text Tiết kiệm */}
+                    <div className={cn(
+                      "space-y-1",
+                      showSalePrice && priceDisplay.comparePrice ? "col-span-8 pr-2" : "col-span-12"
+                    )}>
+                      <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>GIÁ ƯU ĐÃI HÔM NAY ✨</p>
+                      <span className="text-2xl md:text-3xl font-extrabold block leading-tight" style={{ color: tokens.priceColor }}>{priceDisplay.label}</span>
                       {showSalePrice && priceDisplay.comparePrice && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm line-through italic" style={{ color: tokens.priceOriginalText }}>{formatPrice(priceDisplay.comparePrice)}</span>
-                          <span className="px-1.5 py-0.5 text-[10px] font-bold rounded" style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}>-{discountPercent}%</span>
-                        </div>
+                        <p className="text-[10px] md:text-xs font-semibold" style={{ color: tokens.priceColor }}>
+                          Tiết kiệm {formatPrice(priceDisplay.comparePrice - basePrice)} so với giá gốc
+                        </p>
                       )}
                     </div>
+
+                    {/* Cột phải: Giá gốc và badge giảm giá */}
                     {showSalePrice && priceDisplay.comparePrice && (
-                      <p className="text-xs font-semibold" style={{ color: tokens.priceColor }}>
-                        Tiết kiệm {formatPrice(priceDisplay.comparePrice - basePrice)} so với giá gốc
-                      </p>
+                      <div className="col-span-4 pl-3 border-l space-y-1 text-left" style={{ borderColor: tokens.divider || tokens.border }}>
+                        <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>GIÁ GỐC</p>
+                        <span className="text-xs md:text-sm line-through block" style={{ color: tokens.priceOriginalText }}>{formatPrice(priceDisplay.comparePrice)}</span>
+                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-bold rounded text-white" style={{ backgroundColor: discountBadgeColors.bg }}>-{discountPercent}%</span>
+                      </div>
                     )}
                   </div>
                 </div>
