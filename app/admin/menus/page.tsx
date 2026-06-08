@@ -422,9 +422,10 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
     const seen = new Set<string>();
     const items: SmartMenuPlanItem[] = [];
     const add = (item: SmartMenuPlanItem) => {
-      if (seen.has(item.url)) {return;}
+      const uniqueKey = `${item.url}::${item.label}`;
+      if (seen.has(uniqueKey)) {return;}
       if (item.depth > maxChildDepth) {return;}
-      seen.add(item.url);
+      seen.add(uniqueKey);
       items.push(item);
     };
     const hasPublishedCourses = enabledKeys.has('courses') && (publishedCourseCount ?? 0) > 0;
@@ -499,7 +500,7 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
                 label: group.name,
                 reasons: [`Bộ lọc đặc biệt của ${pt.name}`],
                 score: 70 - groupIndex,
-                url: `#filter-${pt.slug}-${group.slug}`
+                url: `/${pt.slug}`
               });
 
               if (maxChildDepth >= 3) {
@@ -522,7 +523,7 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
                 label: 'Mức giá',
                 reasons: [`Khoảng giá của ${pt.name}`],
                 score: 50,
-                url: `#price-${pt.slug}`
+                url: `/${pt.slug}`
               });
               if (maxChildDepth >= 3) {
                 pt.priceRanges.forEach((range, rangeIndex) => {
