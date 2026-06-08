@@ -2286,13 +2286,13 @@ function ClassicStyle({
           {/* Product Images */}
           <div className="mb-6 lg:mb-0">
             <div className={`${imageFrame.frameWidthClassName} ${
-              highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+              highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
                 ? 'mb-0'
                 : 'mb-3 md:mb-4'
             } group/carousel relative`}>
               <div
                 className={`relative overflow-hidden ${
-                  highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                  highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
                     ? 'rounded-t-2xl rounded-b-none'
                     : 'rounded-2xl'
                 } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
@@ -2345,6 +2345,17 @@ function ClassicStyle({
                   <span className="absolute top-3 left-3 px-3 py-1.5 text-sm font-bold rounded-lg z-30" style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}>-{discountPercent}%</span>
                 )}
               </div>
+
+              {highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && (images.length <= 1 || highlightsSpacing === 'none') && (
+                <HighlightsGrid
+                  highlights={highlights}
+                  tokens={tokens}
+                  spacing={highlightsSpacing}
+                  layoutStyle="classic"
+                  isSingleImage={images.length <= 1}
+                  position="image_column"
+                />
+              )}
             </div>
             {images.length > 1 && (
               <>
@@ -2363,15 +2374,17 @@ function ClassicStyle({
                 </div>
               </>
             )}
-            {highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && (
-              <HighlightsGrid
-                highlights={highlights}
-                tokens={tokens}
-                spacing={highlightsSpacing}
-                layoutStyle="classic"
-                isSingleImage={images.length <= 1}
-                position="image_column"
-              />
+            {highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && !(images.length <= 1 || highlightsSpacing === 'none') && (
+              <div className={imageFrame.frameWidthClassName}>
+                <HighlightsGrid
+                  highlights={highlights}
+                  tokens={tokens}
+                  spacing={highlightsSpacing}
+                  layoutStyle="classic"
+                  isSingleImage={images.length <= 1}
+                  position="image_column"
+                />
+              </div>
             )}
           </div>
 
@@ -4322,13 +4335,13 @@ function ModernStyle({
               <div className={`overflow-hidden ${heroContainerClass}`} style={heroContainerStyle}>
                 <div className="grid md:grid-cols-2 gap-3 items-center p-3 md:p-5">
                   <div className={`${imageFrame.frameWidthClassName} ${
-                    showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                    showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
                       ? 'mb-0'
                       : ''
                   }`}>
                     <div
                       className={`relative overflow-hidden ${
-                        showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                        showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
                           ? 'rounded-t-xl rounded-b-none'
                           : 'rounded-xl'
                       } group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
@@ -4390,6 +4403,17 @@ function ModernStyle({
                         </span>
                       )}
                     </div>
+
+                    {showHighlights && highlightsPosition === 'image_column' && (images.length <= 1 || highlightsSpacing === 'none') && (
+                      <HighlightsGrid
+                        highlights={highlights}
+                        tokens={tokens}
+                        spacing={highlightsSpacing}
+                        layoutStyle="modern"
+                        isSingleImage={images.length <= 1}
+                        position="image_column"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -4397,13 +4421,13 @@ function ModernStyle({
               <div className={`overflow-hidden ${heroContainerClass}`} style={heroContainerStyle}>
                 <div className={heroImageWrapperClass}>
                   <div className={`${imageFrame.frameWidthClassName} ${
-                    showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                    showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
                       ? 'mb-0'
                       : ''
                   }`}>
                     <div
                       className={`relative overflow-hidden ${
-                        showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none' && images.length <= 1
+                        showHighlights && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
                           ? 'rounded-t-xl rounded-b-none'
                           : 'rounded-xl'
                       } group/carousel ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
@@ -4465,6 +4489,17 @@ function ModernStyle({
                         </span>
                       )}
                     </div>
+
+                    {showHighlights && highlightsPosition === 'image_column' && (images.length <= 1 || highlightsSpacing === 'none') && (
+                      <HighlightsGrid
+                        highlights={highlights}
+                        tokens={tokens}
+                        spacing={highlightsSpacing}
+                        layoutStyle="modern"
+                        isSingleImage={images.length <= 1}
+                        position="image_column"
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -4487,15 +4522,17 @@ function ModernStyle({
                 </div>
               </>
             )}
-            {showHighlights && highlightsPosition === 'image_column' && (
-              <HighlightsGrid
-                highlights={highlights}
-                tokens={tokens}
-                spacing={highlightsSpacing}
-                layoutStyle="modern"
-                isSingleImage={images.length <= 1}
-                position="image_column"
-              />
+            {showHighlights && highlightsPosition === 'image_column' && !(images.length <= 1 || highlightsSpacing === 'none') && (
+              <div className={imageFrame.frameWidthClassName}>
+                <HighlightsGrid
+                  highlights={highlights}
+                  tokens={tokens}
+                  spacing={highlightsSpacing}
+                  layoutStyle="modern"
+                  isSingleImage={images.length <= 1}
+                  position="image_column"
+                />
+              </div>
             )}
           </div>
 

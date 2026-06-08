@@ -920,13 +920,13 @@ export function ProductDetailPreview({
             <div className="space-y-3">
               <div className={`${imageFrame.frameWidthClassName} ${
                 showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
-                  ? (PREVIEW_IMAGES.length <= 1 ? 'mb-0' : 'mb-0 md:mb-4')
+                  ? 'mb-0'
                   : 'mb-3 md:mb-4'
-              }`}>
+              } group/carousel relative`}>
                 <div
                   className={`relative overflow-hidden ${
                     showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
-                      ? (PREVIEW_IMAGES.length <= 1 ? 'rounded-t-xl rounded-b-none' : 'rounded-t-xl rounded-b-none md:rounded-b-xl')
+                      ? 'rounded-t-xl rounded-b-none'
                       : 'rounded-xl'
                   } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                   style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
@@ -959,6 +959,12 @@ export function ProductDetailPreview({
                     </div>
                   )}
                 </div>
+
+                {showHighlightBlock && highlightsPosition === 'image_column' && (PREVIEW_IMAGES.length <= 1 || highlightsSpacing === 'none') && (
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
+                    {renderHighlights('image_column')}
+                  </div>
+                )}
               </div>
               {PREVIEW_IMAGES.length > 1 && (
                 <>
@@ -993,9 +999,11 @@ export function ProductDetailPreview({
                   )}
                 </>
               )}
-              {showHighlightBlock && highlightsPosition === 'image_column' && (
-                <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
-                  {renderHighlights('image_column')}
+              {showHighlightBlock && highlightsPosition === 'image_column' && !(PREVIEW_IMAGES.length <= 1 || highlightsSpacing === 'none') && (
+                <div className={imageFrame.frameWidthClassName}>
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
+                    {renderHighlights('image_column')}
+                  </div>
                 </div>
               )}
             </div>
@@ -1180,13 +1188,13 @@ export function ProductDetailPreview({
                     <div className="grid md:grid-cols-2 gap-3 items-center p-3 md:p-5">
                       <div className={`${imageFrame.frameWidthClassName} ${
                         showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
-                          ? (PREVIEW_IMAGES.length <= 1 ? 'mb-0' : 'mb-0 md:mb-0')
+                          ? 'mb-0'
                           : ''
                       }`}>
                     <div
                       className={`relative overflow-hidden ${
                         showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
-                          ? (PREVIEW_IMAGES.length <= 1 ? 'rounded-t-xl rounded-b-none' : 'rounded-t-xl rounded-b-none md:rounded-b-xl')
+                          ? 'rounded-t-xl rounded-b-none'
                           : 'rounded-xl'
                       } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                       style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
@@ -1226,6 +1234,12 @@ export function ProductDetailPreview({
                         </div>
                       )}
                     </div>
+
+                    {showHighlightBlock && highlightsPosition === 'image_column' && (PREVIEW_IMAGES.length <= 1 || highlightsSpacing === 'none') && (
+                      <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
+                        {renderHighlights('image_column')}
+                      </div>
+                    )}
                   </div>
                     </div>
                   </div>
@@ -1234,13 +1248,13 @@ export function ProductDetailPreview({
                     <div className={heroImageWrapperClass}>
                   <div className={`${imageFrame.frameWidthClassName} overflow-hidden ${
                     showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
-                      ? (PREVIEW_IMAGES.length <= 1 ? 'mb-0' : 'mb-0 md:mb-0')
+                      ? 'mb-0'
                       : ''
                   }`}>
                     <div
                       className={`relative overflow-hidden ${
                         showHighlightBlock && highlightsPosition === 'image_column' && highlightsSpacing === 'none'
-                          ? (PREVIEW_IMAGES.length <= 1 ? 'rounded-t-xl rounded-b-none' : 'rounded-t-xl rounded-b-none md:rounded-b-xl')
+                          ? 'rounded-t-xl rounded-b-none'
                           : 'rounded-xl'
                       } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                       style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
@@ -1278,6 +1292,12 @@ export function ProductDetailPreview({
                         <div className="w-40 h-40 rounded-xl" style={{ backgroundColor: tokens.surfaceSoft }} />
                       )}
                     </div>
+
+                    {showHighlightBlock && highlightsPosition === 'image_column' && (PREVIEW_IMAGES.length <= 1 || highlightsSpacing === 'none') && (
+                      <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
+                        {renderHighlights('image_column')}
+                      </div>
+                    )}
                   </div>
                 </div>
                   </div>
@@ -1299,9 +1319,11 @@ export function ProductDetailPreview({
                     )}
                   </>
                 )}
-                {showHighlightBlock && highlightsPosition === 'image_column' && (
-                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
-                    {renderHighlights('image_column')}
+                {showHighlightBlock && highlightsPosition === 'image_column' && !(PREVIEW_IMAGES.length <= 1 || highlightsSpacing === 'none') && (
+                  <div className={imageFrame.frameWidthClassName}>
+                    <div className={`${getHighlightsSpacingClass(highlightsSpacing)}`}>
+                      {renderHighlights('image_column')}
+                    </div>
                   </div>
                 )}
               </div>
