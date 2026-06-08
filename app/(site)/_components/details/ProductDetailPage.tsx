@@ -3230,37 +3230,52 @@ function PremiumStyle({
 
             {/* Box Combo dạng trượt Carousel chuyên nghiệp - DỮ LIỆU THỰC */}
             {enableCombos && product.combos && product.combos.length > 0 && (
-              <div className="space-y-3 relative">
-                <div className="flex items-center justify-between">
-                  <p className="text-[11px] font-extrabold uppercase tracking-wider animate-pulse" style={{ color: tokens.metaText }}>
-                    ƯU ĐÃI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN
-                  </p>
-                  {product.combos.length > 2 && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => comboApi?.scrollPrev()}
-                        disabled={!canScrollComboPrev}
-                        className="h-6 w-6 rounded-full flex items-center justify-center transition-all opacity-70 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95 border"
-                        style={{ color: tokens.headingColor, backgroundColor: tokens.surface, borderColor: tokens.border }}
-                      >
-                        <ChevronLeft size={12} strokeWidth={3} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => comboApi?.scrollNext()}
-                        disabled={!canScrollComboNext}
-                        className="h-6 w-6 rounded-full flex items-center justify-center transition-all opacity-70 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95 border"
-                        style={{ color: tokens.headingColor, backgroundColor: tokens.surface, borderColor: tokens.border }}
-                      >
-                        <ChevronRight size={12} strokeWidth={3} />
-                      </button>
-                    </div>
+              <div
+                className={cn(
+                  "border p-4 md:p-6 pt-8 relative mt-6 mb-6",
+                  getRadiusClass(cornerRadius, 'box')
+                )}
+                style={{
+                  borderColor: tokens.border,
+                }}
+              >
+                {/* Badge Header nổi ở góc trái trên */}
+                <div
+                  className={cn(
+                    "absolute -top-3 left-4 md:left-6 px-3.5 py-1 text-[11px] md:text-xs font-bold text-white shadow-sm flex items-center gap-1.5 z-20",
+                    cornerRadius === 'none' ? 'rounded-none' : 'rounded-t-lg rounded-br-lg'
                   )}
+                  style={{ backgroundColor: brandColor || '#8B0000' }}
+                >
+                  <span>🎁</span> ƯU ĐÃI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN
                 </div>
 
-                <div className="overflow-hidden py-3 -my-3" ref={comboRef}>
-                  <div className="flex gap-3 pt-3">
+                {/* Các nút điều hướng Carousel ở góc trên bên phải */}
+                {product.combos.length > 2 && (
+                  <div className="absolute -top-3.5 right-4 flex items-center gap-1 z-20">
+                    <button
+                      type="button"
+                      onClick={() => comboApi?.scrollPrev()}
+                      disabled={!canScrollComboPrev}
+                      className="h-6 w-6 rounded-full flex items-center justify-center transition-all opacity-70 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95 border"
+                      style={{ color: tokens.headingColor, backgroundColor: tokens.surface, borderColor: tokens.border }}
+                    >
+                      <ChevronLeft size={12} strokeWidth={3} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => comboApi?.scrollNext()}
+                      disabled={!canScrollComboNext}
+                      className="h-6 w-6 rounded-full flex items-center justify-center transition-all opacity-70 hover:opacity-100 disabled:opacity-10 hover:scale-105 active:scale-95 border"
+                      style={{ color: tokens.headingColor, backgroundColor: tokens.surface, borderColor: tokens.border }}
+                    >
+                      <ChevronRight size={12} strokeWidth={3} />
+                    </button>
+                  </div>
+                )}
+
+                <div className="overflow-hidden" ref={comboRef}>
+                  <div className="flex gap-4 pt-2 pb-2">
                     {product.combos.map((combo, index) => {
                       const isBestSeller = index === 0; // Combo đầu tiên là bán chạy
                       
@@ -3275,6 +3290,7 @@ function PremiumStyle({
                       }
 
                       const avgPricePerBottle = combo.price ? Math.round(combo.price / totalBottles) : 0;
+                      const savingAmount = (basePrice * totalBottles) - (combo.price || 0);
                       
                       // Sửa lỗi gạch ngang thô
                       const rawComboName = typeof combo.name === 'string' ? combo.name.trim() : '';
@@ -3291,70 +3307,123 @@ function PremiumStyle({
                         }
                       };
 
+                      const isSelected = combo.type === 'mix' ? activeMixCombo?._id === combo._id : quantity === totalBottles;
+
                       return (
                         <div
                           key={combo.id || index}
                           onClick={handleComboClick}
                           className={cn(
-                            "p-4 flex flex-col justify-between transition-all cursor-pointer relative border select-none shrink-0 flex-grow-0",
+                            "flex flex-col justify-between transition-all cursor-pointer relative border select-none shrink-0 flex-grow-0 overflow-hidden",
                             cornerRadius === 'none' ? 'rounded-none' : cornerRadius === 'sm' ? 'rounded-lg' : 'rounded-xl',
                             isBestSeller ? "border-2" : "border",
                             (product.combos?.length ?? 0) > 2 ? "w-[260px] md:w-[290px]" : "flex-1 min-w-[210px]"
                           )}
                           style={{
                             backgroundColor: tokens.surface,
-                            borderColor: isBestSeller ? brandColor : tokens.border,
+                            borderColor: isSelected ? brandColor : isBestSeller ? `${brandColor}80` : tokens.border,
+                            boxShadow: isSelected ? `0 4px 12px ${brandColor}15` : undefined
                           }}
                         >
+                          {/* ★ BÁN CHẠY badge lệch lên trên bên phải */}
                           {isBestSeller && (
-                            <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-0.5 z-10" style={{ backgroundColor: '#eab308' }}>
+                            <div 
+                              className={cn(
+                                "absolute -top-0.5 right-2 px-2 py-0.5 text-[8px] md:text-[9px] font-bold text-white flex items-center gap-0.5 z-10 shadow-sm",
+                                cornerRadius === 'none' ? 'rounded-none' : 'rounded-b'
+                              )}
+                              style={{ backgroundColor: '#f59e0b' }}
+                            >
                               ★ BÁN CHẠY
                             </div>
                           )}
-                          <div>
-                            <div
-                              className="inline-block px-2.5 py-0.5 text-[11px] font-bold rounded-md text-white leading-none uppercase"
-                              style={{ backgroundColor: isBestSeller ? '#eab308' : brandColor }}
-                            >
-                              {cleanName}
-                            </div>
-                            {combo.description && (
-                              <p className="text-[10px] mt-1.5 line-clamp-1" style={{ color: tokens.metaText }}>
-                                {combo.description}
-                              </p>
-                            )}
-                            <p className="text-sm font-bold mt-2" style={{ color: tokens.headingColor }}>
-                              {combo.price ? formatPrice(combo.price) : 'Liên hệ'}
-                            </p>
-                            {avgPricePerBottle > 0 && (
-                              <p className="text-[10px] font-semibold" style={{ color: tokens.priceColor }}>
-                                Chi ~{formatPrice(avgPricePerBottle)} / chai
-                              </p>
-                            )}
-                          </div>
-                          {combo.price && (
-                            <div className="border-t pt-2 mt-3 flex items-center justify-between text-[9px] font-medium" style={{ borderColor: tokens.divider, color: tokens.priceColor }}>
-                              <span className="flex items-center gap-1">
-                                <Gift size={10} />
-                                <span>{combo.type === 'mix' ? 'Xem chi tiết bộ sản phẩm' : 'Tiết kiệm nhiều hơn'}</span>
-                              </span>
-                              {combo.type === 'mix' && <ChevronRight size={10} />}
-                            </div>
-                          )}
-                          {combo.type !== 'mix' && (
-                            <div
-                              className={cn(
-                                "absolute right-2 top-2 h-4 w-4 rounded-full flex items-center justify-center",
-                                isBestSeller ? "border-2" : "border"
-                              )}
-                              style={{ borderColor: isBestSeller ? brandColor : tokens.border }}
-                            >
+
+                          {/* Body của Card (Phần trên) */}
+                          <div className="p-4 flex gap-3 items-start relative flex-1">
+                            {/* Nút Radio chọn hoặc Check chọn nằm bên trái */}
+                            <div className="pt-0.5 shrink-0">
                               <div
-                                className="h-2.5 w-2.5 rounded-full"
-                                style={{ backgroundColor: quantity === totalBottles ? brandColor : 'transparent' }}
-                              />
+                                className={cn(
+                                  "h-4 w-4 rounded-full border flex items-center justify-center transition-all",
+                                  isSelected ? "border-2" : "border"
+                                )}
+                                style={{ borderColor: isSelected ? brandColor : tokens.border }}
+                              >
+                                {isSelected && (
+                                  <div
+                                    className="h-2 w-2 rounded-full"
+                                    style={{ backgroundColor: brandColor }}
+                                  />
+                                )}
+                              </div>
                             </div>
-                          )}
+
+                            {/* Thông tin nội dung */}
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              {/* Badge tên combo tròn dẹt */}
+                              <div className="flex">
+                                <span
+                                  className="inline-block px-2 py-0.5 text-[9px] font-extrabold rounded-full text-white uppercase tracking-wider leading-none"
+                                  style={{ backgroundColor: isSelected ? brandColor : (isBestSeller ? '#f59e0b' : tokens.metaText) }}
+                                >
+                                  {cleanName}
+                                </span>
+                              </div>
+
+                              {combo.description && (
+                                <p className="text-[10px] line-clamp-2 leading-relaxed" style={{ color: tokens.bodyText }}>
+                                  {combo.description}
+                                </p>
+                              )}
+
+                              {/* Giá tiền lớn đỏ thương hiệu */}
+                              <div className="pt-0.5">
+                                <span className="text-base font-extrabold" style={{ color: brandColor || tokens.priceColor }}>
+                                  {combo.price ? formatPrice(combo.price) : 'Liên hệ'}
+                                </span>
+                              </div>
+
+                              {/* Box màu nhạt "Chi ~xxx/chai" */}
+                              {avgPricePerBottle > 0 && (
+                                <div 
+                                  className={cn(
+                                    "inline-block px-2 py-1 text-[9px] font-semibold",
+                                    cornerRadius === 'none' ? 'rounded-none' : 'rounded'
+                                  )}
+                                  style={{ 
+                                    backgroundColor: tokens.surfaceMuted || 'rgba(0,0,0,0.03)',
+                                    color: tokens.bodyText
+                                  }}
+                                >
+                                  Chi <span className="font-bold text-red-600 dark:text-red-400">~{formatPrice(avgPricePerBottle)}</span> / chai
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Footer của Card (Phần dưới: Tiết kiệm) */}
+                          <div 
+                            className="px-4 py-2 border-t flex items-center justify-between text-[10px] font-medium" 
+                            style={{ 
+                              borderColor: tokens.divider, 
+                              backgroundColor: tokens.surfaceMuted || 'rgba(0,0,0,0.02)',
+                              color: tokens.bodyText
+                            }}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              {/* Icon heo đất hoặc hộp quà */}
+                              <span className="text-amber-500">
+                                <Gift size={11} strokeWidth={2.5} />
+                              </span>
+                              <span>
+                                {savingAmount > 0 
+                                  ? `Tiết kiệm ${formatPrice(savingAmount)}` 
+                                  : (combo.type === 'mix' ? 'Chi tiết bộ sản phẩm' : 'Tiết kiệm nhiều hơn')
+                                }
+                              </span>
+                            </div>
+                            {combo.type === 'mix' && <ChevronRight size={10} />}
+                          </div>
                         </div>
                       );
                     })}

@@ -1992,59 +1992,202 @@ export function ProductDetailPreview({
 
                 {/* Box Combo dạng so sánh song song chuyên nghiệp */}
                 {enableCombos && (
-                  <div className="space-y-3">
-                    <p className="text-xs font-bold uppercase tracking-wider" style={{ color: tokens.metaText }}>ƯU ĐÃI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN</p>
-                    <div className="grid grid-cols-2 gap-3 pt-3">
+                  <div
+                    className={cn(
+                      "border p-4 md:p-6 pt-8 relative mt-6 mb-6",
+                      getRadiusClass('box', cornerRadius)
+                    )}
+                    style={{
+                      borderColor: tokens.border,
+                    }}
+                  >
+                    {/* Badge Header nổi ở góc trái trên */}
+                    <div
+                      className={cn(
+                        "absolute -top-3 left-4 md:left-6 px-3.5 py-1 text-[11px] md:text-xs font-bold text-white shadow-sm flex items-center gap-1.5 z-20",
+                        cornerRadius === 'none' ? 'rounded-none' : 'rounded-t-lg rounded-br-lg'
+                      )}
+                      style={{ backgroundColor: brandColor || '#8B0000' }}
+                    >
+                      <span>🎁</span> ƯU ĐÃI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 md:gap-4 pt-2">
                       {/* Combo 6 Chai */}
                       <div
-                        className={cn("border p-4 flex flex-col justify-between transition-all cursor-pointer relative", getRadiusClass('combo-card', cornerRadius))}
+                        className={cn(
+                          "flex flex-col justify-between transition-all cursor-pointer relative border select-none overflow-hidden",
+                          getRadiusClass('combo-card', cornerRadius)
+                        )}
                         style={{
                           backgroundColor: tokens.surface,
                           borderColor: tokens.border,
                         }}
                       >
-                        <div>
-                          <div className="inline-block px-2 py-0.5 text-[11px] font-bold rounded-md text-white" style={{ backgroundColor: brandColor }}>
-                            COMBO 6 CHAI
+                        {/* Body của Card (Phần trên) */}
+                        <div className="p-4 flex gap-2 md:gap-3 items-start relative flex-1">
+                          {/* Nút Radio chọn hoặc Check chọn nằm bên trái */}
+                          <div className="pt-0.5 shrink-0">
+                            <div
+                              className="h-4 w-4 rounded-full border flex items-center justify-center transition-all"
+                              style={{ borderColor: tokens.border }}
+                            >
+                              <div
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: 'transparent' }}
+                              />
+                            </div>
                           </div>
-                          <p className="text-[10px] mt-1.5" style={{ color: tokens.metaText }}>Phù hợp dùng thử / biếu tặng</p>
-                          <p className="text-sm font-bold mt-2" style={{ color: tokens.headingColor }}>{formatVND(1450000)}</p>
-                          <p className="text-[10px] font-semibold" style={{ color: tokens.priceColor }}>Chi ~241.000đ / chai</p>
+
+                          {/* Thông tin nội dung */}
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            {/* Badge tên combo tròn dẹt */}
+                            <div className="flex">
+                              <span
+                                className="inline-block px-2 py-0.5 text-[9px] font-extrabold rounded-full text-white uppercase tracking-wider leading-none"
+                                style={{ backgroundColor: tokens.metaText }}
+                              >
+                                COMBO 6 CHAI
+                              </span>
+                            </div>
+
+                            <p className="text-[10px] line-clamp-2 leading-relaxed" style={{ color: tokens.bodyText }}>
+                              Phù hợp dùng thử / biếu tặng
+                            </p>
+
+                            {/* Giá tiền lớn đỏ thương hiệu */}
+                            <div className="pt-0.5">
+                              <span className="text-base font-extrabold" style={{ color: brandColor || tokens.priceColor }}>
+                                {formatVND(1450000)}
+                              </span>
+                            </div>
+
+                            {/* Box màu nhạt "Chi ~xxx/chai" */}
+                            <div
+                              className={cn(
+                                "inline-block px-2 py-1 text-[9px] font-semibold",
+                                cornerRadius === 'none' ? 'rounded-none' : 'rounded'
+                              )}
+                              style={{ 
+                                backgroundColor: tokens.surfaceMuted || 'rgba(0,0,0,0.03)',
+                                color: tokens.bodyText
+                              }}
+                            >
+                              Chi <span className="font-bold text-red-600 dark:text-red-400">~241.000đ</span> / chai
+                            </div>
+                          </div>
                         </div>
-                        <div className="border-t pt-2 mt-3 flex items-center gap-1 text-[9px] font-medium" style={{ borderColor: tokens.divider, color: tokens.priceColor }}>
-                          <Gift size={10} />
-                          <span>Tiết kiệm 340.000đ</span>
-                        </div>
-                        <div className="absolute right-2 top-2 h-4 w-4 rounded-full border flex items-center justify-center" style={{ borderColor: tokens.border }}>
-                          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: 'transparent' }} />
+
+                        {/* Footer của Card (Phần dưới: Tiết kiệm) */}
+                        <div
+                          className="px-4 py-2 border-t flex items-center justify-between text-[10px] font-medium"
+                          style={{
+                            borderColor: tokens.divider,
+                            backgroundColor: tokens.surfaceMuted || 'rgba(0,0,0,0.02)',
+                            color: tokens.bodyText
+                          }}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-amber-500">
+                              <Gift size={11} strokeWidth={2.5} />
+                            </span>
+                            <span>Tiết kiệm 340.000đ</span>
+                          </div>
                         </div>
                       </div>
 
                       {/* Combo 12 Chai - Best Seller */}
                       <div
-                        className={cn("border-2 p-4 flex flex-col justify-between transition-all cursor-pointer relative shadow-sm", getRadiusClass('combo-card', cornerRadius))}
+                        className={cn(
+                          "flex flex-col justify-between transition-all cursor-pointer relative border-2 select-none overflow-hidden",
+                          getRadiusClass('combo-card', cornerRadius)
+                        )}
                         style={{
                           backgroundColor: tokens.surface,
                           borderColor: brandColor,
+                          boxShadow: `0 4px 12px ${brandColor}15`
                         }}
                       >
-                        <div className="absolute -top-2.5 right-2 px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-0.5 z-10" style={{ backgroundColor: '#eab308' }}>
+                        {/* ★ BÁN CHẠY badge lệch lên trên bên phải */}
+                        <div
+                          className={cn(
+                            "absolute -top-0.5 right-2 px-2 py-0.5 text-[8px] md:text-[9px] font-bold text-white flex items-center gap-0.5 z-10 shadow-sm",
+                            cornerRadius === 'none' ? 'rounded-none' : 'rounded-b'
+                          )}
+                          style={{ backgroundColor: '#f59e0b' }}
+                        >
                           ★ BÁN CHẠY
                         </div>
-                        <div>
-                          <div className="inline-block px-2 py-0.5 text-[11px] font-bold rounded-md text-white" style={{ backgroundColor: '#eab308' }}>
-                            COMBO 12 CHAI
+
+                        {/* Body của Card (Phần trên) */}
+                        <div className="p-4 flex gap-2 md:gap-3 items-start relative flex-1">
+                          {/* Nút Radio chọn hoặc Check chọn nằm bên trái */}
+                          <div className="pt-0.5 shrink-0">
+                            <div
+                              className="h-4 w-4 rounded-full border-2 flex items-center justify-center transition-all"
+                              style={{ borderColor: brandColor }}
+                            >
+                              <div
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: brandColor }}
+                              />
+                            </div>
                           </div>
-                          <p className="text-[10px] mt-1.5" style={{ color: tokens.metaText }}>Lời nhất – Tiết kiệm nhiều nhất</p>
-                          <p className="text-sm font-bold mt-2" style={{ color: tokens.headingColor }}>{formatVND(2800000)}</p>
-                          <p className="text-[10px] font-semibold" style={{ color: tokens.priceColor }}>Chi ~233.000đ / chai</p>
+
+                          {/* Thông tin nội dung */}
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            {/* Badge tên combo tròn dẹt */}
+                            <div className="flex">
+                              <span
+                                className="inline-block px-2 py-0.5 text-[9px] font-extrabold rounded-full text-white uppercase tracking-wider leading-none"
+                                style={{ backgroundColor: '#f59e0b' }}
+                              >
+                                COMBO 12 CHAI
+                              </span>
+                            </div>
+
+                            <p className="text-[10px] line-clamp-2 leading-relaxed" style={{ color: tokens.bodyText }}>
+                              Lời nhất – Tiết kiệm nhiều nhất
+                            </p>
+
+                            {/* Giá tiền lớn đỏ thương hiệu */}
+                            <div className="pt-0.5">
+                              <span className="text-base font-extrabold" style={{ color: brandColor || tokens.priceColor }}>
+                                {formatVND(2800000)}
+                              </span>
+                            </div>
+
+                            {/* Box màu nhạt "Chi ~xxx/chai" */}
+                            <div
+                              className={cn(
+                                "inline-block px-2 py-1 text-[9px] font-semibold",
+                                cornerRadius === 'none' ? 'rounded-none' : 'rounded'
+                              )}
+                              style={{ 
+                                backgroundColor: tokens.surfaceMuted || 'rgba(0,0,0,0.03)',
+                                color: tokens.bodyText
+                              }}
+                            >
+                              Chi <span className="font-bold text-red-600 dark:text-red-400">~233.000đ</span> / chai
+                            </div>
+                          </div>
                         </div>
-                        <div className="border-t pt-2 mt-3 flex items-center gap-1 text-[9px] font-medium" style={{ borderColor: tokens.divider, color: tokens.priceColor }}>
-                          <Gift size={10} />
-                          <span>Tiết kiệm 680.000đ</span>
-                        </div>
-                        <div className="absolute right-2 top-2 h-4 w-4 rounded-full border-2 flex items-center justify-center" style={{ borderColor: brandColor }}>
-                          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: brandColor }} />
+
+                        {/* Footer của Card (Phần dưới: Tiết kiệm) */}
+                        <div
+                          className="px-4 py-2 border-t flex items-center justify-between text-[10px] font-medium"
+                          style={{
+                            borderColor: tokens.divider,
+                            backgroundColor: tokens.surfaceMuted || 'rgba(0,0,0,0.02)',
+                            color: tokens.bodyText
+                          }}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-amber-500">
+                              <Gift size={11} strokeWidth={2.5} />
+                            </span>
+                            <span>Tiết kiệm 680.000đ</span>
+                          </div>
                         </div>
                       </div>
                     </div>
