@@ -653,9 +653,7 @@ export function ProductDetailPreview({
   phoneText = 'GỌI TƯ VẤN',
   phoneIcon = 'Phone',
   mobileFontSize = 'xs',
-  priceLeftIcon = 'Award',
   priceRightIcon = 'Gift',
-  showPriceLeftIcon = true,
   showPriceRightIcon = true,
   cartButtonsLayout = 'stack',
   highlightsPosition,
@@ -1950,11 +1948,6 @@ export function ProductDetailPreview({
                     </div>
                   )}
                   <div className="flex items-start gap-3 relative z-10">
-                    {showPriceLeftIcon !== false && (
-                      <div className="p-2 rounded-lg shrink-0" style={{ backgroundColor: tokens.surface, color: tokens.primary }}>
-                        {renderPremiumIcon(priceLeftIcon, 18) || <Award size={18} />}
-                      </div>
-                    )}
                     <div className="flex-1 grid grid-cols-12 gap-3 items-center">
                       {/* Cột trái: Giá bán ưu đãi và text Tiết kiệm */}
                       <div className={cn(

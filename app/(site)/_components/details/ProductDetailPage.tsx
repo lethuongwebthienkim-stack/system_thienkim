@@ -2742,9 +2742,7 @@ function PremiumStyle({
   phoneIcon = 'Phone',
   phoneUrl = '',
   mobileFontSize = 'xs',
-  priceLeftIcon = 'Award',
   priceRightIcon = 'Gift',
-  showPriceLeftIcon = true,
   showPriceRightIcon = true,
   highlightsPosition,
   highlightsSpacing,
@@ -3177,11 +3175,6 @@ function PremiumStyle({
                   </div>
                 )}
                 <div className="flex items-start gap-3 relative z-10">
-                  {showPriceLeftIcon !== false && (
-                    <div className="p-2 rounded-xl shrink-0" style={{ backgroundColor: tokens.surface, color: tokens.primary }}>
-                      {renderPremiumIcon(priceLeftIcon, 20) || <Award size={20} />}
-                    </div>
-                  )}
                   <div className="flex-1 grid grid-cols-12 gap-3 items-center">
                     {/* Cột trái: Giá bán ưu đãi và text Tiết kiệm */}
                     <div className={cn(
