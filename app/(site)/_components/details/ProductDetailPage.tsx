@@ -357,6 +357,7 @@ function useProductDetailExperienceConfig(): ProductDetailExperienceConfig {
       showPriceRightIcon: (raw?.layouts?.premium as any)?.showPriceRightIcon !== false,
       highlightsPosition: raw?.highlightsPosition ?? 'image_column',
       highlightsSpacing: raw?.highlightsSpacing ?? 'high',
+      cornerRadius: (raw?.layouts?.premium as any)?.cornerRadius,
     };
   }, [experienceSetting?.value, cartAvailable, canUseComments, canUseCommentLikes, canUseCommentReplies, canUseWishlist, ordersEnabled, moduleDefaultAspectRatio]);
 }
@@ -1072,6 +1073,7 @@ export default function ProductDetailPage({ params }: PageProps) {
           priceRightIcon={(experienceConfig as any).priceRightIcon}
           showPriceLeftIcon={(experienceConfig as any).showPriceLeftIcon}
           showPriceRightIcon={(experienceConfig as any).showPriceRightIcon}
+          cornerRadius={(experienceConfig as any).cornerRadius}
         />
       )}
       {experienceConfig.layoutStyle === 'classic' && (
@@ -2655,6 +2657,13 @@ function ClassicStyle({
   );
 }
 
+const getRadiusClass = (radius?: 'none' | 'sm' | 'lg', type?: 'box' | 'button' | 'image') => {
+  if (radius === 'none') return 'rounded-none';
+  if (radius === 'sm') return 'rounded-lg';
+  if (type === 'button') return 'rounded-full';
+  return 'rounded-2xl';
+};
+
 // ====================================================================================
 // STYLE 4: PREMIUM - Elegant premium product page with dynamic layouts & colors
 // ====================================================================================
@@ -2680,6 +2689,7 @@ interface PremiumStyleProps extends StyleProps, ExperienceBlocksProps {
   priceRightIcon?: string;
   showPriceLeftIcon?: boolean;
   showPriceRightIcon?: boolean;
+  cornerRadius?: 'none' | 'sm' | 'lg';
 }
 
 function PremiumStyle({
@@ -2746,6 +2756,7 @@ function PremiumStyle({
   showPriceRightIcon = true,
   highlightsPosition,
   highlightsSpacing,
+  cornerRadius,
 }: PremiumStyleProps) {
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
@@ -3021,11 +3032,13 @@ function PremiumStyle({
               <div className="flex-1">
                 <div className={`${imageFrame.frameWidthClassName} group/carousel relative`}>
                   <div
-                    className={`relative overflow-hidden ${
+                    className={cn(
+                      "relative overflow-hidden",
                       highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition !== 'info_column' && highlightsSpacing === 'none'
-                        ? 'rounded-t-2xl rounded-b-none'
-                        : 'rounded-2xl'
-                    } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                        ? (cornerRadius === 'none' ? 'rounded-none' : cornerRadius === 'sm' ? 'rounded-t-lg rounded-b-none' : 'rounded-t-2xl rounded-b-none')
+                        : getRadiusClass(cornerRadius, 'image'),
+                      canOpenLightbox ? 'cursor-zoom-in' : ''
+                    )}
                     style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                     role={canOpenLightbox ? 'button' : undefined}
                     tabIndex={canOpenLightbox ? 0 : -1}
@@ -3125,7 +3138,7 @@ function PremiumStyle({
                   )}
                   {stockStatus && <InlineStockBadge label={stockStatus.label} color={stockStatus.color} tokens={tokens} />}
                 </div>
-                <h1 className="text-xl md:text-3xl font-bold" style={{ color: tokens.headingColor }}>{product.name}</h1>
+                <h1 className="text-sm md:text-lg font-bold" style={{ color: '#000000' }}>{product.name}</h1>
               </div>
               <div className="flex gap-2 shrink-0">
                 {showWishlist && (
@@ -3163,7 +3176,7 @@ function PremiumStyle({
             {/* Box Giá Premium sử dụng dynamic brand colors từ Tokens */}
             {showPrice && (
               <div
-                className="rounded-2xl border p-4 relative overflow-hidden"
+                className={cn("border p-4 relative overflow-hidden", getRadiusClass(cornerRadius, 'box'))}
                 style={{
                   backgroundColor: tokens.surfaceMuted,
                   borderColor: tokens.border,
@@ -3283,7 +3296,8 @@ function PremiumStyle({
                           key={combo.id || index}
                           onClick={handleComboClick}
                           className={cn(
-                            "rounded-xl p-4 flex flex-col justify-between transition-all cursor-pointer relative border select-none shrink-0 flex-grow-0",
+                            "p-4 flex flex-col justify-between transition-all cursor-pointer relative border select-none shrink-0 flex-grow-0",
+                            cornerRadius === 'none' ? 'rounded-none' : cornerRadius === 'sm' ? 'rounded-lg' : 'rounded-xl',
                             isBestSeller ? "border-2" : "border",
                             (product.combos?.length ?? 0) > 2 ? "w-[260px] md:w-[290px]" : "flex-1 min-w-[210px]"
                           )}
@@ -3374,7 +3388,8 @@ function PremiumStyle({
                 <div className="flex gap-2">
                   <button
                     className={cn(
-                      "flex-1 py-2 px-2.5 md:py-3.5 md:px-4 rounded-xl font-bold flex items-center justify-center gap-1.5 text-white transition-all hover:shadow-lg hover:scale-[1.01]",
+                      "flex-1 py-2 px-2.5 md:py-3.5 md:px-4 font-bold flex items-center justify-center gap-1.5 text-white transition-all hover:shadow-lg hover:scale-[1.01]",
+                      getRadiusClass(cornerRadius, 'button'),
                       mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm',
                       "md:text-sm"
                     )}
@@ -3392,7 +3407,8 @@ function PremiumStyle({
                   </button>
                   <button
                     className={cn(
-                      "flex-1 py-2 px-2.5 md:py-3.5 md:px-4 rounded-xl font-bold border flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:scale-[1.01]",
+                      "flex-1 py-2 px-2.5 md:py-3.5 md:px-4 font-bold border flex items-center justify-center gap-1.5 transition-all hover:shadow-md hover:scale-[1.01]",
+                      getRadiusClass(cornerRadius, 'button'),
                       mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm',
                       "md:text-sm"
                     )}
@@ -3411,7 +3427,10 @@ function PremiumStyle({
                 </div>
                 {showAddToCart && (
                   <button
-                    className={`py-3.5 px-8 rounded-xl font-semibold flex items-center justify-center gap-2 border transition-all ${inStock ? 'hover:shadow-lg hover:scale-[1.01]' : 'opacity-50 cursor-not-allowed'}`}
+                    className={cn(
+                      `py-3.5 px-8 font-semibold flex items-center justify-center gap-2 border transition-all ${inStock ? 'hover:shadow-lg hover:scale-[1.01]' : 'opacity-50 cursor-not-allowed'}`,
+                      getRadiusClass(cornerRadius, 'button')
+                    )}
                     style={{
                       borderColor: primaryButtonColors.border,
                       color: primaryButtonColors.text,
@@ -3483,7 +3502,7 @@ function PremiumStyle({
           return (
             <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
               <div 
-                className="rounded-2xl py-3 px-2 md:p-5 relative border"
+                className={cn("py-3 px-2 md:p-5 relative border", getRadiusClass(cornerRadius, 'box'))}
                 style={{ 
                   backgroundColor: tokens.surfaceMuted || '#f8fafc',
                   borderColor: tokens.border || '#e2e8f0'
@@ -3674,7 +3693,7 @@ function PremiumStyle({
                   onClick={() => setActiveAttrModal(null)}
                 >
                   <div 
-                    className="rounded-2xl p-6 max-w-sm w-full border text-center relative shadow-2xl"
+                    className={cn("p-6 max-w-sm w-full border text-center relative shadow-2xl", getRadiusClass(cornerRadius, 'box'))}
                     style={{ 
                       backgroundColor: tokens.surface || '#ffffff',
                       borderColor: tokens.border || '#e2e8f0'
@@ -3712,7 +3731,7 @@ function PremiumStyle({
           const bgColor = BANNER_COLOR_MAP[premiumBannerBg] ?? tokens.primary;
           const textColor = BANNER_COLOR_MAP[premiumBannerText] ?? '#ffffff';
           return (
-            <div className="rounded-2xl p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-center mt-8" style={{ backgroundColor: bgColor, color: textColor }}>
+            <div className={cn("p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-center mt-8", getRadiusClass(cornerRadius, 'box'))} style={{ backgroundColor: bgColor, color: textColor }}>
               {premiumBannerItems.map((item, idx) => (
                 <div key={idx} className={`space-y-0.5${idx > 0 ? ' border-l' : ''}`} style={{ borderColor: `${textColor}33` }}>
                   <p className="text-sm font-extrabold uppercase tracking-wide">{item.title}</p>

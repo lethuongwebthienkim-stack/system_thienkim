@@ -282,6 +282,7 @@ type PremiumLayoutConfig = BaseImageLayoutConfig & {
   priceRightIcon?: string;
   showPriceLeftIcon?: boolean;
   showPriceRightIcon?: boolean;
+  cornerRadius?: 'none' | 'sm' | 'lg';
 };
 
 type ClassicHighlightIcon =
@@ -346,6 +347,7 @@ const DEFAULT_CONFIG: ProductDetailExperienceConfig = {
     priceRightIcon: 'Gift',
     showPriceLeftIcon: true,
     showPriceRightIcon: true,
+    cornerRadius: 'lg',
     },
   },
   showBuyNow: true,
@@ -734,6 +736,7 @@ export default function ProductDetailExperiencePage() {
            priceRightIcon: (raw?.layouts?.premium as Partial<PremiumLayoutConfig>)?.priceRightIcon ?? DEFAULT_CONFIG.layouts.premium.priceRightIcon,
            showPriceLeftIcon: (raw?.layouts?.premium as Partial<PremiumLayoutConfig>)?.showPriceLeftIcon ?? DEFAULT_CONFIG.layouts.premium.showPriceLeftIcon,
            showPriceRightIcon: (raw?.layouts?.premium as Partial<PremiumLayoutConfig>)?.showPriceRightIcon ?? DEFAULT_CONFIG.layouts.premium.showPriceRightIcon,
+           cornerRadius: (raw?.layouts?.premium as Partial<PremiumLayoutConfig>)?.cornerRadius ?? DEFAULT_CONFIG.layouts.premium.cornerRadius,
          },
        },
       showBuyNow: raw?.showBuyNow ?? true,
@@ -939,6 +942,7 @@ export default function ProductDetailExperiencePage() {
       cartButtonsLayout: config.cartButtonsLayout,
       highlightsPosition: config.highlightsPosition,
       highlightsSpacing: config.highlightsSpacing,
+      cornerRadius: premiumLayoutConfig.cornerRadius,
     };
 
     return base;
@@ -1654,6 +1658,19 @@ export default function ProductDetailExperiencePage() {
                             </div>
                           )}
                         </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                        <SelectRow
+                          label="Độ bo góc"
+                          value={premiumLayoutConfig.cornerRadius ?? 'lg'}
+                          options={[
+                            { value: 'lg', label: 'Nhiều (Mặc định)' },
+                            { value: 'sm', label: 'Ít (1/2)' },
+                            { value: 'none', label: 'Không bo' },
+                          ]}
+                          onChange={(v) => updateLayoutConfig('cornerRadius' as keyof typeof currentLayoutConfig, v as never)}
+                        />
                       </div>
                     </div>
                   </div>

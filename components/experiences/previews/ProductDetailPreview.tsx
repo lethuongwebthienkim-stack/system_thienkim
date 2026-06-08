@@ -117,9 +117,21 @@ type ProductDetailPreviewProps = {
   cartButtonsLayout?: 'stack' | 'grid-2';
   highlightsPosition?: 'info_column' | 'image_column';
   highlightsSpacing?: 'low' | 'high' | 'none';
+  cornerRadius?: 'none' | 'sm' | 'lg';
 };
 
 const formatVND = (price: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+
+const getRadiusClass = (
+  type: 'box' | 'button' | 'image' | 'combo-card',
+  radius?: 'none' | 'sm' | 'lg'
+) => {
+  if (radius === 'none') return 'rounded-none';
+  if (radius === 'sm') return 'rounded-lg';
+  if (type === 'button') return 'rounded-full';
+  if (type === 'combo-card') return 'rounded-xl';
+  return 'rounded-2xl';
+};
 
 const CLASSIC_HIGHLIGHT_ICON_MAP: Record<string, React.ElementType> = {
   Award,
@@ -658,6 +670,7 @@ export function ProductDetailPreview({
   cartButtonsLayout = 'stack',
   highlightsPosition,
   highlightsSpacing = 'high',
+  cornerRadius = 'lg',
 }: ProductDetailPreviewProps) {
   const getHighlightsSpacingClass = (spacing?: 'low' | 'high' | 'none') => {
     if (spacing === 'none') return '!mt-0';
@@ -1811,8 +1824,8 @@ export function ProductDetailPreview({
                       <div
                         className={`relative overflow-hidden ${
                           showHighlightBlock && highlightsPosition !== 'info_column' && highlightsSpacing === 'none'
-                            ? 'rounded-t-2xl rounded-b-none'
-                            : 'rounded-2xl'
+                            ? (cornerRadius === 'none' ? 'rounded-none' : cornerRadius === 'sm' ? 'rounded-t-lg rounded-b-none' : 'rounded-t-2xl rounded-b-none')
+                            : getRadiusClass('image', cornerRadius)
                         } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
                         style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
                         onClick={canOpenLightbox ? () => openLightboxAt(activeImageIndex) : undefined}
@@ -1901,7 +1914,7 @@ export function ProductDetailPreview({
                       </span>
                       {stockBadge}
                     </div>
-                    <h1 className="text-xl md:text-3xl font-bold" style={{ color: tokens.headingColor }}>{productName}</h1>
+                    <h1 className="text-sm md:text-lg font-bold" style={{ color: '#111111' }}>{productName}</h1>
                   </div>
                   <div className="flex gap-2 shrink-0">
                     {showWishlist && (
@@ -1936,7 +1949,7 @@ export function ProductDetailPreview({
 
                 {/* Box Giá Premium sử dụng Dynamic Color từ Tokens */}
                 <div
-                  className="rounded-2xl border p-4 relative overflow-hidden"
+                  className={cn("border p-4 relative overflow-hidden", getRadiusClass('box', cornerRadius))}
                   style={{
                     backgroundColor: tokens.surfaceMuted,
                     borderColor: tokens.border,
@@ -1984,7 +1997,7 @@ export function ProductDetailPreview({
                     <div className="grid grid-cols-2 gap-3 pt-3">
                       {/* Combo 6 Chai */}
                       <div
-                        className="rounded-xl border p-4 flex flex-col justify-between transition-all cursor-pointer relative"
+                        className={cn("border p-4 flex flex-col justify-between transition-all cursor-pointer relative", getRadiusClass('combo-card', cornerRadius))}
                         style={{
                           backgroundColor: tokens.surface,
                           borderColor: tokens.border,
@@ -2009,7 +2022,7 @@ export function ProductDetailPreview({
 
                       {/* Combo 12 Chai - Best Seller */}
                       <div
-                        className="rounded-xl border-2 p-4 flex flex-col justify-between transition-all cursor-pointer relative shadow-sm"
+                        className={cn("border-2 p-4 flex flex-col justify-between transition-all cursor-pointer relative shadow-sm", getRadiusClass('combo-card', cornerRadius))}
                         style={{
                           backgroundColor: tokens.surface,
                           borderColor: brandColor,
@@ -2042,7 +2055,8 @@ export function ProductDetailPreview({
                 <div className="space-y-2 pt-2">
                   <div className="flex gap-2">
                     <button className={cn(
-                      "flex-1 font-bold rounded-xl flex items-center justify-center gap-1.5 text-white transition-transform hover:scale-[1.01]",
+                      "flex-1 font-bold flex items-center justify-center gap-1.5 text-white transition-transform hover:scale-[1.01]",
+                      getRadiusClass('button', cornerRadius),
                       isMobile ? "h-9 px-2.5" : "h-11 px-4",
                       isMobile && (mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm') || 'text-xs'
                     )} style={{ backgroundColor: brandColor }}>
@@ -2050,7 +2064,8 @@ export function ProductDetailPreview({
                       {zaloText}
                     </button>
                     <button className={cn(
-                      "flex-1 font-bold rounded-xl border flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]",
+                      "flex-1 font-bold border flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]",
+                      getRadiusClass('button', cornerRadius),
                       isMobile ? "h-9 px-2.5" : "h-11 px-4",
                       isMobile && (mobileFontSize === 'xs' ? 'text-[10px]' : mobileFontSize === 'sm' ? 'text-xs' : 'text-sm') || 'text-xs'
                     )} style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}>
@@ -2059,7 +2074,7 @@ export function ProductDetailPreview({
                     </button>
                   </div>
                   {showAddToCart && (
-                    <button className="w-full h-11 text-xs font-bold rounded-xl border flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]" style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}>
+                    <button className={cn("w-full h-11 text-xs font-bold border flex items-center justify-center gap-1.5 transition-transform hover:scale-[1.01]", getRadiusClass('button', cornerRadius))} style={{ borderColor: brandColor, color: brandColor, backgroundColor: tokens.surface }}>
                       <ShoppingCart size={14} />
                       THÊM VÀO GIỎ HÀNG
                     </button>
@@ -2122,7 +2137,7 @@ export function ProductDetailPreview({
               return (
                 <div className="border-t pt-6 mt-8" style={{ borderColor: tokens.divider }}>
                   <div 
-                    className="rounded-2xl py-3 px-2 md:p-5 relative border"
+                    className={cn("py-3 px-2 md:p-5 relative border", getRadiusClass('box', cornerRadius))}
                     style={{ 
                       backgroundColor: tokens.surfaceMuted || '#f8fafc',
                       borderColor: tokens.border || '#e2e8f0'
@@ -2241,7 +2256,7 @@ export function ProductDetailPreview({
                       onClick={() => setActiveAttrModal(null)}
                     >
                       <div 
-                        className="rounded-2xl p-6 max-w-sm w-full border text-center relative shadow-2xl"
+                        className={cn("p-6 max-w-sm w-full border text-center relative shadow-2xl", getRadiusClass('box', cornerRadius))}
                         style={{ 
                           backgroundColor: tokens.surface || '#ffffff',
                           borderColor: tokens.border || '#e2e8f0'
@@ -2279,7 +2294,7 @@ export function ProductDetailPreview({
               const bgColor = BANNER_COLOR_MAP[premiumBannerBg] ?? tokens.primary;
               const textColor = BANNER_COLOR_MAP[premiumBannerText] ?? '#ffffff';
               return (
-                <div className="rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center" style={{ backgroundColor: bgColor, color: textColor }}>
+                <div className={cn("p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center", getRadiusClass('box', cornerRadius))} style={{ backgroundColor: bgColor, color: textColor }}>
                   {premiumBannerItems.map((item, idx) => (
                     <div key={idx} className={`space-y-0.5${idx > 0 ? ' border-l' : ''}`} style={{ borderColor: `${textColor}33` }}>
                       <p className="text-xs font-extrabold uppercase tracking-wide">{item.title}</p>
