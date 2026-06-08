@@ -1632,10 +1632,17 @@ function HighlightsGrid({
   const paddingClass = shouldAttach ? 'p-3' : 'p-4';
   const gapClass = isNoneSpacing ? 'gap-x-5 gap-y-2' : 'gap-x-6 gap-y-3';
   
+  const isGridStyle = position === 'image_column';
+
   return (
     <div
-      className={`flex flex-wrap items-center justify-center ${gapClass} w-full ${borderRadiusClass} ${paddingClass} animate-fadeIn transition-all duration-300`}
+      className={`${
+        isGridStyle 
+          ? 'grid gap-2' 
+          : `flex flex-wrap items-center justify-center ${gapClass}`
+      } w-full ${borderRadiusClass} ${paddingClass} animate-fadeIn transition-all duration-300`}
       style={{
+        gridTemplateColumns: isGridStyle ? `repeat(${highlights.length}, minmax(0, 1fr))` : undefined,
         backgroundColor: shouldAttach
           ? (tokens.highlightBg || tokens.surfaceMuted || 'rgba(0,0,0,0.02)')
           : (tokens.highlightBg || 'transparent'),
@@ -1648,17 +1655,17 @@ function HighlightsGrid({
         return (
           <div
             key={`${item.icon}-${index}`}
-            className="flex items-center gap-2 max-w-[200px]"
+            className={`flex items-center gap-1.5 ${isGridStyle ? 'justify-center' : ''} min-w-0`}
           >
-            <div className="shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-primary/5 dark:bg-primary/10">
+            <div className="shrink-0 flex items-center justify-center w-5 h-5 rounded-full bg-primary/5 dark:bg-primary/10">
               <Icon
-                size={14}
+                size={12}
                 className="stroke-[1.75]"
                 style={{ color: tokens.primary }}
               />
             </div>
             <span
-              className="text-[11px] md:text-xs font-semibold leading-tight line-clamp-2"
+              className="text-[10px] md:text-xs font-semibold leading-tight line-clamp-2"
               style={{ color: tokens.bodyText }}
             >
               {item.text}
