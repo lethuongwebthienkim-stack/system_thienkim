@@ -928,78 +928,102 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
     );
   });
 
-  const renderMobileNodes = (nodes: MenuItemWithChildren[], isDarkGlass = false): React.ReactNode => nodes.map((node) => {
-    const hasChildren = node.children && node.children.length > 0;
-    const textColor = isDarkGlass ? '#ffffff' : tokens.mobileMenuItemText;
-    const cardBg = isDarkGlass ? 'rgba(255, 255, 255, 0.05)' : tokens.surface;
-    const borderColor = isDarkGlass ? 'rgba(255, 255, 255, 0.1)' : tokens.border;
+  // Mobile menu layer: dùng layerColors.menu (= Màu phụ theo cấu hình admin) làm nền card
+  // text được APCA tính sẵn trong getMenuColors -> đảm bảo contrast
+  type MobileLayerColors = { bg: string; text: string; border: string };
 
+  const darkGlassLayer: MobileLayerColors = {
+    bg: 'rgba(255, 255, 255, 0.07)',
+    text: '#ffffff',
+    border: 'rgba(255, 255, 255, 0.12)',
+  };
+
+  const lightMenuLayer: MobileLayerColors = {
+    bg: layerColors.menu.bg,
+    text: layerColors.menu.text,
+    border: tokens.border,
+  };
+
+  // Grouped List pattern (iOS Settings style):
+  // Tất cả items nằm trong 1 card bo góc, phân cách bằng hairline divider mỏng
+  const renderMobileNodes = (nodes: MenuItemWithChildren[], layer: MobileLayerColors = lightMenuLayer): React.ReactNode => {
+    if (nodes.length === 0) return null;
     return (
-      <div key={node._id} className="mb-2 last:mb-0">
-        <div 
-          className="rounded-xl border transition-colors overflow-hidden flex items-stretch"
-          style={{ 
-            backgroundColor: cardBg, 
-            borderColor 
-          }}
-        >
-          {hasChildren ? (
-            <button
-              type="button"
-              onClick={() => {
-                setMenuStack(prev => [...prev, node]);
-              }}
-              className="flex-grow flex items-center justify-between py-3.5 px-5 text-sm font-semibold transition-colors hover:opacity-85 text-left w-full"
-              style={{ color: textColor, ...menuVars }}
-            >
-              <span>{node.label}</span>
-              <ChevronRight size={16} className="opacity-60" />
-            </button>
-          ) : (
-            <Link
-              href={node.url}
-              target={node.openInNewTab ? '_blank' : undefined}
-              rel={node.openInNewTab ? 'noreferrer' : undefined}
-              onClick={() => {
-                setMobileMenuOpen(false);
-                setMenuStack([]);
-              }}
-              className="block w-full py-3.5 px-5 text-sm font-semibold transition-colors hover:opacity-80"
-              style={{ color: textColor, ...menuVars }}
-            >
-              {node.label}
-            </Link>
-          )}
-        </div>
+      <div
+        className="rounded-xl border overflow-hidden"
+        style={{ backgroundColor: layer.bg, borderColor: layer.border }}
+      >
+        {nodes.map((node, idx) => {
+          const hasChildren = node.children && node.children.length > 0;
+          const isLast = idx === nodes.length - 1;
+
+          return (
+            <div key={node._id}>
+              {hasChildren ? (
+                <button
+                  type="button"
+                  onClick={() => setMenuStack(prev => [...prev, node])}
+                  className="flex items-center justify-between w-full py-3.5 px-5 text-sm font-semibold text-left transition-opacity hover:opacity-75 active:opacity-60"
+                  style={{ color: layer.text, ...menuVars }}
+                >
+                  <span>{node.label}</span>
+                  <ChevronRight size={15} className="opacity-40 shrink-0" />
+                </button>
+              ) : (
+                <Link
+                  href={node.url}
+                  target={node.openInNewTab ? '_blank' : undefined}
+                  rel={node.openInNewTab ? 'noreferrer' : undefined}
+                  onClick={() => { setMobileMenuOpen(false); setMenuStack([]); }}
+                  className="block w-full py-3.5 px-5 text-sm font-semibold transition-opacity hover:opacity-75 active:opacity-60"
+                  style={{ color: layer.text, ...menuVars }}
+                >
+                  {node.label}
+                </Link>
+              )}
+              {/* Hairline divider — ẩn ở item cuối */}
+              {!isLast && (
+                <div className="mx-5" style={{ height: 1, backgroundColor: layer.border, opacity: 0.6 }} />
+              )}
+            </div>
+          );
+        })}
       </div>
     );
-  });
+  };
 
   const renderMobileMenuContent = (isDarkGlass = false) => {
+    const layer = isDarkGlass ? darkGlassLayer : lightMenuLayer;
     const currentNode = menuStack[menuStack.length - 1] || null;
     const displayItems = currentNode ? currentNode.children : menuTree;
-    const textColor = isDarkGlass ? '#ffffff' : tokens.mobileMenuItemText;
-    const borderColor = isDarkGlass ? 'rgba(255, 255, 255, 0.1)' : tokens.border;
+
+    // Nút "Xem tất cả": dùng màu primary để nổi bật; text dùng textInverse (APCA-calculated)
+    const viewAllBg = isDarkGlass ? 'rgba(255,255,255,0.15)' : tokens.primary;
+    const viewAllBorder = isDarkGlass ? 'rgba(255,255,255,0.25)' : tokens.primary;
+    const viewAllText = isDarkGlass ? '#ffffff' : tokens.textInverse;
 
     return (
       <div className="flex flex-col h-full w-full">
-        {/* Drill-down Submenu Header */}
+        {/* Drill-down header: Back + Tên danh mục + Close */}
         {menuStack.length > 0 && (
-          <div className="flex items-center justify-between border-b px-4 py-3 bg-black/[0.01] dark:bg-white/[0.01]" style={{ borderColor }}>
+          <div 
+            className="flex items-center justify-between border-b px-4 py-3"
+            style={{ borderColor: layer.border }}
+          >
             <button 
               onClick={() => setMenuStack(prev => prev.slice(0, -1))} 
-              className="p-2 -ml-2 hover:opacity-75 flex items-center justify-center shrink-0"
-              style={{ color: textColor }}
+              className="p-2 -ml-2 hover:opacity-70 flex items-center justify-center shrink-0 transition-opacity"
+              style={{ color: layer.text }}
             >
               <ArrowLeft size={18} />
             </button>
-            <span className="font-bold text-sm flex-1 text-center truncate px-2" style={{ color: textColor }}>
+            <span className="font-bold text-sm flex-1 text-center truncate px-2" style={{ color: layer.text }}>
               {currentNode?.label}
             </span>
             <button 
               onClick={() => { setMobileMenuOpen(false); setMenuStack([]); }} 
-              className="p-2 -mr-2 hover:opacity-75 flex items-center justify-center shrink-0"
-              style={{ color: textColor }}
+              className="p-2 -mr-2 hover:opacity-70 flex items-center justify-center shrink-0 transition-opacity"
+              style={{ color: layer.text }}
             >
               <X size={18} />
             </button>
@@ -1007,15 +1031,13 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         )}
         
         {/* Menu list */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2 max-h-[70vh]">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[70vh]">
+          {/* Nút xem tất cả danh mục cha - màu primary nổi bật */}
           {currentNode && (
-            <div className="mb-2">
+            <div className="mb-3">
               <div 
-                className="rounded-xl border transition-colors overflow-hidden"
-                style={{ 
-                  backgroundColor: isDarkGlass ? 'rgba(255, 255, 255, 0.12)' : tokens.primary, 
-                  borderColor: isDarkGlass ? 'rgba(255, 255, 255, 0.2)' : tokens.primary 
-                }}
+                className="rounded-xl border overflow-hidden"
+                style={{ backgroundColor: viewAllBg, borderColor: viewAllBorder }}
               >
                 <Link
                   href={currentNode.url}
@@ -1023,15 +1045,15 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                     setMobileMenuOpen(false);
                     setMenuStack([]);
                   }}
-                  className="block w-full py-3.5 px-5 text-sm font-bold transition-colors hover:opacity-90 text-center"
-                  style={{ color: isDarkGlass ? '#ffffff' : tokens.textInverse }}
+                  className="block w-full py-3.5 px-5 text-sm font-bold transition-opacity hover:opacity-90 text-center"
+                  style={{ color: viewAllText }}
                 >
                   Xem tất cả {currentNode.label}
                 </Link>
               </div>
             </div>
           )}
-          {renderMobileNodes(displayItems, isDarkGlass)}
+          {renderMobileNodes(displayItems, layer)}
         </div>
       </div>
     );
@@ -1525,7 +1547,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t" style={{ borderColor: tokens.border, backgroundColor: tokens.mobileMenuBg }}>
+          <div className="lg:hidden border-t" style={{ borderColor: layerColors.menu.border, backgroundColor: layerColors.menu.bg }}>
             {renderMobileMenuContent(false)}
             {config.cta?.show && (
               <div className="p-4 border-t" style={{ borderColor: tokens.border }}>
@@ -1898,7 +1920,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t" style={{ borderColor: tokens.border, backgroundColor: tokens.surface }}>
+          <div className="lg:hidden border-t" style={{ borderColor: layerColors.menu.border, backgroundColor: layerColors.menu.bg }}>
             {renderMobileMenuContent(false)}
             {config.cta?.show && (
               <div className="p-4 border-t" style={{ borderColor: tokens.border }}>
@@ -2781,7 +2803,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         )}
 
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t" style={{ borderColor: tokens.border, backgroundColor: tokens.mobileMenuBg }}>
+          <div className="lg:hidden border-t" style={{ borderColor: layerColors.menu.border, backgroundColor: layerColors.menu.bg }}>
             {renderMobileMenuContent(false)}
             {config.cta?.show && (
               <div className="p-4 border-t" style={{ borderColor: tokens.border }}>
