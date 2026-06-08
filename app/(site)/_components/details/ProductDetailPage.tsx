@@ -2293,7 +2293,7 @@ function ClassicStyle({
               </>
             )}
             {highlightsEnabled && highlights.length > 0 && highlightsPosition === 'image_column' && (
-              <div className="grid grid-cols-3 gap-4 p-4 rounded-xl mt-4 animate-fadeIn" style={{ backgroundColor: tokens.highlightBg }}>
+              <div className={`grid grid-cols-3 gap-4 p-4 rounded-xl ${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`} style={{ backgroundColor: tokens.highlightBg }}>
                 {highlights.map((item, index) => {
                   const Icon = CLASSIC_HIGHLIGHT_ICON_MAP[item.icon];
                   return (
@@ -4405,7 +4405,7 @@ function ModernStyle({
               </>
             )}
             {showHighlights && highlightsPosition === 'image_column' && (
-              <div className="mt-4 animate-fadeIn">
+              <div className={`${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`}>
                 <HighlightsGrid highlights={highlights} tokens={tokens} />
               </div>
             )}
@@ -5024,7 +5024,7 @@ function MinimalStyle({
                 </div>
               </div>
               {showHighlights && highlightsPosition === 'image_column' && (
-                <div className="mt-4 animate-fadeIn w-full">
+                <div className={`${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn w-full`}>
                   <HighlightsGrid highlights={highlights} tokens={tokens} />
                 </div>
               )}

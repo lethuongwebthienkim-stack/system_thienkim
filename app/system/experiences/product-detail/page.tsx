@@ -992,15 +992,22 @@ export default function ProductDetailExperiencePage() {
           onChange={(v) => setConfig(prev => ({ ...prev, highlightsPosition: v as 'info_column' | 'image_column' }))}
         />
       )}
-      {config.layouts.classic.showClassicHighlights && config.highlightsPosition === 'info_column' && (
+      {config.layouts.classic.showClassicHighlights && (
         <SelectRow
-          label="Khoảng cách cột phải (Highlights)"
+          label={config.highlightsPosition === 'image_column' ? 'Khoảng cách dưới ảnh (Highlights)' : 'Khoảng cách cột phải (Highlights)'}
           value={config.highlightsSpacing || 'high'}
-          options={[
-            { label: 'Nhiều (Mặc định)', value: 'high' },
-            { label: 'Ít (Bằng một nửa)', value: 'low' },
-            { label: 'Bỏ (Không khoảng cách)', value: 'none' },
-          ]}
+          options={config.highlightsPosition === 'image_column'
+            ? [
+                { label: 'Dính sát (Không khoảng cách)', value: 'none' },
+                { label: 'Ít (4px)', value: 'low' },
+                { label: 'Nhiều (Mặc định)', value: 'high' },
+              ]
+            : [
+                { label: 'Nhiều (Mặc định)', value: 'high' },
+                { label: 'Ít (Bằng một nửa)', value: 'low' },
+                { label: 'Bỏ (Không khoảng cách)', value: 'none' },
+              ]
+          }
           onChange={(v) => setConfig(prev => ({ ...prev, highlightsSpacing: v as 'low' | 'high' | 'none' }))}
         />
       )}

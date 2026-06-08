@@ -925,7 +925,7 @@ export function ProductDetailPreview({
                 </>
               )}
               {showHighlightBlock && highlightsPosition === 'image_column' && (
-                <div className="mt-4 animate-fadeIn">
+                <div className={`${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`}>
                   {renderHighlights()}
                 </div>
               )}
@@ -1215,7 +1215,7 @@ export function ProductDetailPreview({
                   </>
                 )}
                 {showHighlightBlock && highlightsPosition === 'image_column' && (
-                  <div className="mt-4 animate-fadeIn">
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn`}>
                     {renderHighlights()}
                   </div>
                 )}
@@ -1471,7 +1471,7 @@ export function ProductDetailPreview({
                   </div>
                 </div>
                 {showHighlightBlock && highlightsPosition === 'image_column' && (
-                  <div className="mt-4 animate-fadeIn w-full">
+                  <div className={`${getHighlightsSpacingClass(highlightsSpacing)} animate-fadeIn w-full`}>
                     {renderHighlights()}
                   </div>
                 )}
