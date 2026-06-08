@@ -1776,62 +1776,60 @@ export function ProductDetailPreview({
                   )}
 
                   {/* Ảnh chính */}
-                  <div className={`flex-1 ${
-                    showHighlightBlock && highlightsPosition !== 'info_column' && highlightsSpacing === 'none'
-                      ? 'mb-0'
-                      : ''
-                  }`}>
-                    <div
-                      className={`relative overflow-hidden ${
-                        showHighlightBlock && highlightsPosition !== 'info_column' && highlightsSpacing === 'none'
-                          ? 'rounded-t-2xl rounded-b-none'
-                          : 'rounded-2xl'
-                      } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
-                      style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
-                      onClick={canOpenLightbox ? () => openLightboxAt(activeImageIndex) : undefined}
-                      onKeyDown={handleLightboxKeyDown}
-                      role={canOpenLightbox ? 'button' : undefined}
-                      tabIndex={canOpenLightbox ? 0 : -1}
-                    >
-                      {PREVIEW_IMAGES.length > 0 ? (
-                        <>
-                          {isMobile ? (
-                            <PreviewMobileCarousel
-                              images={PREVIEW_IMAGES}
-                              alt={productName}
-                              activeIndex={activeImageIndex}
-                              onActiveIndexChange={setActiveImageIndex}
-                            />
-                          ) : (
-                            <BlurredPreviewImage src={PREVIEW_IMAGES[activeImageIndex]} alt={productName} />
-                          )}
-                          {discountPercent > 0 && (
-                            <span
-                              className="absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold rounded-lg z-30"
-                              style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}
-                            >
-                              -{discountPercent}%
-                            </span>
-                          )}
-                          {isMobile && PREVIEW_IMAGES.length > 1 && (
-                            <span className="absolute bottom-3 right-3 px-2 py-0.5 text-[11px] font-semibold rounded-full backdrop-blur-sm" style={{ backgroundColor: tokens.surface, color: tokens.headingColor }}>
-                              {activeImageIndex + 1}/{PREVIEW_IMAGES.length}
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <div className="w-32 h-32 rounded-lg" style={{ backgroundColor: tokens.surfaceSoft }} />
+                  <div className="flex-1">
+                    <div className={`${imageFrame.frameWidthClassName} group/carousel relative`}>
+                      <div
+                        className={`relative overflow-hidden ${
+                          showHighlightBlock && highlightsPosition !== 'info_column' && highlightsSpacing === 'none'
+                            ? 'rounded-t-2xl rounded-b-none'
+                            : 'rounded-2xl'
+                        } ${canOpenLightbox ? 'cursor-zoom-in' : ''}`.trim()}
+                        style={{ ...mainImageFrameStyle, backgroundColor: tokens.surfaceMuted }}
+                        onClick={canOpenLightbox ? () => openLightboxAt(activeImageIndex) : undefined}
+                        onKeyDown={handleLightboxKeyDown}
+                        role={canOpenLightbox ? 'button' : undefined}
+                        tabIndex={canOpenLightbox ? 0 : -1}
+                      >
+                        {PREVIEW_IMAGES.length > 0 ? (
+                          <>
+                            {isMobile ? (
+                              <PreviewMobileCarousel
+                                images={PREVIEW_IMAGES}
+                                alt={productName}
+                                activeIndex={activeImageIndex}
+                                onActiveIndexChange={setActiveImageIndex}
+                              />
+                            ) : (
+                              <BlurredPreviewImage src={PREVIEW_IMAGES[activeImageIndex]} alt={productName} />
+                            )}
+                            {discountPercent > 0 && (
+                              <span
+                                className="absolute top-3 left-3 px-2.5 py-1 text-xs font-semibold rounded-lg z-30"
+                                style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}
+                              >
+                                -{discountPercent}%
+                              </span>
+                            )}
+                            {isMobile && PREVIEW_IMAGES.length > 1 && (
+                              <span className="absolute bottom-3 right-3 px-2 py-0.5 text-[11px] font-semibold rounded-full backdrop-blur-sm" style={{ backgroundColor: tokens.surface, color: tokens.headingColor }}>
+                                {activeImageIndex + 1}/{PREVIEW_IMAGES.length}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div className="w-32 h-32 rounded-lg" style={{ backgroundColor: tokens.surfaceSoft }} />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Highlights cài đặt dưới ảnh */}
+                      {showHighlightBlock && highlightsPosition !== 'info_column' && (
+                        <div className="w-full">
+                          {renderHighlights('image_column')}
                         </div>
                       )}
                     </div>
-
-                    {/* Highlights cài đặt dưới ảnh */}
-                    {showHighlightBlock && highlightsPosition !== 'info_column' && (
-                      <div className="w-full">
-                        {renderHighlights('image_column')}
-                      </div>
-                    )}
                   </div>
                 </div>
 

@@ -1633,6 +1633,7 @@ function HighlightsGrid({
   const gapClass = isNoneSpacing ? 'gap-x-5 gap-y-2' : 'gap-x-6 gap-y-3';
   
   const isGridStyle = position === 'image_column';
+  const marginClass = isGridStyle ? (isNoneSpacing ? 'mt-0' : 'mt-4 md:mt-6') : '';
 
   return (
     <div
@@ -1640,14 +1641,13 @@ function HighlightsGrid({
         isGridStyle 
           ? 'grid gap-2' 
           : `flex flex-wrap items-center justify-center ${gapClass}`
-      } w-full ${borderRadiusClass} ${paddingClass} animate-fadeIn transition-all duration-300`}
+      } w-full ${borderRadiusClass} ${paddingClass} ${marginClass} animate-fadeIn transition-all duration-300`}
       style={{
         gridTemplateColumns: isGridStyle ? `repeat(${highlights.length}, minmax(0, 1fr))` : undefined,
         backgroundColor: shouldAttach
           ? (tokens.highlightBg || tokens.surfaceMuted || 'rgba(0,0,0,0.02)')
           : (tokens.highlightBg || 'transparent'),
         border: shouldAttach ? 'none' : `1px solid ${tokens.divider || 'rgba(0,0,0,0.08)'}`,
-        marginTop: isNoneSpacing ? 0 : undefined
       }}
     >
       {highlights.map((item, index) => {
@@ -3008,11 +3008,7 @@ function PremiumStyle({
 
               {/* Ảnh chính */}
               <div className="flex-1">
-                <div className={`${imageFrame.frameWidthClassName} ${
-                  highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition !== 'info_column' && highlightsSpacing === 'none'
-                    ? 'mb-0'
-                    : ''
-                } group/carousel relative`}>
+                <div className={`${imageFrame.frameWidthClassName} group/carousel relative`}>
                   <div
                     className={`relative overflow-hidden ${
                       highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition !== 'info_column' && highlightsSpacing === 'none'
@@ -3068,19 +3064,19 @@ function PremiumStyle({
                       <span className="absolute top-3 left-3 px-3 py-1.5 text-sm font-bold rounded-lg z-30" style={{ backgroundColor: discountBadgeColors.bg, color: discountBadgeColors.text }}>-{discountPercent}%</span>
                     )}
                   </div>
-                </div>
 
-                {/* Highlights động từ cài đặt dưới ảnh sản phẩm */}
-                {highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition !== 'info_column' && (
-                  <HighlightsGrid
-                    highlights={highlights}
-                    tokens={tokens}
-                    spacing={highlightsSpacing}
-                    layoutStyle="premium"
-                    isSingleImage={images.length <= 1}
-                    position="image_column"
-                  />
-                )}
+                  {/* Highlights động từ cài đặt dưới ảnh sản phẩm */}
+                  {highlightsEnabled && highlights && highlights.length > 0 && highlightsPosition !== 'info_column' && (
+                    <HighlightsGrid
+                      highlights={highlights}
+                      tokens={tokens}
+                      spacing={highlightsSpacing}
+                      layoutStyle="premium"
+                      isSingleImage={images.length <= 1}
+                      position="image_column"
+                    />
+                  )}
+                </div>
               </div>
             </div>
 
