@@ -928,24 +928,30 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
     );
   });
 
-  // Mobile menu layer: dùng layerColors.menu (= Màu phụ theo cấu hình admin) làm nền card
-  // text được APCA tính sẵn trong getMenuColors -> đảm bảo contrast
-  type MobileLayerColors = { bg: string; text: string; border: string };
+  // Mobile menu layer colors
+  // - Light: nền trắng (surface), chữ tối, border rõ => dễ đọc trên mọi brand màu
+  // - DarkGlass: nền tối trong suốt, chữ trắng
+  // layerColors.menu chỉ dùng làm màu accent ("Xem tất cả" button), không làm nền card
+  type MobileLayerColors = { bg: string; text: string; border: string; tray: string };
 
   const darkGlassLayer: MobileLayerColors = {
-    bg: 'rgba(255, 255, 255, 0.07)',
+    bg: 'rgba(255, 255, 255, 0.08)',
     text: '#ffffff',
-    border: 'rgba(255, 255, 255, 0.12)',
+    border: 'rgba(255, 255, 255, 0.14)',
+    tray: 'transparent',
   };
 
   const lightMenuLayer: MobileLayerColors = {
-    bg: layerColors.menu.bg,
-    text: layerColors.menu.text,
-    border: tokens.border,
+    // Card: trắng tinh — nổi rõ trên tray xám nhạt
+    bg: tokens.surface,
+    text: tokens.textPrimary,
+    border: tokens.borderStrong,
+    // Tray: xám nhạt iOS-style (surfaceAlt)
+    tray: tokens.surfaceMuted,
   };
 
   // Grouped List pattern (iOS Settings style):
-  // Tất cả items nằm trong 1 card bo góc, phân cách bằng hairline divider mỏng
+  // Tất cả items trong 1 card bo góc trắng, divider hairline rõ nét
   const renderMobileNodes = (nodes: MenuItemWithChildren[], layer: MobileLayerColors = lightMenuLayer): React.ReactNode => {
     if (nodes.length === 0) return null;
     return (
@@ -963,11 +969,11 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                 <button
                   type="button"
                   onClick={() => setMenuStack(prev => [...prev, node])}
-                  className="flex items-center justify-between w-full py-3.5 px-5 text-sm font-semibold text-left transition-opacity hover:opacity-75 active:opacity-60"
+                  className="flex items-center justify-between w-full py-4 px-5 text-sm font-medium text-left transition-colors active:opacity-60"
                   style={{ color: layer.text, ...menuVars }}
                 >
                   <span>{node.label}</span>
-                  <ChevronRight size={15} className="opacity-40 shrink-0" />
+                  <ChevronRight size={15} className="opacity-35 shrink-0" />
                 </button>
               ) : (
                 <Link
@@ -975,15 +981,15 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                   target={node.openInNewTab ? '_blank' : undefined}
                   rel={node.openInNewTab ? 'noreferrer' : undefined}
                   onClick={() => { setMobileMenuOpen(false); setMenuStack([]); }}
-                  className="block w-full py-3.5 px-5 text-sm font-semibold transition-opacity hover:opacity-75 active:opacity-60"
+                  className="block w-full py-4 px-5 text-sm font-medium transition-colors active:opacity-60"
                   style={{ color: layer.text, ...menuVars }}
                 >
                   {node.label}
                 </Link>
               )}
-              {/* Hairline divider — ẩn ở item cuối */}
+              {/* Hairline divider — full width, ẩn ở item cuối */}
               {!isLast && (
-                <div className="mx-5" style={{ height: 1, backgroundColor: layer.border, opacity: 0.6 }} />
+                <div className="ml-5" style={{ height: 1, backgroundColor: layer.border }} />
               )}
             </div>
           );
@@ -997,60 +1003,64 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
     const currentNode = menuStack[menuStack.length - 1] || null;
     const displayItems = currentNode ? currentNode.children : menuTree;
 
-    // Nút "Xem tất cả": dùng màu primary để nổi bật; text dùng textInverse (APCA-calculated)
+    // Nút "Xem tất cả": màu primary thương hiệu, text APCA-safe
     const viewAllBg = isDarkGlass ? 'rgba(255,255,255,0.15)' : tokens.primary;
-    const viewAllBorder = isDarkGlass ? 'rgba(255,255,255,0.25)' : tokens.primary;
+    const viewAllBorder = isDarkGlass ? 'rgba(255,255,255,0.2)' : tokens.primary;
     const viewAllText = isDarkGlass ? '#ffffff' : tokens.textInverse;
+
+    // Header drill-down: màu neutral đậm để đọc rõ bất kể brand
+    const headerText = isDarkGlass ? '#ffffff' : tokens.textPrimary;
+    const headerBorder = isDarkGlass ? 'rgba(255,255,255,0.14)' : tokens.border;
+    const headerBg = isDarkGlass ? 'rgba(0,0,0,0.2)' : tokens.surface;
 
     return (
       <div className="flex flex-col h-full w-full">
         {/* Drill-down header: Back + Tên danh mục + Close */}
         {menuStack.length > 0 && (
           <div 
-            className="flex items-center justify-between border-b px-4 py-3"
-            style={{ borderColor: layer.border }}
+            className="flex items-center justify-between border-b px-2 py-2"
+            style={{ borderColor: headerBorder, backgroundColor: headerBg }}
           >
             <button 
               onClick={() => setMenuStack(prev => prev.slice(0, -1))} 
-              className="p-2 -ml-2 hover:opacity-70 flex items-center justify-center shrink-0 transition-opacity"
-              style={{ color: layer.text }}
+              className="flex items-center gap-1 py-2 px-3 rounded-lg hover:opacity-70 transition-opacity"
+              style={{ color: tokens.primary }}
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={17} />
+              <span className="text-sm font-medium">Quay lại</span>
             </button>
-            <span className="font-bold text-sm flex-1 text-center truncate px-2" style={{ color: layer.text }}>
+            <span className="font-bold text-sm flex-1 text-center truncate px-2" style={{ color: headerText }}>
               {currentNode?.label}
             </span>
             <button 
               onClick={() => { setMobileMenuOpen(false); setMenuStack([]); }} 
-              className="p-2 -mr-2 hover:opacity-70 flex items-center justify-center shrink-0 transition-opacity"
-              style={{ color: layer.text }}
+              className="p-2 px-3 rounded-lg hover:opacity-70 transition-opacity"
+              style={{ color: headerText }}
             >
               <X size={18} />
             </button>
           </div>
         )}
         
-        {/* Menu list */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[70vh]">
-          {/* Nút xem tất cả danh mục cha - màu primary nổi bật */}
+        {/* Menu list — tray xám nhạt, card trắng bên trong */}
+        <div 
+          className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[70vh]"
+          style={{ backgroundColor: isDarkGlass ? 'transparent' : layer.tray }}
+        >
+          {/* Nút xem tất cả danh mục cha — màu thương hiệu primary */}
           {currentNode && (
-            <div className="mb-3">
-              <div 
-                className="rounded-xl border overflow-hidden"
-                style={{ backgroundColor: viewAllBg, borderColor: viewAllBorder }}
+            <div className="rounded-xl overflow-hidden shadow-sm">
+              <Link
+                href={currentNode.url}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setMenuStack([]);
+                }}
+                className="block w-full py-4 px-5 text-sm font-bold transition-opacity hover:opacity-90 text-center"
+                style={{ backgroundColor: viewAllBg, borderColor: viewAllBorder, color: viewAllText }}
               >
-                <Link
-                  href={currentNode.url}
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    setMenuStack([]);
-                  }}
-                  className="block w-full py-3.5 px-5 text-sm font-bold transition-opacity hover:opacity-90 text-center"
-                  style={{ color: viewAllText }}
-                >
-                  Xem tất cả {currentNode.label}
-                </Link>
-              </div>
+                Xem tất cả {currentNode.label}
+              </Link>
             </div>
           )}
           {renderMobileNodes(displayItems, layer)}
@@ -1547,7 +1557,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t" style={{ borderColor: layerColors.menu.border, backgroundColor: layerColors.menu.bg }}>
+          <div className="lg:hidden border-t" style={{ borderColor: tokens.border, backgroundColor: tokens.surfaceMuted }}>
             {renderMobileMenuContent(false)}
             {config.cta?.show && (
               <div className="p-4 border-t" style={{ borderColor: tokens.border }}>
@@ -1920,7 +1930,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t" style={{ borderColor: layerColors.menu.border, backgroundColor: layerColors.menu.bg }}>
+          <div className="lg:hidden border-t" style={{ borderColor: tokens.border, backgroundColor: tokens.surfaceMuted }}>
             {renderMobileMenuContent(false)}
             {config.cta?.show && (
               <div className="p-4 border-t" style={{ borderColor: tokens.border }}>
@@ -2803,7 +2813,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         )}
 
         {mobileMenuOpen && (
-          <div className="lg:hidden border-t" style={{ borderColor: layerColors.menu.border, backgroundColor: layerColors.menu.bg }}>
+          <div className="lg:hidden border-t" style={{ borderColor: tokens.border, backgroundColor: tokens.surfaceMuted }}>
             {renderMobileMenuContent(false)}
             {config.cta?.show && (
               <div className="p-4 border-t" style={{ borderColor: tokens.border }}>
