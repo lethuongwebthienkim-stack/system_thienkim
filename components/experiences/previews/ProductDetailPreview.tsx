@@ -2015,7 +2015,7 @@ export function ProductDetailPreview({
                       <span className="tracking-wide font-extrabold uppercase">ƯU ĐẠI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 pt-2">
+                    <div className="grid grid-cols-2 gap-2 pt-4">
                       {/* Combo 6 Chai */}
                       <div
                         className={cn(

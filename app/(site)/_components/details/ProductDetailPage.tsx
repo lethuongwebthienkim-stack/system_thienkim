@@ -3392,7 +3392,7 @@ function PremiumStyle({
                 )}
 
                 <div className="overflow-hidden" ref={comboRef}>
-                  <div className="flex gap-2 pt-2 pb-2">
+                  <div className="flex gap-2 pt-4 pb-2">
                     {product.combos.map((combo, index) => {
                       const isBestSeller = index === 0; // Combo đầu tiên là bán chạy
                       
