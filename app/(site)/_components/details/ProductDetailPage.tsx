@@ -3347,7 +3347,7 @@ function PremiumStyle({
             {enableCombos && product.combos && product.combos.length > 0 && (
               <div
                 className={cn(
-                  "border p-2.5 md:p-6 pt-8 md:pt-9 relative mt-6 mb-6",
+                  "border p-2.5 md:p-4 pt-8 relative mt-6 mb-6",
                   getRadiusClass(cornerRadius, 'box')
                 )}
                 style={{
@@ -3392,7 +3392,7 @@ function PremiumStyle({
                 )}
 
                 <div className="overflow-hidden" ref={comboRef}>
-                  <div className="flex gap-2 md:gap-4 pt-2 pb-2">
+                  <div className="flex gap-2 md:gap-3 pt-2 pb-2">
                     {product.combos.map((combo, index) => {
                       const isBestSeller = index === 0; // Combo đầu tiên là bán chạy
                       
@@ -3415,7 +3415,20 @@ function PremiumStyle({
                       };
 
                       const isSelected = combo.type === 'mix' ? activeMixCombo?._id === combo._id : quantity === totalBottles;
-                      const activeColor = isBestSeller ? '#d97706' : (brandColor || '#8B0000');
+                      const comboColor = isBestSeller ? (brandColor || '#8B0000') : '#c98500';
+                      const normalizedComboName = cleanName.replace(/\s+/g, ' ').trim();
+                      const toSubtitleLabel = (value: string) => value.toLowerCase().replace(/^./u, (char) => char.toUpperCase());
+                      const buyGiftMatch = normalizedComboName.match(/^(MUA\s+\d+\s+TẶNG\s+\d+)(?:\s+(.+))?$/i);
+                      const buyBottleMatch = normalizedComboName.match(/^(MUA\s+\d+\s+CHAI)(?:\s+(.+))?$/i);
+                      const comboTitle = (buyGiftMatch?.[1] ?? buyBottleMatch?.[1] ?? normalizedComboName).toUpperCase();
+                      const subtitleFromName = buyGiftMatch?.[2] ?? buyBottleMatch?.[2];
+                      const comboSubtitle = typeof combo.description === 'string' && combo.description.trim()
+                        ? combo.description.trim()
+                        : subtitleFromName
+                          ? toSubtitleLabel(subtitleFromName)
+                          : combo.type === 'mix'
+                            ? 'Kết hợp đặc biệt'
+                            : 'Ưu đãi combo';
 
                       return (
                         <div
@@ -3424,75 +3437,63 @@ function PremiumStyle({
                           className={cn(
                             "flex flex-col justify-between transition-all cursor-pointer relative select-none shrink-0 flex-grow-0 border-2 hover:scale-[1.01] active:scale-[0.99]",
                             cornerRadius === 'none' ? 'rounded-none' : cornerRadius === 'sm' ? 'rounded-lg' : 'rounded-xl',
-                            (product.combos?.length ?? 0) > 2 ? "w-[calc(50%-4px)] md:w-[290px]" : "w-[calc(50%-4px)] md:w-[340px]"
+                            "w-[calc(50%-4px)] md:w-[calc(50%-6px)]"
                           )}
                           style={{
                             backgroundColor: tokens.surface,
-                            borderColor: isSelected ? activeColor : isBestSeller ? '#f59e0b' : (tokens.border || '#e2e8f0'),
-                            boxShadow: isSelected ? `0 6px 16px ${activeColor}18` : undefined
+                            borderColor: comboColor,
+                            boxShadow: isSelected
+                              ? `0 12px 28px ${comboColor}18`
+                              : '0 10px 24px rgba(15, 23, 42, 0.06)'
                           }}
                         >
                           {/* ★ BÁN CHẠY badge lệch lên trên bên phải */}
                           {isBestSeller && (
                             <div 
-                              className="absolute -top-2.5 right-4 px-2.5 py-0.5 text-[9px] font-black text-white flex items-center gap-0.5 z-10 shadow-sm uppercase tracking-wider"
+                              className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 text-[9px] md:text-[11px] font-black text-white flex items-center gap-1 z-10 shadow-sm uppercase tracking-wider whitespace-nowrap"
                               style={{ 
-                                backgroundColor: '#f59e0b',
-                                borderRadius: '4px',
+                                backgroundColor: comboColor,
+                                borderRadius: '999px',
                                 lineHeight: '1.2'
                               }}
                             >
-                              ★ BÁN CHẠY
+                              <Star className="h-2.5 w-2.5 md:h-3 md:w-3 fill-current" />
+                              BÁN CHẠY NHẤT
                             </div>
                           )}
 
-                          {/* Body của Card (Phần trên) - Căn giữa đối xứng */}
-                          <div className="pt-6 pb-4 px-3 md:pt-7 md:pb-5 md:px-4 flex flex-col items-center justify-center relative flex-1 text-center min-w-0">
-                            {/* Badge Checkmark nhỏ ở góc trên bên phải khi được chọn */}
-                            {isSelected && (
-                              <div 
-                                className="absolute top-2 right-2 h-4 w-4 md:h-5 md:w-5 rounded-full flex items-center justify-center shadow-sm z-10"
-                                style={{ backgroundColor: activeColor }}
-                              >
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" className="h-2.5 w-2.5 md:h-3 md:w-3 text-white">
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              </div>
-                            )}
+                          {isSelected && (
+                            <div
+                              className="absolute top-2 right-2 z-20 h-5 w-5 md:h-6 md:w-6 rounded-full flex items-center justify-center text-white shadow-sm"
+                              style={{ backgroundColor: comboColor }}
+                              aria-hidden="true"
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 md:h-4 md:w-4" strokeWidth={3} />
+                            </div>
+                          )}
 
-                            {/* Thông tin nội dung (Căn giữa hoàn toàn) */}
-                            <div className="flex-1 w-full space-y-1.5 flex flex-col items-center justify-center text-center">
-                              {/* Badge tên combo tròn dẹt */}
-                              <span
-                                className="inline-flex min-h-[22px] max-w-full items-center justify-center px-2 py-0.5 md:min-h-0 md:px-3.5 md:py-1 text-[8px] xs:text-[9px] md:text-[11px] font-black rounded-full text-white uppercase tracking-normal md:tracking-wider leading-[1.1] md:leading-none shadow-sm text-center whitespace-normal break-words md:whitespace-nowrap"
-                                style={{ backgroundColor: activeColor }}
-                              >
-                                {cleanName}
+                          <div className="pt-6 pb-3 px-2 md:pt-7 md:pb-4 md:px-3 flex flex-col items-center justify-center relative flex-1 text-center min-w-0">
+                            <h3 className="text-[12px] xs:text-[13px] md:text-lg font-black uppercase tracking-wide leading-tight text-slate-900 dark:text-white">
+                              {comboTitle}
+                            </h3>
+                            <p className="mt-0.5 text-[9px] xs:text-[10px] md:text-xs leading-snug font-medium text-slate-500 line-clamp-1">
+                              {comboSubtitle}
+                            </p>
+
+                            <div className="mt-3 w-full border-t pt-3" style={{ borderColor: tokens.divider }}>
+                              <span className="text-[18px] xs:text-[20px] md:text-[27px] font-black tracking-tight leading-none whitespace-nowrap" style={{ color: comboColor }}>
+                                {comboPrice ? formatPrice(comboPrice) : 'Liên hệ'}
                               </span>
 
-                              {combo.description && (
-                                <p className="text-[9.5px] md:text-[11px] leading-snug font-medium text-slate-500 max-w-[95%] line-clamp-1">
-                                  {combo.description}
-                                </p>
-                              )}
-
-                              {/* Giá tiền lớn đỏ thương hiệu */}
-                              <div className="leading-none py-0.5">
-                                <span className="text-[16px] xs:text-[18px] md:text-2xl font-black tracking-tight whitespace-nowrap" style={{ color: activeColor }}>
-                                  {comboPrice ? formatPrice(comboPrice) : 'Liên hệ'}
-                                </span>
-                              </div>
-
-                              {/* Box màu nhạt "Chi ~xxx/chai" hình viên thuốc */}
                               {avgPricePerBottle > 0 && (
                                 <div 
-                                  className="inline-block px-2.5 py-0.5 text-[8.5px] xs:text-[9.5px] md:text-[10px] font-black rounded-full whitespace-nowrap"
+                                  className="mx-auto mt-2 inline-flex max-w-full items-center justify-center rounded-md px-2 py-0.5 md:px-2.5 md:py-0.5 text-[8.5px] xs:text-[9px] md:text-[11px] font-bold whitespace-nowrap"
                                   style={{ 
-                                    backgroundColor: isBestSeller ? '#fff3e0' : (brandColor ? `${brandColor}12` : '#ffebee'),
-                                    color: activeColor
+                                    backgroundColor: `${comboColor}10`,
+                                    color: comboColor
                                   }}
                                 >
-                                  Chi <span className="underline font-black">~{formatPrice(avgPricePerBottle)}</span> / chai
+                                  Chỉ <span className="mx-1 font-black">{formatPrice(avgPricePerBottle)}</span> / chai
                                 </div>
                               )}
                             </div>
@@ -3501,30 +3502,47 @@ function PremiumStyle({
                           {/* Footer của Card (Phần dưới: Tiết kiệm) */}
                           <div 
                             className={cn(
-                              "px-2 py-2 md:px-3 md:py-2.5 border-t flex items-center justify-center text-[9px] xs:text-[10px] font-medium",
+                              "px-2 py-2 md:px-3 md:py-2.5 border-t text-[9px] xs:text-[10px] font-medium",
                               cornerRadius === 'none' ? 'rounded-b-none' : cornerRadius === 'sm' ? 'rounded-b-[6px]' : 'rounded-b-[10px]'
                             )} 
                             style={{ 
-                              borderColor: isBestSeller ? '#fde8c3' : (brandColor ? `${brandColor}15` : '#f3f4f6'),
-                              backgroundColor: isBestSeller ? '#fffbeb' : (brandColor ? `${brandColor}06` : '#fdf2f2'),
+                              borderColor: `${comboColor}14`,
+                              backgroundColor: `${comboColor}08`,
                               color: tokens.bodyText
                             }}
                           >
-                            <div className="flex items-center gap-1 md:gap-1.5 justify-center text-center">
-                              {/* Icon heo đất hoặc hộp quà vẽ cực kì tinh tế */}
-                              <span className="shrink-0">
+                            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                              <div className="flex items-center justify-center md:justify-start gap-2 min-w-0">
+                                <span className="h-7 w-7 md:h-8 md:w-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: `${comboColor}12` }}>
                                 {isBestSeller ? (
-                                  <Gift className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" style={{ color: '#d97706' }} />
+                                  <PiggyBank className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" style={{ color: comboColor }} />
                                 ) : (
-                                  <PiggyBank className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" style={{ color: brandColor || '#b91c1c' }} />
+                                  <Gift className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" style={{ color: comboColor }} />
                                 )}
-                              </span>
-                              <div className="text-left space-y-0.5">
-                                <p className="font-extrabold text-[9px] xs:text-[10px] md:text-[11px] leading-tight whitespace-nowrap" style={{ color: activeColor }}>
-                                  Tiết kiệm {savingAmount > 0 ? formatPrice(savingAmount) : 'nhiều hơn'}
-                                </p>
-                                <p className="text-[7.5px] xs:text-[8.5px] md:text-[9px] opacity-75 leading-none font-semibold text-slate-500 whitespace-nowrap">so với mua lẻ</p>
+                                </span>
+                                <div className="text-left space-y-0.5 min-w-0">
+                                  <p className="text-[8.5px] md:text-xs leading-tight font-medium text-slate-600 dark:text-slate-300">
+                                    Tiết kiệm
+                                  </p>
+                                  <p className="font-extrabold text-[11px] xs:text-[12px] md:text-[15px] leading-tight whitespace-nowrap" style={{ color: comboColor }}>
+                                    {savingAmount > 0 ? formatPrice(savingAmount) : 'nhiều hơn'}
+                                  </p>
+                                  <p className="text-[7.5px] xs:text-[8px] md:text-xs opacity-75 leading-none font-medium text-slate-500 whitespace-nowrap">so với mua lẻ</p>
+                                </div>
                               </div>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleComboClick();
+                                }}
+                                className="h-7 md:h-8 w-full md:w-auto md:min-w-[88px] rounded-full px-3 inline-flex items-center justify-center gap-1.5 text-[9px] md:text-[11px] font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-95"
+                                style={{ backgroundColor: comboColor }}
+                              >
+                                <span className="md:hidden">Chọn</span>
+                                <span className="hidden md:inline">Chọn combo</span>
+                                <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4" strokeWidth={3} />
+                              </button>
                             </div>
                           </div>
                         </div>
