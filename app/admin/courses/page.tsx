@@ -227,8 +227,8 @@ function CoursesContent() {
               onChange={(e) => { setFilterStatus(e.target.value as CourseStatus); setCurrentPage(1); }}
             >
               <option value="">Tất cả trạng thái</option>
-              <option value="Published">Đã xuất bản</option>
-              <option value="Draft">Bản nháp</option>
+              <option value="Published">Hiện</option>
+              <option value="Draft">Ẩn</option>
               <option value="Archived">Lưu trữ</option>
             </select>
             <Button variant="outline" size="sm" onClick={handleResetFilters}>Xóa lọc</Button>
@@ -296,7 +296,7 @@ function CoursesContent() {
                 </TableCell>
                 <TableCell>
                   <Badge variant={course.status === 'Published' ? 'success' : course.status === 'Draft' ? 'secondary' : 'warning'}>
-                    {course.status === 'Published' ? 'Đã xuất bản' : course.status === 'Draft' ? 'Bản nháp' : 'Lưu trữ'}
+                    {course.status === 'Published' ? 'Hiện' : course.status === 'Draft' ? 'Ẩn' : 'Lưu trữ'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">

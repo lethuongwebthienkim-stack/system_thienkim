@@ -138,7 +138,7 @@ function SortableValueRow({
         </>
       )}
       <TableCell>
-        <Badge variant={value.active ? 'default' : 'secondary'}>{value.active ? 'Hoạt động' : 'Ẩn'}</Badge>
+        <Badge variant={value.active ? 'default' : 'secondary'}>{value.active ? 'Hiện' : 'Ẩn'}</Badge>
       </TableCell>
       <TableCell className="text-right">
         <div className="flex justify-end gap-2">
@@ -416,7 +416,7 @@ function ProductOptionValuesContent({ params }: { params: Promise<{ id: string }
               onChange={(e) =>{  setNewValue(prev => ({ ...prev, active: e.target.value === 'active' })); }}
               className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
             >
-              <option value="active">Hoạt động</option>
+              <option value="active">Hiện</option>
               <option value="inactive">Ẩn</option>
             </select>
           </div>
@@ -448,7 +448,7 @@ function ProductOptionValuesContent({ params }: { params: Promise<{ id: string }
               className="h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
             >
               <option value="all">Tất cả trạng thái</option>
-              <option value="active">Hoạt động</option>
+              <option value="active">Hiện</option>
               <option value="inactive">Ẩn</option>
             </select>
           </div>
@@ -546,7 +546,7 @@ function ProductOptionValuesContent({ params }: { params: Promise<{ id: string }
                             onChange={(e) =>{  setEditingValue(prev => ({ ...prev, active: e.target.value === 'active' })); }}
                             className="w-full h-9 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 text-sm"
                           >
-                            <option value="active">Hoạt động</option>
+                            <option value="active">Hiện</option>
                             <option value="inactive">Ẩn</option>
                           </select>
                         </TableCell>

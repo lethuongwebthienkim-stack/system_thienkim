@@ -355,8 +355,8 @@ function ServicesContent() {
           <div className="flex flex-wrap items-center gap-2">
             <select className="h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm" value={filterStatus} onChange={(e) =>{  handleFilterChange(e.target.value); }}>
               <option value="">Tất cả trạng thái</option>
-              <option value="Published">Đã xuất bản</option>
-              <option value="Draft">Bản nháp</option>
+              <option value="Published">Hiện</option>
+              <option value="Draft">Ẩn</option>
               <option value="Archived">Lưu trữ</option>
             </select>
             <Button variant="outline" size="sm" onClick={handleResetFilters}>
@@ -454,7 +454,7 @@ function ServicesContent() {
                     {resolvedVisibleColumns.includes('status') && (
                       <TableCell>
                         <Badge variant={service.status === 'Published' ? 'success' : (service.status === 'Draft' ? 'secondary' : 'warning')}>
-                          {service.status === 'Published' ? 'Đã xuất bản' : (service.status === 'Draft' ? 'Bản nháp' : 'Lưu trữ')}
+                          {service.status === 'Published' ? 'Hiện' : (service.status === 'Draft' ? 'Ẩn' : 'Lưu trữ')}
                         </Badge>
                       </TableCell>
                     )}

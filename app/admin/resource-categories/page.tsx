@@ -210,7 +210,7 @@ function ResourceCategoriesContent() {
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell className="font-mono text-sm text-slate-500">{category.slug}</TableCell>
                   <TableCell className="text-center"><Badge variant="secondary">{category.count}</Badge></TableCell>
-                  <TableCell><Badge variant={category.active ? 'default' : 'secondary'}>{category.active ? 'Hoạt động' : 'Ẩn'}</Badge></TableCell>
+                  <TableCell><Badge variant={category.active ? 'default' : 'secondary'}>{category.active ? 'Hiện' : 'Ẩn'}</Badge></TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700" title="Xem trên web" onClick={() => { openFrontend(category.slug); }}>

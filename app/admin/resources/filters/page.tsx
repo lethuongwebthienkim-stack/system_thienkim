@@ -214,7 +214,7 @@ function ResourceFiltersContent() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={filter.active ? 'success' : 'secondary'}>
-                      {filter.active ? 'Hoạt động' : 'Ẩn'}
+                      {filter.active ? 'Hiện' : 'Ẩn'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">

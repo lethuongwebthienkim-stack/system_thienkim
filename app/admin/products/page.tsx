@@ -592,8 +592,8 @@ function ProductsContent() {
             </div>
             <select className="h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm" value={filterStatus} onChange={(e) =>{  handleFilterChange('status', e.target.value); }}>
               <option value="">Tất cả trạng thái</option>
-              <option value="Active">Đang bán</option>
-              <option value="Draft">Bản nháp</option>
+              <option value="Active">Hiện</option>
+              <option value="Draft">Ẩn</option>
               <option value="Archived">Lưu trữ</option>
             </select>
             <Button variant="outline" size="sm" onClick={handleResetFilters}>Xóa lọc</Button>
@@ -703,7 +703,7 @@ function ProductsContent() {
                 {visibleColumns.includes('status') && (
                   <TableCell>
                     <Badge variant={product.status === 'Active' ? 'success' : (product.status === 'Draft' ? 'secondary' : 'warning')}>
-                      {product.status === 'Active' ? 'Đang bán' : (product.status === 'Draft' ? 'Bản nháp' : 'Lưu trữ')}
+                      {product.status === 'Active' ? 'Hiện' : (product.status === 'Draft' ? 'Ẩn' : 'Lưu trữ')}
                     </Badge>
                   </TableCell>
                 )}

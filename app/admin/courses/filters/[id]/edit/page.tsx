@@ -77,7 +77,7 @@ function SortableValueRow({ valueItem, onEdit, onDelete }: SortableValueRowProps
       <TableCell className="font-mono text-xs text-slate-500">{valueItem.slug}</TableCell>
       <TableCell>
         <Badge variant={valueItem.active ? 'success' : 'secondary'}>
-          {valueItem.active ? 'Hoạt động' : 'Ẩn'}
+          {valueItem.active ? 'Hiện' : 'Ẩn'}
         </Badge>
       </TableCell>
       <TableCell className="text-right">
@@ -505,7 +505,7 @@ function CourseFilterEditContent({ id }: { id: Id<'courseFilters'> }) {
                   onChange={(e) => setValActive(e.target.value === 'active')}
                   className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
                 >
-                  <option value="active">Hoạt động</option>
+                  <option value="active">Hiện</option>
                   <option value="inactive">Ẩn</option>
                 </select>
               </div>

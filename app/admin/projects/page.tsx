@@ -17,8 +17,8 @@ import { DndContext, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 const STATUS_LABEL: Record<string, string> = {
-  Published: 'Đã xuất bản',
-  Draft: 'Bản nháp',
+  Published: 'Hiện',
+  Draft: 'Ẩn',
   Archived: 'Lưu trữ',
 };
 
@@ -169,8 +169,8 @@ function ProjectsContent() {
               }}
             >
               <option value="">Tất cả trạng thái</option>
-              <option value="Published">Đã xuất bản</option>
-              <option value="Draft">Bản nháp</option>
+              <option value="Published">Hiện</option>
+              <option value="Draft">Ẩn</option>
               <option value="Archived">Lưu trữ</option>
             </select>
             <Button variant="outline" size="sm" onClick={handleResetFilters}>Xóa lọc</Button>

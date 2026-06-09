@@ -144,7 +144,7 @@ function ProjectCategoriesContent() {
                 <TableCell className="font-mono text-sm text-slate-500">{category.slug}</TableCell>
                 <TableCell className="text-center"><Badge variant="secondary">{category.count}</Badge></TableCell>
                 <TableCell>
-                  <Badge variant={category.active ? 'default' : 'secondary'}>{category.active ? 'Hoạt động' : 'Ẩn'}</Badge>
+                  <Badge variant={category.active ? 'default' : 'secondary'}>{category.active ? 'Hiện' : 'Ẩn'}</Badge>
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">

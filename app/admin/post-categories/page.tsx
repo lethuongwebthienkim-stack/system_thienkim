@@ -251,7 +251,7 @@ function PostCategoriesContent() {
                   {resolvedVisibleColumns.includes('count') && <TableCell className="text-center"><Badge variant="secondary">{cat.count}</Badge></TableCell>}
                   {resolvedVisibleColumns.includes('status') && (
                     <TableCell>
-                      <Badge variant={cat.active ? 'default' : 'secondary'}>{cat.active ? 'Hoạt động' : 'Ẩn'}</Badge>
+                      <Badge variant={cat.active ? 'default' : 'secondary'}>{cat.active ? 'Hiện' : 'Ẩn'}</Badge>
                     </TableCell>
                   )}
                   {resolvedVisibleColumns.includes('actions') && (

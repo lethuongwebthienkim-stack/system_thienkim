@@ -232,8 +232,8 @@ function HomepageContent() {
             onChange={(e) =>{  handleFilterChange(e.target.value, 'active'); }}
           >
             <option value="">Tất cả trạng thái</option>
-            <option value="true">Đang hiển thị</option>
-            <option value="false">Đang ẩn</option>
+            <option value="true">Hiện</option>
+            <option value="false">Ẩn</option>
           </select>
         </div>
         {!isReorderEnabled && (
@@ -289,7 +289,7 @@ function HomepageContent() {
                       variant={component.active ? 'default' : 'secondary'}
                       className={component.active ? 'bg-emerald-500' : ''}
                     >
-                      {component.active ? 'Hiển thị' : 'Ẩn'}
+                      {component.active ? 'Hiện' : 'Ẩn'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">

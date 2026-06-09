@@ -229,8 +229,8 @@ function ResourcesContent() {
               onChange={(e) => { setFilterStatus(e.target.value as ResourceStatus); setCurrentPage(1); }}
             >
               <option value="">Tất cả trạng thái</option>
-              <option value="Published">Đã xuất bản</option>
-              <option value="Draft">Bản nháp</option>
+              <option value="Published">Hiện</option>
+              <option value="Draft">Ẩn</option>
               <option value="Archived">Lưu trữ</option>
             </select>
             <Button variant="outline" size="sm" onClick={handleResetFilters}>Xóa lọc</Button>
@@ -298,7 +298,7 @@ function ResourcesContent() {
                 <TableCell>{resource.views.toLocaleString('vi-VN')}</TableCell>
                 <TableCell>
                   <Badge variant={resource.status === 'Published' ? 'success' : resource.status === 'Draft' ? 'secondary' : 'warning'}>
-                    {resource.status === 'Published' ? 'Đã xuất bản' : resource.status === 'Draft' ? 'Bản nháp' : 'Lưu trữ'}
+                    {resource.status === 'Published' ? 'Hiện' : resource.status === 'Draft' ? 'Ẩn' : 'Lưu trữ'}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
