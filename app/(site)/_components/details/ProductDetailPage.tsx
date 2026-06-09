@@ -3347,7 +3347,7 @@ function PremiumStyle({
             {enableCombos && product.combos && product.combos.length > 0 && (
               <div
                 className={cn(
-                  "border p-4 md:p-6 pt-9 relative mt-6 mb-6",
+                  "border p-2.5 md:p-6 pt-8 md:pt-9 relative mt-6 mb-6",
                   getRadiusClass(cornerRadius, 'box')
                 )}
                 style={{
@@ -3392,7 +3392,7 @@ function PremiumStyle({
                 )}
 
                 <div className="overflow-hidden" ref={comboRef}>
-                  <div className="flex gap-4 pt-2 pb-2">
+                  <div className="flex gap-2 md:gap-4 pt-2 pb-2">
                     {product.combos.map((combo, index) => {
                       const isBestSeller = index === 0; // Combo đầu tiên là bán chạy
                       
@@ -3424,7 +3424,7 @@ function PremiumStyle({
                           className={cn(
                             "flex flex-col justify-between transition-all cursor-pointer relative select-none shrink-0 flex-grow-0 border-2 hover:scale-[1.01] active:scale-[0.99]",
                             cornerRadius === 'none' ? 'rounded-none' : cornerRadius === 'sm' ? 'rounded-lg' : 'rounded-xl',
-                            (product.combos?.length ?? 0) > 2 ? "w-[calc(50%-8px)] md:w-[290px]" : "w-[calc(50%-8px)] md:w-[340px]"
+                            (product.combos?.length ?? 0) > 2 ? "w-[calc(50%-4px)] md:w-[290px]" : "w-[calc(50%-4px)] md:w-[340px]"
                           )}
                           style={{
                             backgroundColor: tokens.surface,
@@ -3464,7 +3464,7 @@ function PremiumStyle({
                             <div className="flex-1 w-full space-y-1.5 flex flex-col items-center justify-center text-center">
                               {/* Badge tên combo tròn dẹt */}
                               <span
-                                className="inline-block px-2.5 py-0.5 md:px-3.5 md:py-1 text-[8.5px] xs:text-[9.5px] md:text-[11px] font-black rounded-full text-white uppercase tracking-wider leading-none shadow-sm whitespace-nowrap"
+                                className="inline-flex min-h-[22px] max-w-full items-center justify-center px-2 py-0.5 md:min-h-0 md:px-3.5 md:py-1 text-[8px] xs:text-[9px] md:text-[11px] font-black rounded-full text-white uppercase tracking-normal md:tracking-wider leading-[1.1] md:leading-none shadow-sm text-center whitespace-normal break-words md:whitespace-nowrap"
                                 style={{ backgroundColor: activeColor }}
                               >
                                 {cleanName}
@@ -3905,8 +3905,16 @@ function PremiumStyle({
           return (
             <div className={cn("p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-center mt-8", getRadiusClass(cornerRadius, 'box'))} style={{ backgroundColor: bgColor, color: textColor }}>
               {premiumBannerItems.map((item, idx) => (
-                <div key={idx} className={`space-y-0.5${idx > 0 ? ' border-l' : ''}`} style={{ borderColor: `${textColor}33` }}>
-                  <p className="text-sm font-extrabold uppercase tracking-wide">{item.title}</p>
+                <div
+                  key={idx}
+                  className={cn(
+                    "space-y-0.5 min-w-0 px-2 md:px-0",
+                    idx % 2 === 1 && "border-l",
+                    idx % 4 !== 0 && "md:border-l"
+                  )}
+                  style={{ borderColor: `${textColor}33` }}
+                >
+                  <p className="min-h-[34px] flex items-center justify-center text-sm font-extrabold uppercase tracking-wide leading-tight text-center">{item.title}</p>
                   <p className="text-[11px] opacity-80">{item.subtitle}</p>
                 </div>
               ))}

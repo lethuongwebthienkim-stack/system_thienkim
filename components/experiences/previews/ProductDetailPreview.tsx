@@ -1995,7 +1995,7 @@ export function ProductDetailPreview({
                 {enableCombos && (
                   <div
                     className={cn(
-                      "border p-4 md:p-6 pt-9 relative mt-6 mb-6",
+                      "border p-2.5 md:p-6 pt-8 md:pt-9 relative mt-6 mb-6",
                       getRadiusClass('box', cornerRadius)
                     )}
                     style={{
@@ -2015,7 +2015,7 @@ export function ProductDetailPreview({
                       <span className="tracking-wide font-extrabold uppercase">ƯU ĐẠI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 md:gap-4 pt-2">
+                    <div className="grid grid-cols-2 gap-2 md:gap-4 pt-2">
                       {/* Combo 6 Chai */}
                       <div
                         className={cn(
@@ -2035,7 +2035,7 @@ export function ProductDetailPreview({
                           <div className="flex-1 w-full space-y-1.5 flex flex-col items-center justify-center text-center">
                             {/* Badge tên combo tròn dẹt */}
                             <span
-                              className="inline-block px-2.5 py-0.5 md:px-3.5 md:py-1 text-[8.5px] xs:text-[9.5px] md:text-[11px] font-black rounded-full text-white uppercase tracking-wider leading-none shadow-sm whitespace-nowrap"
+                              className="inline-flex min-h-[22px] max-w-full items-center justify-center px-2 py-0.5 md:min-h-0 md:px-3.5 md:py-1 text-[8px] xs:text-[9px] md:text-[11px] font-black rounded-full text-white uppercase tracking-normal md:tracking-wider leading-[1.1] md:leading-none shadow-sm text-center whitespace-normal break-words md:whitespace-nowrap"
                               style={{ backgroundColor: brandColor || '#8B0000' }}
                             >
                               COMBO 6 CHAI
@@ -2131,7 +2131,7 @@ export function ProductDetailPreview({
                           <div className="flex-1 w-full space-y-1.5 flex flex-col items-center justify-center text-center">
                             {/* Badge tên combo tròn dẹt */}
                             <span
-                              className="inline-block px-2.5 py-0.5 md:px-3.5 md:py-1 text-[8.5px] xs:text-[9.5px] md:text-[11px] font-black rounded-full text-white uppercase tracking-wider leading-none shadow-sm whitespace-nowrap"
+                              className="inline-flex min-h-[22px] max-w-full items-center justify-center px-2 py-0.5 md:min-h-0 md:px-3.5 md:py-1 text-[8px] xs:text-[9px] md:text-[11px] font-black rounded-full text-white uppercase tracking-normal md:tracking-wider leading-[1.1] md:leading-none shadow-sm text-center whitespace-normal break-words md:whitespace-nowrap"
                               style={{ backgroundColor: '#d97706' }}
                             >
                               COMBO 12 CHAI
@@ -2435,8 +2435,16 @@ export function ProductDetailPreview({
               return (
                 <div className={cn("p-4 grid grid-cols-2 md:grid-cols-4 gap-4 text-center", getRadiusClass('box', cornerRadius))} style={{ backgroundColor: bgColor, color: textColor }}>
                   {premiumBannerItems.map((item, idx) => (
-                    <div key={idx} className={`space-y-0.5${idx > 0 ? ' border-l' : ''}`} style={{ borderColor: `${textColor}33` }}>
-                      <p className="text-xs font-extrabold uppercase tracking-wide">{item.title}</p>
+                    <div
+                      key={idx}
+                      className={cn(
+                        "space-y-0.5 min-w-0 px-2 md:px-0",
+                        idx % 2 === 1 && "border-l",
+                        idx % 4 !== 0 && "md:border-l"
+                      )}
+                      style={{ borderColor: `${textColor}33` }}
+                    >
+                      <p className="min-h-[30px] flex items-center justify-center text-xs font-extrabold uppercase tracking-wide leading-tight text-center">{item.title}</p>
                       <p className="text-[10px] opacity-80">{item.subtitle}</p>
                     </div>
                   ))}
