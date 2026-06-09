@@ -515,7 +515,7 @@ function PromotionsContent() {
                 {resolvedVisibleColumns.includes('status') && <TableCell>{getStatusBadge(promo.status)}</TableCell>}
                 {resolvedVisibleColumns.includes('actions') && (
                   <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-1">
                     <Link href={`/admin/promotions/${promo._id}/edit`}><Button variant="ghost" size="icon"><Edit size={16}/></Button></Link>
                     <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={ async () => handleDelete(promo._id)}><Trash2 size={16}/></Button>
                   </div>

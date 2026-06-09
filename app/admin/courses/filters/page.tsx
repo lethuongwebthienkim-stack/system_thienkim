@@ -218,7 +218,7 @@ function CourseFiltersContent() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" onClick={() => router.push(`/admin/courses/filters/${filter.id}/edit`)} title="Chỉnh sửa">
                         <Edit size={16} />
                       </Button>

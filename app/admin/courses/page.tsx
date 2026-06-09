@@ -300,7 +300,7 @@ function CoursesContent() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" title="Xem khóa học" onClick={() => { openFrontend(course.slug, course.categoryId); }}>
                       <ExternalLink size={16} />
                     </Button>

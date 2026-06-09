@@ -237,7 +237,7 @@ function ProjectsContent() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" className="text-teal-600 hover:text-teal-700" onClick={() => window.open(`/projects/${project.slug}`, '_blank')}>
                         <ExternalLink size={16} />
                       </Button>

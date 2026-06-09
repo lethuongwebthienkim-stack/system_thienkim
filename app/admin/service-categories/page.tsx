@@ -239,7 +239,7 @@ function ServiceCategoriesContent() {
                   )}
                   {resolvedVisibleColumns.includes('actions') && (
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <Link href={`/admin/service-categories/${cat.id}/edit`}><Button variant="ghost" size="icon"><Edit size={16}/></Button></Link>
                         <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={ async () => handleDelete(cat.id as Id<"serviceCategories">)}><Trash2 size={16}/></Button>
                       </div>

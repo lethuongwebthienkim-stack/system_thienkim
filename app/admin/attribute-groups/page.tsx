@@ -416,7 +416,7 @@ function AttributeGroupsContent() {
                 )}
                 {resolvedVisibleColumns.includes('actions') && (
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
                       {(() => {
                         const firstType = assignedTypesByGroup.get(cat.id)?.find(type => type.active) ?? assignedTypesByGroup.get(cat.id)?.[0];
                         const href = firstType ? `/${firstType.slug}/${cat.slug}` : `/products/${cat.slug}`;

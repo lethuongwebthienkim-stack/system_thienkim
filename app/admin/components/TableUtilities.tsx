@@ -5,7 +5,7 @@ import type { UniqueIdentifier } from '@dnd-kit/core';
 import { KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, sortableKeyboardCoordinates, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowUpDown, ChevronDown, GripVertical, ImageOff, Loader2, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, GripVertical, ImageOff, Loader2, SearchCheck, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { Button, TableHead, TableRow, cn } from './ui';
 
 export const ColumnToggle = ({ columns, visibleColumns, onToggle }: {
@@ -66,6 +66,36 @@ export const SortableHeader = ({ label, sortKey, sortConfig, onSort, className }
       <ArrowUpDown size={14} className={cn("ml-2", sortConfig.key === sortKey ? "text-slate-900 dark:text-slate-100" : "text-slate-300 dark:text-slate-600")} />
     </div>
   </TableHead>
+);
+
+export const ExactSearchToggle = ({
+  checked,
+  onCheckedChange,
+  title = 'Tìm chính xác: khớp từng ký tự',
+}: {
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  title?: string;
+}) => (
+  <label
+    className={cn(
+      "inline-flex h-10 w-10 cursor-pointer select-none items-center justify-center rounded-md border transition-colors",
+      checked
+        ? "border-orange-500 bg-orange-500/5 text-orange-600 dark:text-orange-400"
+        : "border-slate-200 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-800"
+    )}
+    title={title}
+  >
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(event) => { onCheckedChange(event.target.checked); }}
+      className="sr-only"
+      aria-label="Tìm chính xác"
+    />
+    <SearchCheck size={16} aria-hidden="true" />
+    <span className="sr-only">Tìm chính xác</span>
+  </label>
 );
 
 export function generatePaginationItems(currentPage: number, totalPages: number): (number | 'ellipsis')[] {

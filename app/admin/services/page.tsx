@@ -459,7 +459,7 @@ function ServicesContent() {
                       </TableCell>
                     )}
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="text-teal-600 hover:text-teal-700" title="Xem dịch vụ" onClick={() =>{  openFrontend(service.slug, service.categoryId); }}><ExternalLink size={16}/></Button>
                         <Button
                           variant="ghost"

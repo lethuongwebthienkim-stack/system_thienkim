@@ -9,7 +9,7 @@ import type { Id } from '@/convex/_generated/dataModel';
 import { ChevronDown, Copy, Edit, ExternalLink, Layers, Loader2, Plus, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge, Button, Card, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow, Popover, PopoverTrigger, PopoverContent, ScrollArea, cn } from '../components/ui';
-import { AdminDragHandle, buildOrderUpdates, BulkActionBar, ColumnToggle, generatePaginationItems, getReorderedItems, SelectCheckbox, SortableHeader, SortableTableRow, useAdminDndSensors, useSortableData } from '../components/TableUtilities';
+import { AdminDragHandle, buildOrderUpdates, BulkActionBar, ColumnToggle, ExactSearchToggle, generatePaginationItems, getReorderedItems, SelectCheckbox, SortableHeader, SortableTableRow, useAdminDndSensors, useSortableData } from '../components/TableUtilities';
 import { ModuleGuard } from '../components/ModuleGuard';
 import { DeleteConfirmDialog } from '../components/DeleteConfirmDialog';
 import { usePersistedPageSize } from '../components/usePersistedPageSize';
@@ -497,26 +497,15 @@ function ProductsContent() {
                   title="Gợi ý: Dùng dấu - ở trước từ để loại trừ (ví dụ: -[B])."
                 />
               </div>
-              <label 
-                className={`flex items-center gap-1.5 cursor-pointer select-none text-xs border rounded-md px-2.5 h-10 transition-colors ${
-                  exactMode 
-                    ? 'border-orange-500 bg-orange-500/5 text-orange-600 dark:text-orange-400' 
-                    : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
-                }`}
+              <ExactSearchToggle
+                checked={exactMode}
+                onCheckedChange={(checked) => {
+                  setExactMode(checked);
+                  setCurrentPage(1);
+                  applyManualSelection([]);
+                }}
                 title="Khớp chính xác từng ký tự (không dùng fuzzy)"
-              >
-                <input 
-                  type="checkbox" 
-                  checked={exactMode} 
-                  onChange={(e) => { 
-                    setExactMode(e.target.checked); 
-                    setCurrentPage(1); 
-                    applyManualSelection([]); 
-                  }} 
-                  className="rounded border-slate-300 text-orange-600 focus:ring-orange-500 h-3.5 w-3.5 cursor-pointer"
-                />
-                <span className="font-medium">Tìm chính xác</span>
-              </label>
+              />
             </div>
             <div className="relative" ref={categoryDropdownRef}>
               <Popover open={isCategoryDropdownOpen} onOpenChange={setIsCategoryDropdownOpen}>
@@ -709,7 +698,7 @@ function ProductsContent() {
                 )}
                 {visibleColumns.includes('actions') && (
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700" title="Xem trên web" onClick={() =>{  openFrontend(product.slug, product.categoryId); }}><ExternalLink size={16}/></Button>
                       {variantEnabled && product.hasVariants && (
                         <Link href={`/admin/products/${product._id}/variants`}>

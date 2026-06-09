@@ -141,7 +141,7 @@ function SortableValueRow({
         <Badge variant={value.active ? 'default' : 'secondary'}>{value.active ? 'Hiện' : 'Ẩn'}</Badge>
       </TableCell>
       <TableCell className="text-right">
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-1">
           <Button variant="ghost" size="icon" onClick={onEdit}><Edit size={16} /></Button>
           <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600" onClick={onDelete}>
             <Trash2 size={16} />
@@ -551,7 +551,7 @@ function ProductOptionValuesContent({ params }: { params: Promise<{ id: string }
                           </select>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1">
                             <Button variant="accent" size="sm" onClick={handleUpdate} disabled={isSaving}>Lưu</Button>
                             <Button variant="ghost" size="sm" onClick={() =>{  setEditingId(null); }}>Hủy</Button>
                           </div>

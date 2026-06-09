@@ -302,7 +302,7 @@ function ResourcesContent() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
+                  <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" title="Xem tài nguyên" onClick={() => { openFrontend(resource.slug, resource.categoryId); }}>
                       <ExternalLink size={16} />
                     </Button>

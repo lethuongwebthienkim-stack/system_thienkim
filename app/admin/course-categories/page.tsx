@@ -212,7 +212,7 @@ function CourseCategoriesContent() {
                   <TableCell className="text-center"><Badge variant="secondary">{category.count}</Badge></TableCell>
                   <TableCell><Badge variant={category.active ? 'default' : 'secondary'}>{category.active ? 'Hiện' : 'Ẩn'}</Badge></TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700" title="Xem trên web" onClick={() => { openFrontend(category.slug); }}>
                         <ExternalLink size={16} />
                       </Button>

@@ -76,7 +76,7 @@ function SortableRow({
         </TableCell>
       )}
       {visibleColumns.includes('actions') && (
-        <TableCell className="text-right space-x-2">
+        <TableCell className="text-right space-x-1">
           <Link href={editHref}>
             <Button variant="ghost" size="icon"><Edit size={16} /></Button>
           </Link>

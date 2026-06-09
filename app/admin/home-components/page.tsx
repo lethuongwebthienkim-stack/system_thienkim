@@ -85,7 +85,7 @@ function SortableRow({ comp, index, isSelected, onToggleSelect, onToggleActive, 
         </div>
       </TableCell>
       <TableCell className="text-right">
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-1">
           <Link href={getEditRoute(comp.type, comp._id)}>
             <Button variant="ghost" size="icon" title="Chỉnh sửa"><Edit size={16} /></Button>
           </Link>

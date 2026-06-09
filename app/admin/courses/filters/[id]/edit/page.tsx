@@ -14,6 +14,7 @@ import { ModuleGuard } from '@/app/admin/components/ModuleGuard';
 import { AdminImage as Image } from '@/app/admin/components/AdminImage';
 import type { Id } from '@/convex/_generated/dataModel';
 import { HomeComponentStickyFooter } from '@/app/admin/home-components/_shared/components/HomeComponentStickyFooter';
+import { CopyableInput } from '@/app/admin/components/CopyTextButton';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -343,10 +344,11 @@ function CourseFilterEditContent({ id }: { id: Id<'courseFilters'> }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="filter-name">Tên bộ lọc <span className="text-red-500">*</span></Label>
-                  <Input
+                  <CopyableInput
                     id="filter-name"
                     value={name}
                     onChange={handleNameChange}
+                    copyLabel="tên bộ lọc"
                     placeholder="Ví dụ: Phần mềm, Cấp độ..."
                     required
                   />

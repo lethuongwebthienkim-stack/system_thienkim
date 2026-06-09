@@ -481,7 +481,7 @@ function PostsContent() {
                       </TableCell>
                     )}
                     <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-1">
                         <Button variant="ghost" size="icon" className="text-blue-600 hover:text-blue-700" title="Xem bài viết" onClick={() =>{  openFrontend(post.slug, post.categoryId); }}><ExternalLink size={16}/></Button>
                         <Button
                           variant="ghost"
