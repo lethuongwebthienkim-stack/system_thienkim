@@ -1995,7 +1995,7 @@ export function ProductDetailPreview({
                 {enableCombos && (
                   <div
                     className={cn(
-                      "border p-2.5 md:p-4 pt-8 relative mt-6 mb-6",
+                      "border p-2.5 md:p-3 pt-8 relative mt-6 mb-6",
                       getRadiusClass('box', cornerRadius)
                     )}
                     style={{
@@ -2015,7 +2015,7 @@ export function ProductDetailPreview({
                       <span className="tracking-wide font-extrabold uppercase">ƯU ĐẠI COMBO – MUA NHIỀU, TIẾT KIỆM HƠN</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2 md:gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-2 pt-2">
                       {/* Combo 6 Chai */}
                       <div
                         className={cn(
@@ -2048,21 +2048,21 @@ export function ProductDetailPreview({
                           <CheckCircle2 className="h-3.5 w-3.5 md:h-4 md:w-4" strokeWidth={3} />
                         </div>
 
-                        <div className="pt-6 pb-3 px-2 md:pt-7 md:pb-4 md:px-3 flex flex-col items-center justify-center relative flex-1 text-center min-w-0">
-                          <h3 className="text-[12px] xs:text-[13px] md:text-lg font-black uppercase tracking-wide leading-tight text-slate-900 dark:text-white">
+                        <div className="pt-6 pb-3 px-2 md:pt-6 md:pb-3 md:px-2.5 flex flex-col items-center justify-center relative flex-1 text-center min-w-0">
+                          <h3 className="text-[12px] xs:text-[13px] md:text-[15px] font-black uppercase tracking-wide leading-tight text-slate-900 dark:text-white">
                             MUA 2 CHAI
                           </h3>
-                          <p className="mt-0.5 text-[9px] xs:text-[10px] md:text-xs leading-snug font-medium text-slate-500 line-clamp-1">
+                          <p className="mt-0.5 text-[9px] xs:text-[10px] md:text-[11px] leading-snug font-medium text-slate-500 line-clamp-1">
                             Giảm giá trực tiếp
                           </p>
 
                           <div className="mt-3 w-full border-t pt-3" style={{ borderColor: tokens.divider }}>
-                            <span className="text-[18px] xs:text-[20px] md:text-[27px] font-black tracking-tight leading-none whitespace-nowrap" style={{ color: brandColor || '#8B0000' }}>
+                            <span className="text-[18px] xs:text-[20px] md:text-[23px] font-black tracking-tight leading-none whitespace-nowrap" style={{ color: brandColor || '#8B0000' }}>
                               {formatVND(1450000)}
                             </span>
 
                             <div
-                              className="mx-auto mt-2 inline-flex max-w-full items-center justify-center rounded-md px-2 py-0.5 md:px-2.5 md:py-0.5 text-[8.5px] xs:text-[9px] md:text-[11px] font-bold whitespace-nowrap"
+                              className="mx-auto mt-2 inline-flex max-w-full items-center justify-center rounded-md px-2 py-0.5 text-[8.5px] xs:text-[9px] md:text-[10px] font-bold whitespace-nowrap"
                               style={{ 
                                 backgroundColor: brandColor ? `${brandColor}10` : '#ffebee',
                                 color: brandColor || '#8B0000'
@@ -2076,7 +2076,7 @@ export function ProductDetailPreview({
                         {/* Footer của Card (Phần dưới: Tiết kiệm) */}
                         <div
                           className={cn(
-                            "px-2 py-2 md:px-3 md:py-2.5 border-t text-[9px] xs:text-[10px] font-medium",
+                            "px-2 py-2 md:px-2 md:py-2 border-t text-[9px] xs:text-[10px] font-medium",
                             cornerRadius === 'none' ? 'rounded-b-none' : cornerRadius === 'sm' ? 'rounded-b-[6px]' : 'rounded-b-[10px]'
                           )}
                           style={{
@@ -2085,28 +2085,27 @@ export function ProductDetailPreview({
                             color: tokens.bodyText
                           }}
                         >
-                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                            <div className="flex items-center justify-center md:justify-start gap-2 min-w-0">
-                              <span className="h-7 w-7 md:h-8 md:w-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor ? `${brandColor}12` : '#ffebee' }}>
-                                <PiggyBank className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" style={{ color: brandColor || '#b91c1c' }} />
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-1.5">
+                            <div className="flex items-center justify-center md:justify-start gap-2 md:gap-1.5 min-w-0">
+                              <span className="h-7 w-7 md:h-6 md:w-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: brandColor ? `${brandColor}12` : '#ffebee' }}>
+                                <PiggyBank className="h-3.5 w-3.5 md:h-3 md:w-3 shrink-0" style={{ color: brandColor || '#b91c1c' }} />
                               </span>
                               <div className="text-left space-y-0.5 min-w-0">
-                                <p className="text-[8.5px] md:text-xs leading-tight font-medium text-slate-600 dark:text-slate-300">
+                                <p className="text-[8.5px] md:text-[10px] leading-tight font-medium text-slate-600 dark:text-slate-300">
                                   Tiết kiệm
                                 </p>
-                                <p className="font-extrabold text-[11px] xs:text-[12px] md:text-[15px] leading-tight whitespace-nowrap" style={{ color: brandColor || '#b91c1c' }}>
+                                <p className="font-extrabold text-[11px] xs:text-[12px] md:text-[12px] leading-tight whitespace-nowrap" style={{ color: brandColor || '#b91c1c' }}>
                                   340.000đ
                                 </p>
-                                <p className="text-[7.5px] xs:text-[8px] md:text-xs opacity-75 leading-none font-medium text-slate-500 whitespace-nowrap">so với mua lẻ</p>
+                                <p className="text-[7.5px] xs:text-[8px] md:text-[10px] opacity-75 leading-none font-medium text-slate-500 whitespace-nowrap">so với mua lẻ</p>
                               </div>
                             </div>
                             <button
                               type="button"
-                              className="h-7 md:h-8 w-full md:w-auto md:min-w-[88px] rounded-full px-3 inline-flex items-center justify-center gap-1.5 text-[9px] md:text-[11px] font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-95"
+                              className="h-7 md:h-7 w-full md:w-auto md:min-w-[62px] rounded-full px-3 md:px-2 inline-flex items-center justify-center gap-1 md:gap-0.5 text-[9px] md:text-[10px] font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-95 shrink-0"
                               style={{ backgroundColor: brandColor || '#8B0000' }}
                             >
-                              <span className="md:hidden">Chọn</span>
-                              <span className="hidden md:inline">Chọn combo</span>
+                              <span>Chọn</span>
                               <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4" strokeWidth={3} />
                             </button>
                           </div>
@@ -2125,21 +2124,21 @@ export function ProductDetailPreview({
                           boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)'
                         }}
                       >
-                        <div className="pt-6 pb-3 px-2 md:pt-7 md:pb-4 md:px-3 flex flex-col items-center justify-center relative flex-1 text-center min-w-0">
-                          <h3 className="text-[12px] xs:text-[13px] md:text-lg font-black uppercase tracking-wide leading-tight text-slate-900 dark:text-white">
+                        <div className="pt-6 pb-3 px-2 md:pt-6 md:pb-3 md:px-2.5 flex flex-col items-center justify-center relative flex-1 text-center min-w-0">
+                          <h3 className="text-[12px] xs:text-[13px] md:text-[15px] font-black uppercase tracking-wide leading-tight text-slate-900 dark:text-white">
                             MUA 5 TẶNG 1
                           </h3>
-                          <p className="mt-0.5 text-[9px] xs:text-[10px] md:text-xs leading-snug font-medium text-slate-500 line-clamp-1">
+                          <p className="mt-0.5 text-[9px] xs:text-[10px] md:text-[11px] leading-snug font-medium text-slate-500 line-clamp-1">
                             Cùng loại
                           </p>
 
                           <div className="mt-3 w-full border-t pt-3" style={{ borderColor: tokens.divider }}>
-                            <span className="text-[18px] xs:text-[20px] md:text-[27px] font-black tracking-tight leading-none whitespace-nowrap" style={{ color: '#c98500' }}>
+                            <span className="text-[18px] xs:text-[20px] md:text-[23px] font-black tracking-tight leading-none whitespace-nowrap" style={{ color: '#c98500' }}>
                               {formatVND(2800000)}
                             </span>
 
                             <div
-                              className="mx-auto mt-2 inline-flex max-w-full items-center justify-center rounded-md px-2 py-0.5 md:px-2.5 md:py-0.5 text-[8.5px] xs:text-[9px] md:text-[11px] font-bold whitespace-nowrap"
+                              className="mx-auto mt-2 inline-flex max-w-full items-center justify-center rounded-md px-2 py-0.5 text-[8.5px] xs:text-[9px] md:text-[10px] font-bold whitespace-nowrap"
                               style={{ 
                                 backgroundColor: '#c9850010',
                                 color: '#c98500'
@@ -2153,7 +2152,7 @@ export function ProductDetailPreview({
                         {/* Footer của Card (Phần dưới: Tiết kiệm) */}
                         <div
                           className={cn(
-                            "px-2 py-2 md:px-3 md:py-2.5 border-t text-[9px] xs:text-[10px] font-medium",
+                            "px-2 py-2 md:px-2 md:py-2 border-t text-[9px] xs:text-[10px] font-medium",
                             cornerRadius === 'none' ? 'rounded-b-none' : cornerRadius === 'sm' ? 'rounded-b-[6px]' : 'rounded-b-[10px]'
                           )}
                           style={{
@@ -2162,28 +2161,27 @@ export function ProductDetailPreview({
                             color: tokens.bodyText
                           }}
                         >
-                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                            <div className="flex items-center justify-center md:justify-start gap-2 min-w-0">
-                              <span className="h-7 w-7 md:h-8 md:w-8 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: '#c9850012' }}>
-                                <Gift className="h-3.5 w-3.5 md:h-4 md:w-4 shrink-0" style={{ color: '#c98500' }} />
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 md:gap-1.5">
+                            <div className="flex items-center justify-center md:justify-start gap-2 md:gap-1.5 min-w-0">
+                              <span className="h-7 w-7 md:h-6 md:w-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: '#c9850012' }}>
+                                <Gift className="h-3.5 w-3.5 md:h-3 md:w-3 shrink-0" style={{ color: '#c98500' }} />
                               </span>
                               <div className="text-left space-y-0.5 min-w-0">
-                                <p className="text-[8.5px] md:text-xs leading-tight font-medium text-slate-600 dark:text-slate-300">
+                                <p className="text-[8.5px] md:text-[10px] leading-tight font-medium text-slate-600 dark:text-slate-300">
                                   Tiết kiệm
                                 </p>
-                                <p className="font-extrabold text-[11px] xs:text-[12px] md:text-[15px] leading-tight whitespace-nowrap" style={{ color: '#c98500' }}>
+                                <p className="font-extrabold text-[11px] xs:text-[12px] md:text-[12px] leading-tight whitespace-nowrap" style={{ color: '#c98500' }}>
                                   680.000đ
                                 </p>
-                                <p className="text-[7.5px] xs:text-[8px] md:text-xs opacity-75 leading-none font-medium text-slate-500 whitespace-nowrap">so với mua lẻ</p>
+                                <p className="text-[7.5px] xs:text-[8px] md:text-[10px] opacity-75 leading-none font-medium text-slate-500 whitespace-nowrap">so với mua lẻ</p>
                               </div>
                             </div>
                             <button
                               type="button"
-                              className="h-7 md:h-8 w-full md:w-auto md:min-w-[88px] rounded-full px-3 inline-flex items-center justify-center gap-1.5 text-[9px] md:text-[11px] font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-95"
+                              className="h-7 md:h-7 w-full md:w-auto md:min-w-[62px] rounded-full px-3 md:px-2 inline-flex items-center justify-center gap-1 md:gap-0.5 text-[9px] md:text-[10px] font-bold text-white shadow-sm transition-all hover:shadow-md active:scale-95 shrink-0"
                               style={{ backgroundColor: '#c98500' }}
                             >
-                              <span className="md:hidden">Chọn</span>
-                              <span className="hidden md:inline">Chọn combo</span>
+                              <span>Chọn</span>
                               <ChevronRight className="h-3.5 w-3.5 md:h-4 md:w-4" strokeWidth={3} />
                             </button>
                           </div>
