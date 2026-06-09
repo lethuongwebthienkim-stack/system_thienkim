@@ -2121,7 +2121,7 @@ export function ProductDetailPreview({
                         )}
                         style={{
                           backgroundColor: tokens.surface,
-                          borderColor: tokens.border || '#e2e8f0',
+                          borderColor: '#c98500',
                           boxShadow: '0 10px 24px rgba(15, 23, 42, 0.06)'
                         }}
                       >
