@@ -3,6 +3,7 @@
 import { HomeComponentRenderer } from '@/components/site/home/HomeComponentRenderer';
 import { HomePageLoading } from '@/components/site/loading/HomePageLoading';
 import { useBrandColors } from '@/components/site/hooks';
+import { useSiteSettings } from '@/components/site/hooks';
 import { api } from '@/convex/_generated/api';
 import type { Doc } from '@/convex/_generated/dataModel';
 import { useQuery } from 'convex/react';
@@ -35,10 +36,12 @@ export default function HomePageClient({
 
   const systemConfig = useQuery(api.homeComponentSystemConfig.getConfig);
   const systemColors = useBrandColors();
+  const { isDark } = useSiteSettings();
 
   const bgStyle = useMemo(() => {
     if (!systemConfig?.homePageBackground) {return {};}
-    const { type, customColor } = systemConfig.homePageBackground;
+    const { enabled, type, customColor } = systemConfig.homePageBackground;
+    if (!enabled || isDark) {return {};}
     let color = '';
     switch (type) {
       case 'white':
@@ -60,7 +63,7 @@ export default function HomePageClient({
         color = '#ffffff';
     }
     return { backgroundColor: color };
-  }, [systemConfig?.homePageBackground, systemColors]);
+  }, [systemConfig?.homePageBackground, systemColors, isDark]);
 
   useEffect(() => {
     const canIdle = typeof window.requestIdleCallback === 'function';

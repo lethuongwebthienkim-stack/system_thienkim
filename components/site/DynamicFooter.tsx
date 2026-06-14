@@ -6,7 +6,7 @@ import { PublicImage as Image } from '@/components/shared/PublicImage';
 import { useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { useBrandColors, useSiteSettings, useSocialLinks } from './hooks';
-import { getFooterLayoutColors } from '@/app/admin/home-components/footer/_lib/colors';
+import { getFooterThemeColors } from '@/app/admin/home-components/footer/_lib/colors';
 import { getFooterCornerRadiusClassName, getFooterLogoBackgroundClassName, getFooterLogoBackgroundStyle, getFooterLogoSize, getFooterMaxWidthClass, getFooterSectionSpacingClassName } from '@/app/admin/home-components/footer/_lib/constants';
 import type { FooterBrandMode, FooterCornerRadius, FooterLogoBackgroundStyle, FooterStyle } from '@/app/admin/home-components/footer/_types';
 import { resolveTypeOverrideColors } from '@/app/admin/home-components/_shared/lib/typeColorOverride';
@@ -83,7 +83,7 @@ export function DynamicFooter() {
     <div className="font-active" style={fontStyle}>{node}</div>
   );
   const { primary: brandColor, secondary, mode } = resolvedColors;
-  const { siteName, logo: siteLogo } = useSiteSettings();
+  const { siteName, logo: siteLogo, isDark } = useSiteSettings();
   const socialLinks = useSocialLinks();
   const components = useQuery(api.homeComponents.listActive);
   
@@ -130,7 +130,7 @@ export function DynamicFooter() {
   };
 
   // Fallback footer nếu không có Footer component
-  const fallbackBgDark = getFooterLayoutColors('classic', brandColor, secondary, mode as FooterBrandMode).bg;
+  const fallbackBgDark = getFooterThemeColors('classic', brandColor, secondary, mode as FooterBrandMode, isDark).bg;
   if (!footerComponent && !snapshotDemo) {
     return wrapWithFont(
       <footer className="text-white" style={{ backgroundColor: fallbackBgDark }}>
@@ -153,9 +153,9 @@ export function DynamicFooter() {
   const resolveLogoSize = (baseSize: number) => getFooterLogoSize(baseSize, logoSizeLevel);
   const socials = getSocials(config);
   const columns = getColumns(config);
-  const colors = getFooterLayoutColors(style, brandColor, secondary, mode as FooterBrandMode);
+  const colors = getFooterThemeColors(style, brandColor, secondary, mode as FooterBrandMode, isDark);
   const useOriginalSocialIconColors = config.useOriginalSocialIconColors !== false;
-  const maxWidthClass = getFooterMaxWidthClass(config.maxWidth);
+  const maxWidthClass = `${getFooterMaxWidthClass(config.maxWidth)} tv:max-w-[1600px]`;
   const waveMaxWidthClass = maxWidthClass === 'max-w-6xl' || maxWidthClass === 'max-w-7xl' ? 'max-w-8xl' : maxWidthClass;
   const logoBackgroundStyle = config.logoBackgroundStyle ?? 'none';
   const sectionSpacingClassName = getFooterSectionSpacingClassName(config.spacing, config.noVerticalMargin);

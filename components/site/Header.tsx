@@ -4,12 +4,12 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import Link from 'next/link';
 import { PublicImage as Image } from '@/components/shared/PublicImage';
 import { useRouter, usePathname } from 'next/navigation';
-import { useQuery } from 'convex/react';
+import { useMutation, useQuery } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id } from '@/convex/_generated/dataModel';
 import { useBrandColors, useSiteSettings } from './hooks';
 import dynamic from 'next/dynamic';
-import { ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Mail, Package, Phone, Search, User, X } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronRight, Heart, LogOut, Mail, Package, Phone, Search, User, X, Sun, Moon } from 'lucide-react';
 import { CartIcon } from './CartIcon';
 import { useCustomerAuth } from '@/app/(site)/auth/context';
 import { getMenuColors, resolveMenuLayerColors, type MenuColors, type MenuLayerColorConfig } from './header/colors';
@@ -96,6 +96,8 @@ interface HeaderConfig {
   cart?: { show?: boolean };
   wishlist?: { show?: boolean };
   login?: { show?: boolean; text?: string };
+  showDarkModeToggle?: boolean;
+  enableGlassmorphism?: boolean;
 }
 
 const DEFAULT_CONFIG: HeaderConfig = {
@@ -128,6 +130,8 @@ const DEFAULT_CONFIG: HeaderConfig = {
     slogan: '',
   },
   wishlist: { show: true },
+  showDarkModeToggle: false,
+  enableGlassmorphism: false,
 };
 
 const DEFAULT_LINKS = {
@@ -201,9 +205,90 @@ const HeaderSearchAutocomplete = dynamic(
   { ssr: false, loading: () => null }
 );
 
-export function Header({ initialData, staticMode }: { initialData?: HeaderInitialData; staticMode?: boolean }) {
+function DarkModeToggle({
+  isDark: controlledDark,
+  onThemeToggle,
+  tokens,
+  variant: _variant = 'desktop',
+}: {
+  isDark?: boolean;
+  onThemeToggle?: (isDark: boolean) => void;
+  tokens: any;
+  variant?: 'desktop' | 'mobile';
+}) {
+  const [mounted, setMounted] = useState(false);
+  const [isDark, setIsDark] = useState(Boolean(controlledDark));
+  const setSetting = useMutation(api.settings.set);
+
+  useEffect(() => {
+    setMounted(true);
+    setIsDark(controlledDark ?? document.documentElement.classList.contains('dark'));
+
+    const handleThemeChange = () => {
+      setIsDark(controlledDark ?? document.documentElement.classList.contains('dark'));
+    };
+    window.addEventListener('site-theme-change', handleThemeChange);
+    return () => {
+      window.removeEventListener('site-theme-change', handleThemeChange);
+    };
+  }, [controlledDark]);
+
+  const toggleTheme = () => {
+    const nextDark = !isDark;
+    const nextValue = nextDark ? 'dark' : 'light';
+    if (onThemeToggle) {
+      setIsDark(nextDark);
+      onThemeToggle(nextDark);
+      return;
+    }
+    // Optimistic UI: apply theme ngay lập tức
+    const root = document.documentElement;
+    root.classList.toggle('dark', nextDark);
+    root.setAttribute('data-theme', nextValue);
+    root.style.colorScheme = nextValue;
+    window.dispatchEvent(new Event('site-theme-change'));
+    // Persist vào DB (single source of truth)
+    void setSetting({ group: 'site', key: 'site_dark_mode', value: nextValue });
+  };
+
+  if (!mounted) {
+    return <div className="w-9 h-9" />;
+  }
+
+  const color = tokens?.iconButtonText || 'currentColor';
+  const hoverBg = tokens?.iconButtonHoverBg || 'rgba(0,0,0,0.05)';
+
+  return (
+    <button
+      onClick={toggleTheme}
+      className="p-2 rounded-full transition-colors flex items-center justify-center"
+      style={{
+        color,
+        '--hover-bg': hoverBg,
+      } as React.CSSProperties}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = hoverBg; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+      aria-label="Toggle dark mode"
+    >
+      {isDark ? <Sun size={18} /> : <Moon size={18} />}
+    </button>
+  );
+}
+
+export function Header({
+  initialData,
+  onStaticThemeChange,
+  staticMode,
+  staticTheme,
+}: {
+  initialData?: HeaderInitialData;
+  onStaticThemeChange?: (theme: 'light' | 'dark') => void;
+  staticMode?: boolean;
+  staticTheme?: 'light' | 'dark';
+}) {
   const brandColors = useBrandColors();
   const siteSettings = useSiteSettings();
+  const effectiveIsDark = staticTheme ? staticTheme === 'dark' : siteSettings.isDark;
   const menuDataQuery = useQuery(api.menus.getFullMenu, staticMode ? 'skip' : { location: 'header' });
   const headerStyleSetting = useQuery(api.settings.getByKey, staticMode ? 'skip' : { key: 'header_style' });
   const headerConfigSetting = useQuery(api.settings.getByKey, staticMode ? 'skip' : { key: 'header_config' });
@@ -277,6 +362,9 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
   const showCart = Boolean(config.cart?.show && (commerceCapabilities?.cartAvailable ?? (cartEnabled && ordersEnabled)));
   const showWishlist = Boolean(config.wishlist?.show && wishlistEnabled);
   const ctaHref = config.cta?.url?.trim() || DEFAULT_LINKS.cta;
+  const handleStaticThemeToggle = useCallback((nextDark: boolean) => {
+    onStaticThemeChange?.(nextDark ? 'dark' : 'light');
+  }, [onStaticThemeChange]);
   
   const resolvedSiteName = siteSettings.isLoading
     ? (initialData?.site?.site_name ?? 'Website')
@@ -322,8 +410,18 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
   const logoContainerSize = Math.round(logoSize + Math.max(10, logoSize * 0.28));
 
   const tokens = useMemo<MenuColors>(
-    () => getMenuColors(brandColors.primary, brandColors.secondary, brandColors.mode),
-    [brandColors.primary, brandColors.secondary, brandColors.mode]
+    () => {
+      const baseTokens = getMenuColors(brandColors.primary, brandColors.secondary, brandColors.mode, effectiveIsDark);
+      if (config.enableGlassmorphism) {
+        return {
+          ...baseTokens,
+          dropdownBg: effectiveIsDark ? 'rgba(15, 23, 42, 0.65)' : 'rgba(255, 255, 255, 0.75)',
+          dropdownBorder: effectiveIsDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+        };
+      }
+      return baseTokens;
+    },
+    [brandColors.primary, brandColors.secondary, brandColors.mode, effectiveIsDark, config.enableGlassmorphism]
   );
   const layerColors = useMemo(
     () => resolveMenuLayerColors(config.layerColors, tokens, brandColors.mode),
@@ -344,12 +442,12 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
   const logoBackgroundStyles: Record<LogoBackgroundStyle, React.CSSProperties> = {
     none: {},
     border: {
-      backgroundColor: 'rgba(255, 255, 255, 0.6)',
+      backgroundColor: effectiveIsDark ? 'rgba(15, 23, 42, 0.6)' : 'rgba(255, 255, 255, 0.6)',
       border: `1px solid ${tokens.borderStrong}`,
-      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
+      boxShadow: effectiveIsDark ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(15, 23, 42, 0.08)',
     },
     outline: {
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      backgroundColor: effectiveIsDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.2)',
       border: `1px solid ${tokens.borderStrong}`,
     },
     hairline: {
@@ -359,27 +457,27 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
     inset: {
       backgroundColor: tokens.surfaceAlt,
       border: `1px solid ${tokens.border}`,
-      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+      boxShadow: effectiveIsDark ? 'inset 0 1px 0 rgba(255, 255, 255, 0.05)' : 'inset 0 1px 0 rgba(255, 255, 255, 0.8)',
     },
     pill: {
-      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+      backgroundColor: effectiveIsDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.12)',
       border: `1px solid ${tokens.border}`,
     },
     shadow: {
-      backgroundColor: 'rgba(255, 255, 255, 0.88)',
-      boxShadow: '0 10px 30px rgba(15, 23, 42, 0.16)',
-      border: '1px solid rgba(148, 163, 184, 0.2)',
+      backgroundColor: effectiveIsDark ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.88)',
+      boxShadow: effectiveIsDark ? '0 10px 30px rgba(0, 0, 0, 0.4)' : '0 10px 30px rgba(15, 23, 42, 0.16)',
+      border: effectiveIsDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(148, 163, 184, 0.2)',
       backdropFilter: 'blur(10px)',
     },
     soft: {
       backgroundColor: tokens.surfaceAlt,
       border: `1px solid ${tokens.border}`,
-      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+      boxShadow: effectiveIsDark ? 'inset 0 1px 0 rgba(255, 255, 255, 0.05)' : 'inset 0 1px 0 rgba(255, 255, 255, 0.7)',
     },
     solid: {
       backgroundColor: tokens.textPrimary,
       border: `1px solid ${tokens.textPrimary}`,
-      boxShadow: '0 12px 28px rgba(15, 23, 42, 0.18)',
+      boxShadow: effectiveIsDark ? '0 12px 28px rgba(0, 0, 0, 0.4)' : '0 12px 28px rgba(15, 23, 42, 0.18)',
     },
   };
   const hasBackgroundFrame = logoBackgroundStyle !== 'none';
@@ -762,7 +860,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
   if (menuData === undefined) {
     return (
       <header style={{ backgroundColor: tokens.surface }}>
-        <div className="max-w-7xl mx-auto px-4" style={{ paddingTop: headerSpacingY, paddingBottom: headerSpacingY }}>
+        <div className="max-w-7xl tv:max-w-[1600px] mx-auto px-4" style={{ paddingTop: headerSpacingY, paddingBottom: headerSpacingY }}>
           <div className="h-8 w-32 animate-pulse rounded" style={{ backgroundColor: tokens.placeholderBg }}></div>
         </div>
       </header>
@@ -1082,7 +1180,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
       <header className={cn(classicPositionClass)} style={{ ...classicBackgroundStyle, ...classicSeparatorStyle }}>
         {topbarConfig.show !== false && (
           <div className="px-4 py-2 text-xs" style={{ backgroundColor: layerColors.topnav.bg, color: layerColors.topnav.text }}>
-            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 min-w-0">
+            <div className="max-w-7xl tv:max-w-[1600px] mx-auto flex items-center justify-between gap-4 min-w-0">
               <div className="flex items-center gap-4">
                 {showTopbarHotline && (
                   <a href={`tel:${topbarConfig.hotline}`} className="flex items-center gap-1" style={{ color: layerColors.topnav.text }}>
@@ -1126,7 +1224,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         <div
           style={{ backgroundColor: layerColors.navbar.bg, paddingTop: headerSpacingY, paddingBottom: headerSpacingY }}
         >
-          <div className="max-w-7xl mx-auto px-4 lg:px-6">
+          <div className="max-w-7xl tv:max-w-[1600px] mx-auto px-4 lg:px-6">
             <div ref={headerRowRef} className="flex items-center gap-4">
             {/* Logo */}
             <Link ref={brandBlockRef} href="/" className="flex items-center gap-3 flex-shrink-0">
@@ -1502,6 +1600,9 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                   />
                 </div>
               )}
+              {config.showDarkModeToggle && (
+                <DarkModeToggle isDark={staticMode ? effectiveIsDark : undefined} onThemeToggle={staticMode ? handleStaticThemeToggle : undefined} tokens={navbarActionTokens} />
+              )}
               {showCart && (
                 <CartIcon variant="mobile" className="hidden lg:flex" tokens={navbarActionTokens} />
               )}
@@ -1524,6 +1625,9 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                 >
                   <Search size={20} />
                 </button>
+              )}
+              {config.showDarkModeToggle && (
+                <DarkModeToggle isDark={staticMode ? effectiveIsDark : undefined} onThemeToggle={staticMode ? handleStaticThemeToggle : undefined} tokens={navbarActionTokens} variant="mobile" />
               )}
               {showCart && (
                 <CartIcon variant="mobile" tokens={navbarActionTokens} />
@@ -1587,7 +1691,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
         {/* Topbar */}
         {topbarConfig.show !== false && (
           <div className="px-4 py-2 text-xs" style={{ backgroundColor: layerColors.topnav.bg, color: layerColors.topnav.text }}>
-            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 min-w-0">
+            <div className="max-w-7xl tv:max-w-[1600px] mx-auto flex items-center justify-between gap-4 min-w-0">
               <div className="flex items-center gap-4">
                 {showTopbarHotline && (
                   <a href={`tel:${topbarConfig.hotline}`} className="flex items-center gap-1" style={{ color: layerColors.topnav.text }}>
@@ -1631,7 +1735,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
           className="px-4 border-b"
           style={{ borderColor: tokens.border, backgroundColor: layerColors.navbar.bg, paddingTop: headerSpacingY, paddingBottom: headerSpacingY }}
         >
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="max-w-7xl tv:max-w-[1600px] mx-auto flex items-center justify-between gap-4">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 flex-shrink-0">
               <div style={logoWrapStyle}>
@@ -1686,6 +1790,9 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                     <Search size={20} />
                   </button>
                 )}
+                {config.showDarkModeToggle && (
+                  <DarkModeToggle isDark={staticMode ? effectiveIsDark : undefined} onThemeToggle={staticMode ? handleStaticThemeToggle : undefined} tokens={navbarActionTokens} variant="mobile" />
+                )}
                 {showCart && (
                   <CartIcon variant="mobile" tokens={navbarActionTokens} />
                 )}
@@ -1703,6 +1810,9 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                     <Heart size={20} />
                     <span>Yêu thích</span>
                   </Link>
+                )}
+                {config.showDarkModeToggle && (
+                  <DarkModeToggle isDark={staticMode ? effectiveIsDark : undefined} onThemeToggle={staticMode ? handleStaticThemeToggle : undefined} tokens={navbarActionTokens} />
                 )}
                 {showCart && (
                   <CartIcon tokens={navbarActionTokens} />
@@ -1746,7 +1856,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
 
         {/* Navigation Bar */}
         <div className="hidden lg:block px-4 py-2 border-b" style={{ backgroundColor: layerColors.menu.bg, borderColor: layerColors.menu.border }}>
-          <nav className="max-w-7xl mx-auto flex items-center gap-1">
+          <nav className="max-w-7xl tv:max-w-[1600px] mx-auto flex items-center gap-1">
             {menuTree.map((item) => (
               <div
                 key={item._id}
@@ -2293,6 +2403,11 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
             </Link>
           )}
 
+          {/* Dark Mode */}
+          {config.showDarkModeToggle && (
+            <DarkModeToggle isDark={staticMode ? effectiveIsDark : undefined} onThemeToggle={staticMode ? handleStaticThemeToggle : undefined} tokens={{ ...navbarActionTokens, iconButtonText: '#ffffff' }} />
+          )}
+
           {/* Cart */}
           {showCart && (
             <CartIcon variant="mobile" tokens={{ ...navbarActionTokens, iconButtonText: '#ffffff' }} />
@@ -2319,6 +2434,9 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
             >
               <Search size={18} />
             </button>
+          )}
+          {config.showDarkModeToggle && (
+            <DarkModeToggle isDark={staticMode ? effectiveIsDark : undefined} onThemeToggle={staticMode ? handleStaticThemeToggle : undefined} tokens={{ ...navbarActionTokens, iconButtonText: '#ffffff' }} variant="mobile" />
           )}
           {showCart && (
             <CartIcon variant="mobile" tokens={{ ...navbarActionTokens, iconButtonText: '#ffffff' }} />
@@ -2427,10 +2545,25 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
 
   // Allbirds Style
   return (
-    <header className={cn(classicPositionClass)} style={{ backgroundColor: layerColors.navbar.bg, ...classicSeparatorStyle }}>
+    <header className={cn(classicPositionClass, config.enableGlassmorphism && "glass-enabled-menu")} style={{ backgroundColor: layerColors.navbar.bg, ...classicSeparatorStyle }}>
+      {config.enableGlassmorphism && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          .glass-enabled-menu div.absolute.border,
+          .glass-enabled-menu div.absolute div.border,
+          .glass-enabled-menu div.absolute div.rounded-xl,
+          .glass-enabled-menu div.absolute div.rounded-lg {
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            box-shadow: ${effectiveIsDark
+              ? '0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)' 
+              : '0 10px 30px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
+            } !important;
+          }
+        `}} />
+      )}
         {topbarConfig.show !== false && (
           <div className="px-4 py-2 text-xs" style={{ backgroundColor: layerColors.topnav.bg, color: layerColors.topnav.text }}>
-            <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 min-w-0">
+            <div className="max-w-7xl tv:max-w-[1600px] mx-auto flex items-center justify-between gap-4 min-w-0">
               <div className="flex items-center gap-4">
                 {showTopbarHotline && (
                   <a href={`tel:${topbarConfig.hotline}`} className="flex items-center gap-1" style={{ color: layerColors.topnav.text }}>
@@ -2472,7 +2605,7 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
           <div className="h-0.5" style={{ backgroundColor: tokens.accentLine }} />
         )}
         <div
-          className="max-w-7xl mx-auto px-4 lg:px-6 border-b"
+          className="max-w-7xl tv:max-w-[1600px] mx-auto px-4 lg:px-6 border-b"
           style={{ borderColor: tokens.border, paddingTop: headerSpacingY, paddingBottom: headerSpacingY }}
         >
           <div className="flex items-center justify-between gap-6">
@@ -2768,6 +2901,9 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                     <User size={18} />
                   </Link>
                 )}
+                {config.showDarkModeToggle && (
+                  <DarkModeToggle isDark={staticMode ? effectiveIsDark : undefined} onThemeToggle={staticMode ? handleStaticThemeToggle : undefined} tokens={navbarActionTokens} />
+                )}
                 {showCart && (
                   <CartIcon variant="mobile" tokens={navbarActionTokens} />
                 )}
@@ -2781,6 +2917,9 @@ export function Header({ initialData, staticMode }: { initialData?: HeaderInitia
                   >
                     <Search size={18} />
                   </button>
+                )}
+                {config.showDarkModeToggle && (
+                  <DarkModeToggle isDark={staticMode ? effectiveIsDark : undefined} onThemeToggle={staticMode ? handleStaticThemeToggle : undefined} tokens={navbarActionTokens} variant="mobile" />
                 )}
                 {showCart && (
                   <CartIcon variant="mobile" tokens={navbarActionTokens} />

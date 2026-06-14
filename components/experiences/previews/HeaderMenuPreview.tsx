@@ -2,7 +2,7 @@
 
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Id } from '@/convex/_generated/dataModel';
-import { ChevronDown, ChevronRight, Eye, Heart, LogOut, Mail, Package, Phone, Search, ShoppingCart, User } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, Heart, LogOut, Mail, Package, Phone, Search, ShoppingCart, User, Moon } from 'lucide-react';
 import { Card, CardContent, cn } from '@/app/admin/components/ui';
 import { getMenuColors, resolveMenuLayerColors, type MenuColorMode, type MenuColors, type MenuLayerColorConfig } from '@/components/site/header/colors';
 import { buildMenuTree, type MenuTreeNode } from '@/lib/utils/menu-tree';
@@ -41,6 +41,8 @@ export type HeaderMenuConfig = {
   };
   wishlist: { show: boolean };
   megaLevel1Color?: 'default' | 'primary' | 'secondary';
+  showDarkModeToggle?: boolean;
+  enableGlassmorphism?: boolean;
 };
 
 type MenuItem = {
@@ -110,9 +112,31 @@ export function HeaderMenuPreview({
   servicesEnabled,
   coursesEnabled = false,
 }: HeaderMenuPreviewProps) {
+  const [isDark, setIsDark] = useState(false);
+
+  React.useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsDark(document.documentElement.classList.contains('dark'));
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains('dark'));
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
+
   const tokens = useMemo<MenuColors>(
-    () => getMenuColors(brandColor, secondaryColor, colorMode),
-    [brandColor, secondaryColor, colorMode]
+    () => {
+      const baseTokens = getMenuColors(brandColor, secondaryColor, colorMode, isDark);
+      if (config.enableGlassmorphism) {
+        return {
+          ...baseTokens,
+          dropdownBg: isDark ? 'rgba(15, 23, 42, 0.65)' : 'rgba(255, 255, 255, 0.75)',
+          dropdownBorder: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)',
+        };
+      }
+      return baseTokens;
+    },
+    [brandColor, secondaryColor, colorMode, isDark, config.enableGlassmorphism]
   );
   const layerColors = useMemo(
     () => resolveMenuLayerColors(config.layerColors, tokens, colorMode),
@@ -182,12 +206,12 @@ export function HeaderMenuPreview({
   const logoBackgroundStyles: Record<LogoBackgroundStyle, React.CSSProperties> = {
     none: {},
     border: {
-      backgroundColor: 'rgba(255, 255, 255, 0.6)',
+      backgroundColor: isDark ? 'rgba(15, 23, 42, 0.6)' : 'rgba(255, 255, 255, 0.6)',
       border: `1px solid ${tokens.borderStrong}`,
-      boxShadow: '0 2px 8px rgba(15, 23, 42, 0.08)',
+      boxShadow: isDark ? '0 2px 8px rgba(0, 0, 0, 0.3)' : '0 2px 8px rgba(15, 23, 42, 0.08)',
     },
     outline: {
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.2)',
       border: `1px solid ${tokens.borderStrong}`,
     },
     hairline: {
@@ -197,27 +221,27 @@ export function HeaderMenuPreview({
     inset: {
       backgroundColor: tokens.surfaceAlt,
       border: `1px solid ${tokens.border}`,
-      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+      boxShadow: isDark ? 'inset 0 1px 0 rgba(255, 255, 255, 0.05)' : 'inset 0 1px 0 rgba(255, 255, 255, 0.8)',
     },
     pill: {
-      backgroundColor: 'rgba(255, 255, 255, 0.12)',
+      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.12)',
       border: `1px solid ${tokens.border}`,
     },
     shadow: {
-      backgroundColor: 'rgba(255, 255, 255, 0.88)',
-      boxShadow: '0 10px 30px rgba(15, 23, 42, 0.16)',
-      border: '1px solid rgba(148, 163, 184, 0.2)',
+      backgroundColor: isDark ? 'rgba(15, 23, 42, 0.88)' : 'rgba(255, 255, 255, 0.88)',
+      boxShadow: isDark ? '0 10px 30px rgba(0, 0, 0, 0.4)' : '0 10px 30px rgba(15, 23, 42, 0.16)',
+      border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(148, 163, 184, 0.2)',
       backdropFilter: 'blur(10px)',
     },
     soft: {
       backgroundColor: tokens.surfaceAlt,
       border: `1px solid ${tokens.border}`,
-      boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+      boxShadow: isDark ? 'inset 0 1px 0 rgba(255, 255, 255, 0.05)' : 'inset 0 1px 0 rgba(255, 255, 255, 0.7)',
     },
     solid: {
       backgroundColor: tokens.textPrimary,
       border: `1px solid ${tokens.textPrimary}`,
-      boxShadow: '0 12px 28px rgba(15, 23, 42, 0.18)',
+      boxShadow: isDark ? '0 12px 28px rgba(0, 0, 0, 0.4)' : '0 12px 28px rgba(15, 23, 42, 0.18)',
     },
   };
   const hasBackgroundFrame = logoBackgroundStyle !== 'none';
@@ -945,6 +969,11 @@ export function HeaderMenuPreview({
                     </button>
                   </div>
                 )}
+                {config.showDarkModeToggle && (
+                  <button className="p-2 transition-colors hover:text-[var(--menu-icon-hover)]" style={{ color: layerColors.navbar.text, ...menuVars }}>
+                    <Moon size={20} />
+                  </button>
+                )}
                 {config.cart.show && (
                   <a href={defaultLinks.cart} className="p-2 relative" style={{ color: layerColors.navbar.text }}>
                     <ShoppingCart size={20} />
@@ -972,6 +1001,11 @@ export function HeaderMenuPreview({
               {showSearch && (
                 <button onClick={() => setSearchOpen((prev) => !prev)} className="p-2" style={{ color: layerColors.navbar.text }}>
                   <Search size={20} />
+                </button>
+              )}
+              {config.showDarkModeToggle && (
+                <button className="p-2" style={{ color: layerColors.navbar.text }}>
+                  <Moon size={20} />
                 </button>
               )}
               {config.cart.show && (
@@ -1111,6 +1145,11 @@ export function HeaderMenuPreview({
                     <Search size={20} />
                   </button>
                 )}
+                {config.showDarkModeToggle && (
+                  <button className="p-2" style={{ color: layerColors.navbar.text }}>
+                    <Moon size={20} />
+                  </button>
+                )}
                 {config.cart.show && (
                   <a href={defaultLinks.cart} className="p-2 relative" style={{ color: layerColors.navbar.text }}>
                     <ShoppingCart size={20} />
@@ -1134,6 +1173,11 @@ export function HeaderMenuPreview({
                   >
                     <Heart size={20} /><span>Yêu thích</span>
                   </a>
+                )}
+                {config.showDarkModeToggle && (
+                  <button className="p-2 transition-colors flex flex-col items-center text-xs gap-0.5 hover:text-[var(--menu-icon-hover)]" style={{ color: layerColors.navbar.text, ...menuVars }}>
+                    <Moon size={20} /><span>Theme</span>
+                  </button>
                 )}
                 {config.cart.show && (
                   <a
@@ -1536,6 +1580,11 @@ export function HeaderMenuPreview({
                   <User size={18} />
                 </a>
               )}
+              {config.showDarkModeToggle && (
+                <button className="p-2 transition-colors hover:text-[var(--menu-icon-hover)]" style={{ color: layerColors.navbar.text, ...menuVars }}>
+                  <Moon size={18} />
+                </button>
+              )}
               {config.cart.show && (
                 <a
                   href={defaultLinks.cart}
@@ -1570,6 +1619,11 @@ export function HeaderMenuPreview({
               {showSearch && (
                 <button onClick={() => setSearchOpen((prev) => !prev)} className="p-2" style={{ color: layerColors.navbar.text }}>
                   <Search size={18} />
+                </button>
+              )}
+              {config.showDarkModeToggle && (
+                <button className="p-2" style={{ color: layerColors.navbar.text }}>
+                  <Moon size={18} />
                 </button>
               )}
               {config.cart.show && (
@@ -1824,6 +1878,13 @@ export function HeaderMenuPreview({
             </a>
           )}
 
+          {/* Dark Mode */}
+          {config.showDarkModeToggle && (
+            <button className="p-2 text-white hover:opacity-80 transition-opacity">
+              <Moon size={18} />
+            </button>
+          )}
+
           {/* Cart */}
           {config.cart.show && (
             <a
@@ -1975,7 +2036,22 @@ export function HeaderMenuPreview({
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden" style={{ borderColor: tokens.border }}>
+    <div className={cn("border rounded-lg overflow-hidden", config.enableGlassmorphism && "glass-enabled-menu")} style={{ borderColor: tokens.border }}>
+      {config.enableGlassmorphism && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          .glass-enabled-menu div.absolute.border,
+          .glass-enabled-menu div.absolute div.border,
+          .glass-enabled-menu div.absolute div.rounded-xl,
+          .glass-enabled-menu div.absolute div.rounded-lg {
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            box-shadow: ${isDark 
+              ? '0 10px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05)' 
+              : '0 10px 30px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
+            } !important;
+          }
+        `}} />
+      )}
       {resolvedStyle === 'classic' && renderClassicStyle()}
       {resolvedStyle === 'topbar' && renderTopbarStyle()}
       {resolvedStyle === 'allbirds' && renderAllbirdsStyle()}

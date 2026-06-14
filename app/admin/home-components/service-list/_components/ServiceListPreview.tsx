@@ -6,7 +6,7 @@ import { api } from '@/convex/_generated/api';
 import { useBrandColors } from '@/components/site/hooks';
 import { BrowserFrame } from '../../_shared/components/BrowserFrame';
 import { ColorInfoPanel } from '../../_shared/components/ColorInfoPanel';
-import { PreviewWrapper } from '../../_shared/components/PreviewWrapper';
+import { PreviewWrapper, usePreviewDark } from '../../_shared/components/PreviewWrapper';
 import { deviceWidths, usePreviewDevice } from '../../_shared/hooks/usePreviewDevice';
 import type { SectionSpacing } from '../../_shared/types/sectionSpacing';
 import {
@@ -16,6 +16,7 @@ import {
   getServiceListValidationResult,
 } from '../_lib/colors';
 import { ServiceListSectionShared } from './ServiceListSectionShared';
+import { adaptTokensForDarkMode } from '@/components/site/home/utils/darkModeColorAdapter';
 import type {
   ServiceListBrandMode,
   ServiceListCardRadius,
@@ -92,6 +93,83 @@ const MOCK_SERVICES: ServiceListPreviewItem[] = [
     tag: 'new',
   },
 ];
+
+const ServiceListPreviewInner = ({
+  homePageBgColor,
+  mode,
+  previewStyle,
+  hideHeader,
+  showTitle,
+  showSubtitle,
+  subtitle,
+  headerAlign,
+  titleColorPrimary,
+  subtitleAboveTitle,
+  uppercaseText,
+  showBadge,
+  badgeText,
+  spacing,
+  cardRadius,
+  desktopColumns,
+  title,
+  displayItems,
+  validationTokens,
+  device,
+  showViewAll,
+}: {
+  homePageBgColor: string;
+  mode: ServiceListBrandMode;
+  previewStyle: ServiceListStyle;
+  hideHeader?: boolean;
+  showTitle?: boolean;
+  showSubtitle?: boolean;
+  subtitle?: string;
+  headerAlign?: 'left' | 'center' | 'right';
+  titleColorPrimary?: boolean;
+  subtitleAboveTitle?: boolean;
+  uppercaseText?: boolean;
+  showBadge?: boolean;
+  badgeText?: string;
+  spacing?: SectionSpacing;
+  cardRadius?: ServiceListCardRadius;
+  desktopColumns?: ServiceListDesktopColumns;
+  title: string;
+  displayItems: ServiceListPreviewItem[];
+  validationTokens: any;
+  device: any;
+  showViewAll: boolean;
+}) => {
+  const { isDark } = usePreviewDark();
+  const adaptedTokens = React.useMemo(() => adaptTokensForDarkMode(validationTokens, isDark), [validationTokens, isDark]);
+
+  return (
+    <div className="w-full transition-colors duration-300" style={{ backgroundColor: isDark ? '#0a0a0a' : homePageBgColor }}>
+      <ServiceListSectionShared
+        context="preview"
+        mode={mode}
+        style={previewStyle}
+        hideHeader={hideHeader}
+        showTitle={showTitle}
+        showSubtitle={showSubtitle}
+        subtitle={subtitle}
+        headerAlign={headerAlign}
+        titleColorPrimary={titleColorPrimary}
+        subtitleAboveTitle={subtitleAboveTitle}
+        uppercaseText={uppercaseText}
+        showBadge={showBadge}
+        badgeText={badgeText}
+        spacing={spacing}
+        cardRadius={cardRadius}
+        desktopColumns={desktopColumns}
+        sectionTitle={title}
+        items={displayItems}
+        tokens={adaptedTokens}
+        device={device}
+        showViewAll={showViewAll}
+      />
+    </div>
+  );
+};
 
 export const ServiceListPreview = ({
   brandColor,
@@ -173,31 +251,29 @@ export const ServiceListPreview = ({
         fontClassName={fontClassName}
       >
         <BrowserFrame url="yoursite.com/services">
-          <div className="w-full transition-colors duration-300" style={{ backgroundColor: homePageBgColor }}>
-            <ServiceListSectionShared
-              context="preview"
-              mode={mode}
-              style={previewStyle}
-              hideHeader={hideHeader}
-              showTitle={showTitle}
-              showSubtitle={showSubtitle}
-              subtitle={subtitle}
-              headerAlign={headerAlign}
-              titleColorPrimary={titleColorPrimary}
-              subtitleAboveTitle={subtitleAboveTitle}
-              uppercaseText={uppercaseText}
-              showBadge={showBadge}
-              badgeText={badgeText}
-              spacing={spacing}
-              cardRadius={cardRadius}
-              desktopColumns={desktopColumns}
-              sectionTitle={title}
-              items={displayItems}
-              tokens={validation.tokens}
-              device={device}
-              showViewAll={showViewAll}
-            />
-          </div>
+          <ServiceListPreviewInner
+            homePageBgColor={homePageBgColor}
+            mode={mode}
+            previewStyle={previewStyle}
+            hideHeader={hideHeader}
+            showTitle={showTitle}
+            showSubtitle={showSubtitle}
+            subtitle={subtitle}
+            headerAlign={headerAlign}
+            titleColorPrimary={titleColorPrimary}
+            subtitleAboveTitle={subtitleAboveTitle}
+            uppercaseText={uppercaseText}
+            showBadge={showBadge}
+            badgeText={badgeText}
+            spacing={spacing}
+            cardRadius={cardRadius}
+            desktopColumns={desktopColumns}
+            title={title}
+            displayItems={displayItems}
+            validationTokens={validation.tokens}
+            device={device}
+            showViewAll={showViewAll}
+          />
         </BrowserFrame>
       </PreviewWrapper>
 

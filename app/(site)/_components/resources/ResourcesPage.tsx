@@ -85,7 +85,7 @@ function CustomDropdown({
       >
         <span className="flex items-center gap-2 truncate">
           {selectedOption?.icon ? (
-            // eslint-disable-next-line @next/next/no-img-element
+
             <img src={selectedOption.icon} alt={selectedOption.label} className="h-4 w-4 object-contain shrink-0" />
           ) : (
             icon
@@ -306,6 +306,9 @@ function ResourceListItem({
   cornerRadius,
   brandColors,
   isDark,
+  darkModePremiumBorder = false,
+  showDetailButton = false,
+  detailButtonText,
 }: {
   resource: any;
   category: any;
@@ -316,6 +319,9 @@ function ResourceListItem({
   cornerRadius?: 'none' | 'sm' | 'lg';
   brandColors: { primary: string; secondary?: string; mode?: string };
   isDark: boolean;
+  darkModePremiumBorder?: boolean;
+  showDetailButton?: boolean;
+  detailButtonText?: string;
 }) {
   const brandColor = brandColors.primary;
   const { openLoginModal, token } = useCustomerAuth();
@@ -447,6 +453,9 @@ function ResourceListItem({
       brandColor={brandColor}
       radiusClass={getRadiusClass(cornerRadius)}
       isDark={isDark}
+      darkModePremiumBorder={darkModePremiumBorder}
+      showDetailButton={showDetailButton}
+      detailButtonText={detailButtonText}
     />
   );
 }
@@ -461,8 +470,7 @@ export default function ResourcesPage() {
 
 function ResourcesContent() {
   const brandColors = useBrandColors();
-  const { siteDarkMode } = useSiteSettings();
-  const isDark = siteDarkMode === 'dark' || (siteDarkMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const { isDark } = useSiteSettings();
   const config = useResourcesListConfig();
   const router = useRouter();
   const pathname = usePathname();
@@ -729,6 +737,9 @@ function ResourcesContent() {
         brandColor={brandColors.primary}
         radiusClass={cardRadiusClass}
         isDark={isDark}
+        darkModePremiumBorder={config.darkModePremiumBorder}
+        showDetailButton={config.showDetailButton}
+        detailButtonText={config.detailButtonText}
       />
     );
   };
@@ -753,6 +764,9 @@ function ResourcesContent() {
         cornerRadius={config.cornerRadius}
         brandColors={brandColors}
         isDark={isDark}
+        darkModePremiumBorder={config.darkModePremiumBorder}
+        showDetailButton={config.showDetailButton}
+        detailButtonText={config.detailButtonText}
       />
     );
   };

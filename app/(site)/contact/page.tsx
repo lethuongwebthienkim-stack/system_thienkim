@@ -255,11 +255,9 @@ function MapPreview({
 
 export default function ContactPage() {
   const { isLoading: isContactLoading, brandColor, secondaryColor, colorMode, config, contactData, socialLinks } = useContactPageData();
-  const { siteDarkMode } = useSiteSettings();
+  const { isDark } = useSiteSettings();
   const pathname = usePathname();
   const resolvedSecondary = resolveSecondary(brandColor, secondaryColor, colorMode);
-
-  const isDark = siteDarkMode === 'dark' || (siteDarkMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   if (isContactLoading) {
     return (
@@ -276,8 +274,8 @@ export default function ContactPage() {
       {config.layoutStyle !== 'form-only' && (
         <div className="text-center mb-10">
           <h1
-            className="text-3xl font-bold tracking-tight dark:text-[#f5f5f7]"
-            style={!isDark ? { color: brandColor } : undefined}
+            className="text-3xl font-bold tracking-tight"
+            style={{ color: brandColor }}
           >
             Liên hệ với chúng tôi
           </h1>

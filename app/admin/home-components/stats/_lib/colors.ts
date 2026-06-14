@@ -115,6 +115,7 @@ export const getCardsColors = (primary: string, secondary: string, mode: StatsBr
   const secondaryResolved = resolveStatsSecondary(primary, secondary, mode);
 
   return {
+    sectionBg: '#ffffff',
     border: '#e5e7eb',
     accent: secondaryResolved,
     iconColor: secondaryResolved,
@@ -127,12 +128,14 @@ export const getCardsColors = (primary: string, secondary: string, mode: StatsBr
 export const getIconsColors = (primary: string, secondary: string, mode: StatsBrandMode) => {
   const secondaryResolved = resolveStatsSecondary(primary, secondary, mode);
   const secondaryStrong = getTint(secondaryResolved, -0.18, primary);
+  const sectionBg = '#ffffff';
 
   return {
+    sectionBg,
     circleBg: primary,
     textOnCircle: getAPCATextColor(primary, 20, 700),
     ring: getTint(secondaryResolved, -0.12, primary),
-    label: ensureAPCATextColor(secondaryStrong, '#ffffff', 14, 600),
+    label: ensureAPCATextColor(secondaryStrong, sectionBg, 14, 600),
   };
 };
 
@@ -152,8 +155,10 @@ export const getMinimalColors = (primary: string, secondary: string, mode: Stats
   const secondaryStrong = getTint(secondaryResolved, -0.18, primary);
 
   return {
+    sectionBg: '#f8fafc',
     accent: secondaryStrong,
     value: ensureAPCATextColor(primary, '#ffffff', 32, 700),
+    label: '#64748b',
   };
 };
 

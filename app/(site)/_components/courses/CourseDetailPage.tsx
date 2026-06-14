@@ -33,6 +33,20 @@ const resolveCourseContent = (course: CourseContentSource) => {
   return course.content ? withFormatMarker('richtext', course.content) : '';
 };
 
+const isColorDark = (hex?: string) => {
+  if (!hex) return true;
+  const color = hex.startsWith('#') ? hex : `#${hex}`;
+  const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+  const fullHex = color.replace(shorthandRegex, (_, r, g, b) => r + r + g + g + b + b);
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(fullHex);
+  if (!result) return false;
+  const r = parseInt(result[1], 16);
+  const g = parseInt(result[2], 16);
+  const b = parseInt(result[3], 16);
+  const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+  return yiq < 120;
+};
+
 type CourseDetailPageProps = {
   params: Promise<{ slug: string }>;
 };
@@ -42,7 +56,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const router = useRouter();
   const config = useCoursesDetailConfig();
   const brandColors = useBrandColors();
-  const { siteDarkMode } = useSiteSettings();
+  const { isDark } = useSiteSettings();
   const { addItem, openDrawer } = useCart();
   const { customer, token } = useCustomerAuth();
   const course = useQuery(api.courses.getBySlug, { slug });
@@ -61,15 +75,18 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
   const secondaryColor = brandColors.secondary || '';
   const colorMode = brandColors.mode || 'single';
 
-  const isDark = siteDarkMode === 'dark' || (siteDarkMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
 
   // Tự sinh màu gradient Modern ở chế độ 1 màu
   const accent = useMemo(() => {
     if (colorMode === 'single' || !secondaryColor) {
       return brandColor + 'dd';
     }
+    if (isDark && isColorDark(secondaryColor)) {
+      return isColorDark(brandColor) ? '#ffffff' : brandColor;
+    }
     return secondaryColor;
-  }, [brandColor, secondaryColor, colorMode]);
+  }, [brandColor, secondaryColor, colorMode, isDark]);
 
   const cornerRadius = config.cornerRadius ?? 'lg';
   const radiusClass = getRadiusClass(cornerRadius);
@@ -184,7 +201,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
           className={`mb-4 flex aspect-video items-center justify-center overflow-hidden bg-slate-100 dark:bg-[#2c2c2e] relative ${smallRadiusClass} ${hasPromoVideo ? 'cursor-pointer group/thumb' : ''}`}
         >
           {course.thumbnail ? (
-            // eslint-disable-next-line @next/next/no-img-element
+
             <img src={course.thumbnail} alt={course.title} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
           ) : (
             <>
@@ -297,7 +314,7 @@ export default function CourseDetailPage({ params }: CourseDetailPageProps) {
                     }`}
                   >
                     {filter.icon && (
-                      // eslint-disable-next-line @next/next/no-img-element
+
                       <img src={filter.icon} alt={filter.name} className="h-4.5 w-4.5 object-contain shrink-0" />
                     )}
                     <span>{filter.name}</span>

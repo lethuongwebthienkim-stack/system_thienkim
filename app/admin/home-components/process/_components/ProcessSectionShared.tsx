@@ -8,7 +8,7 @@ import { ColorInfoPanel } from '../../_shared/components/ColorInfoPanel';
 import { PreviewWrapper } from '../../_shared/components/PreviewWrapper';
 import { SectionHeader } from '../../_shared/components/SectionHeader';
 import { deviceWidths, type PreviewDevice } from '../../_shared/hooks/usePreviewDevice';
-import { getProcessColors, getAPCATextColor, type ProcessColorTokens } from '../_lib/colors';
+import { getProcessColors, type ProcessColorTokens } from '../_lib/colors';
 import {
   DEFAULT_PROCESS_CORNER_RADIUS,
   DEFAULT_PROCESS_SPACING,
@@ -59,6 +59,7 @@ interface ProcessSectionSharedProps {
   cornerRadius?: ProcessCornerRadius;
   circularCtaText?: string;
   circularCtaLink?: string;
+  isDark?: boolean;
 }
 
 const PROCESS_STYLES: Array<{ id: ProcessStyle; label: string }> = [
@@ -174,7 +175,7 @@ const renderHorizontal = ({
   const lineMarginTop = isSite ? -40 : (isMobile ? -32 : -40);
 
   return (
-    <div className={containerClass} style={{ backgroundColor: tokens.neutralBackground }}>
+    <div className={containerClass} style={{ backgroundColor: 'transparent' }}>
       {renderSectionHeader({ tokens, sectionTitle, previewDevice, headerConfig, showBadgeInline: true })}
 
       <div className="relative">
@@ -272,7 +273,7 @@ const RenderStepper = ({
 
 
   return (
-    <div className={getSectionPadding(context, previewDevice, spacing)} style={{ backgroundColor: tokens.neutralBackground }}>
+    <div className={getSectionPadding(context, previewDevice, spacing)} style={{ backgroundColor: 'transparent' }}>
       {renderSectionHeader({ tokens, sectionTitle, previewDevice, headerConfig, showBadgeInline: true })}
 
       <div className={cn('mx-auto', previewDevice === 'mobile' ? 'max-w-sm' : 'max-w-2xl')}>
@@ -419,7 +420,7 @@ const renderCards = ({
     : (isMobile ? 'text-xs' : 'text-sm');
 
   return (
-    <div className={getSectionPadding(context, previewDevice, spacing)} style={{ backgroundColor: tokens.neutralBackground }}>
+    <div className={getSectionPadding(context, previewDevice, spacing)} style={{ backgroundColor: 'transparent' }}>
       {renderSectionHeader({ tokens, sectionTitle, previewDevice, headerConfig, showBadgeInline: true })}
 
       <div className={gridClass}>
@@ -566,7 +567,7 @@ const renderAccordion = ({
   const resolvedText = isSite ? siteCircleText : circleTextSize;
 
   return (
-    <div className={getSectionPadding(context, previewDevice, spacing)} style={{ backgroundColor: tokens.neutralBackground }}>
+    <div className={getSectionPadding(context, previewDevice, spacing)} style={{ backgroundColor: 'transparent' }}>
       {renderSectionHeader({ tokens, sectionTitle, previewDevice, headerConfig, showBadgeInline: true })}
 
       {/* Desktop Layout - Zigzag wave */}
@@ -761,7 +762,7 @@ const renderMinimal = ({
     : (isCompact ? 'text-[10px]' : 'text-xs');
 
   return (
-    <div className={outerPadding} style={{ backgroundColor: tokens.neutralBackground }}>
+    <div className={outerPadding} style={{ backgroundColor: 'transparent' }}>
       {renderSectionHeader({ tokens, sectionTitle, previewDevice, headerConfig, showBadgeInline: true })}
       <div className="relative mx-auto w-full max-w-[1360px]">
         {/* Dark Background Band */}
@@ -865,7 +866,7 @@ const renderGrid = ({
   const remainingCount = steps.length - visibleSteps.length;
 
   return (
-    <div className={getSectionPadding(context, previewDevice, spacing)} style={{ backgroundColor: tokens.neutralBackground }}>
+    <div className={getSectionPadding(context, previewDevice, spacing)} style={{ backgroundColor: 'transparent' }}>
       {renderSectionHeader({ tokens, sectionTitle, previewDevice, headerConfig, showBadgeInline: true })}
 
       <div className={cn(
@@ -941,7 +942,7 @@ const renderCompactMinimal = ({
   const itemOffset = isSite ? 'md:translate-y-10' : 'translate-y-0 md:translate-y-10';
 
   return (
-    <div className={cn(getSectionPadding(context, previewDevice, spacing), 'overflow-hidden')} style={{ backgroundColor: tokens.neutralSurface }}>
+    <div className={cn(getSectionPadding(context, previewDevice, spacing), 'overflow-hidden')} style={{ backgroundColor: 'transparent' }}>
       {renderSectionHeader({ tokens, sectionTitle, previewDevice, headerConfig, showBadgeInline: true })}
 
       <div className="mx-auto max-w-7xl">
@@ -1036,7 +1037,6 @@ const renderAlternating = ({
   const isSite = context === 'site';
   const isMobile = previewDevice === 'mobile';
   const isTablet = previewDevice === 'tablet';
-  const sectionBackground = tokens.neutralSurface;
   const sectionText = tokens.mutedText;
   const cardBackground = tokens.neutralSurface;
   const cardText = tokens.bodyText;
@@ -1053,7 +1053,7 @@ const renderAlternating = ({
   const itemHeightClass = isMobile ? 'min-h-[250px]' : 'min-h-[320px]';
 
   return (
-    <div className={cn('relative z-[1] overflow-hidden', outerPadding)} style={{ backgroundColor: sectionBackground }}>
+    <div className={cn('relative z-[1] overflow-hidden', outerPadding)} style={{ backgroundColor: 'transparent' }}>
       {renderSectionHeader({ tokens, sectionTitle, previewDevice, headerConfig, showBadgeInline: true })}
 
       <div className={trackClass}>
@@ -1256,14 +1256,10 @@ const RenderCircular = ({
   const primaryColor = tokens.primary;
 
   // Xác định độ tương phản: Nếu màu chính là màu sáng (ví dụ màu vàng, cần chữ tối #0f172a), 
-  // hệ thống sẽ tự động dùng màu nền tối (đen/xám đậm) để tạo tương phản cao cực kỳ bắt mắt.
-  const isPrimaryLight = getAPCATextColor(primaryColor, 16, 700) === '#0f172a';
-
-  const bgCol = isPrimaryLight ? '#090d16' : tokens.neutralBackground;
-  const surfaceCol = isPrimaryLight ? '#121824' : tokens.neutralSurface;
-  const borderCol = isPrimaryLight ? '#1e293b' : tokens.neutralBorder;
-  const textCol = isPrimaryLight ? '#ffffff' : tokens.bodyText;
-  const mutedTextCol = isPrimaryLight ? '#94a3b8' : tokens.mutedText;
+  const surfaceCol = tokens.neutralSurface;
+  const borderCol = tokens.neutralBorder;
+  const textCol = tokens.bodyText;
+  const mutedTextCol = tokens.mutedText;
 
   // Lấy nhãn nút CTA từ circularCtaText, nếu không có mới fallback về text mặc định
   const ctaText = circularCtaText || "BẮT ĐẦU DỰ ÁN";
@@ -1271,21 +1267,20 @@ const RenderCircular = ({
   return (
     <div 
       className={cn(getSectionPadding(context, previewDevice, spacing), "w-full py-16 px-4 md:px-8 transition-colors duration-300")}
-      style={{ backgroundColor: bgCol }}
     >
-      <div className="mx-auto max-w-[1140px]">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <div className="mx-auto max-w-[1140px] tv:max-w-[1536px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 tv:gap-24 items-center">
           
           <div className="text-center lg:text-left space-y-6">
             <h2 
-              className="text-4xl sm:text-5xl lg:text-[61px] font-light leading-tight tracking-wide uppercase font-sans"
+              className="text-4xl sm:text-5xl lg:text-[61px] tv:text-8xl font-light leading-tight tracking-wide uppercase font-sans"
               style={{ color: textCol }}
             >
               {sectionTitle || "CÁCH CHÚNG TÔI LÀM VIỆC"}
             </h2>
             {subtitleText && (
               <p 
-                className="text-lg sm:text-xl font-light leading-relaxed max-w-lg mx-auto lg:mx-0"
+                className="text-lg sm:text-xl tv:text-2xl font-light leading-relaxed max-w-lg tv:max-w-2xl mx-auto lg:mx-0"
                 style={{ color: mutedTextCol }}
               >
                 {subtitleText}
@@ -1295,7 +1290,7 @@ const RenderCircular = ({
               <a
                 href={circularCtaLink || "#contact"}
                 target="_self"
-                className="inline-flex items-center justify-center px-8 py-4 border font-medium tracking-wide text-sm rounded-lg uppercase transition-all duration-300 hover:bg-opacity-10"
+                className="inline-flex items-center justify-center px-8 tv:px-12 py-4 tv:py-6 border font-medium tracking-wide text-sm tv:text-lg rounded-lg uppercase transition-all duration-300 hover:bg-opacity-10"
                 style={{ 
                   color: primaryColor, 
                   borderColor: primaryColor,
@@ -1317,8 +1312,8 @@ const RenderCircular = ({
 
           <div className="flex justify-center items-center py-8 lg:py-0 overflow-visible">
             {/* Wrapper có kích thước vừa vặn chứa toàn bộ vòng tròn 500px + 2 nút lồi 55px (tổng cộng 610px) */}
-            <div className="w-[315px] h-[315px] sm:w-[425px] sm:h-[425px] md:w-[480px] md:h-[480px] lg:w-[490px] lg:h-[490px] xl:w-[610px] xl:h-[610px] flex items-center justify-center overflow-visible relative">
-              <div className="w-[500px] h-[500px] shrink-0 scale-[0.52] sm:scale-[0.70] md:scale-[0.79] lg:scale-[0.80] xl:scale-100 origin-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform">
+            <div className="w-[315px] h-[315px] sm:w-[425px] sm:h-[425px] md:w-[480px] md:h-[480px] lg:w-[490px] lg:h-[490px] xl:w-[610px] xl:h-[610px] tv:w-[750px] tv:h-[750px] flex items-center justify-center overflow-visible relative">
+              <div className="w-[500px] h-[500px] shrink-0 scale-[0.52] sm:scale-[0.70] md:scale-[0.79] lg:scale-[0.80] xl:scale-100 tv:scale-[1.25] origin-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform">
                 
                 <div 
                   className="absolute inset-0 rounded-full border flex flex-col items-center justify-center p-12 text-center transition-all duration-500"
@@ -1335,10 +1330,10 @@ const RenderCircular = ({
                       <path d="m9 12 2 2 4-4"></path>
                     </svg>
                   </div>
-                  <h3 className="text-xl sm:text-2xl font-medium tracking-wide uppercase mb-3" style={{ color: primaryColor }}>
+                  <h3 className="text-xl sm:text-2xl tv:text-4xl font-medium tracking-wide uppercase mb-3" style={{ color: primaryColor }}>
                     {activeStep.title || `BƯỚC ${activeIndex + 1}`}
                   </h3>
-                  <p className="text-sm font-light leading-relaxed max-w-xs" style={{ color: textCol }}>
+                  <p className="text-sm tv:text-lg font-light leading-relaxed max-w-xs tv:max-w-md" style={{ color: textCol }}>
                     {activeStep.description || "Mô tả bước này..."}
                   </p>
                 </div>
@@ -1355,7 +1350,7 @@ const RenderCircular = ({
                       style={{ 
                         left: coords.left, 
                         top: coords.top,
-                        borderColor: isActive ? primaryColor : (isPrimaryLight ? `${primaryColor}66` : borderCol),
+                        borderColor: isActive ? primaryColor : borderCol,
                         color: isActive ? tokens.stepDotText : textCol,
                         backgroundColor: isActive ? primaryColor : surfaceCol,
                         boxShadow: isActive ? `0 8px 24px ${primaryColor}30` : 'none',
@@ -1473,6 +1468,8 @@ const ProcessSectionContent = ({
   return renderGrid({ context, previewDevice, sectionTitle, steps, tokens, headerConfig, desktopColumns, spacing, cornerRadius });
 };
 
+import { adaptTokensForDarkMode } from '@/components/site/home/utils/darkModeColorAdapter';
+
 export function ProcessSectionShared({
   steps,
   sectionTitle,
@@ -1503,8 +1500,9 @@ export function ProcessSectionShared({
   cornerRadius = DEFAULT_PROCESS_CORNER_RADIUS,
   circularCtaText = '',
   circularCtaLink = '',
+  isDark,
 }: ProcessSectionSharedProps) {
-  const tokens = React.useMemo(() => getProcessColors(brandColor, secondary, mode), [brandColor, secondary, mode]);
+  const tokens = React.useMemo(() => adaptTokensForDarkMode(getProcessColors(brandColor, secondary, mode), isDark ?? false), [brandColor, secondary, mode, isDark]);
   const selectedStyle = previewStyle ?? style;
   const maxVisible = getMaxVisible(selectedStyle, context, previewDevice);
   const info = getSharedInfoText(selectedStyle, steps.length, Math.min(steps.length, maxVisible), mode);

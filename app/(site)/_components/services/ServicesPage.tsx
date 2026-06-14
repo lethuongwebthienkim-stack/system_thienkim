@@ -148,8 +148,8 @@ export default function ServicesPage() {
 
 function ServicesContent() {
   const { primary: brandColor, secondary, mode } = useBrandColors();
-  const { siteDarkMode } = useSiteSettings();
-  const isDark = siteDarkMode === 'dark' || (siteDarkMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const { isDark } = useSiteSettings();
+
   const tokens = useMemo(
     () => getServicesListColors(brandColor, secondary, mode || 'single', isDark),
     [brandColor, secondary, mode, isDark]
@@ -432,6 +432,9 @@ function ServicesContent() {
         brandColor={brandColor}
         radiusClass={radiusClass}
         isDark={isDark}
+        darkModePremiumBorder={listConfig.darkModePremiumBorder}
+        showDetailButton={listConfig.showDetailButton}
+        detailButtonText={listConfig.detailButtonText}
       />
     );
   };
@@ -483,6 +486,9 @@ function ServicesContent() {
         brandColor={brandColor}
         radiusClass={radiusClass}
         isDark={isDark}
+        darkModePremiumBorder={listConfig.darkModePremiumBorder}
+        showDetailButton={listConfig.showDetailButton}
+        detailButtonText={listConfig.detailButtonText}
       />
     );
   };

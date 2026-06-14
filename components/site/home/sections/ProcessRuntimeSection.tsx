@@ -7,7 +7,8 @@ import { normalizeProcessConfig, normalizeProcessRenderSteps } from '@/app/admin
 import type { ProcessBrandMode, ProcessStyle } from '@/app/admin/home-components/process/_types';
 import type { HomeComponentSectionProps } from '../types';
 
-export function ProcessRuntimeSection({ config, brandColor, secondary, mode, title }: HomeComponentSectionProps) {
+
+export function ProcessRuntimeSection({ config, brandColor, secondary, mode, title, isDark }: HomeComponentSectionProps & { isDark?: boolean }) {
   const rawSteps = Array.isArray(config.steps) ? config.steps : [];
   const steps = normalizeProcessRenderSteps(rawSteps);
   const normalizedConfig = normalizeProcessConfig(config);
@@ -33,7 +34,7 @@ export function ProcessRuntimeSection({ config, brandColor, secondary, mode, tit
 
   return (
     <section className="px-3">
-      <div className="mx-auto max-w-7xl">
+      <div className="mx-auto max-w-7xl tv:max-w-[1600px]">
         <ProcessSectionShared
           steps={steps}
           sectionTitle={title || ''}
@@ -57,6 +58,7 @@ export function ProcessRuntimeSection({ config, brandColor, secondary, mode, tit
           cornerRadius={normalizedConfig.cornerRadius}
           circularCtaText={normalizedConfig.circularCtaText}
           circularCtaLink={normalizedConfig.circularCtaLink}
+          isDark={isDark}
         />
       </div>
     </section>

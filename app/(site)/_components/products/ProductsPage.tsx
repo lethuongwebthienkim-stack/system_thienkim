@@ -88,8 +88,7 @@ export default function ProductsPage(props: ProductsPageProps) {
 function ProductsContent(props: ProductsPageProps) {
   const brandColors = useBrandColors();
   const brandColor = brandColors.primary;
-  const { siteDarkMode } = useSiteSettings();
-  const isDark = siteDarkMode === 'dark' || (siteDarkMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const { isDark } = useSiteSettings();
   const tokens = useMemo(
     () => getProductsListColors(brandColors.primary, brandColors.secondary, brandColors.mode || 'single', isDark),
     [brandColors.primary, brandColors.secondary, brandColors.mode, isDark]
@@ -1222,7 +1221,7 @@ function ProductsContent(props: ProductsPageProps) {
             count={products.length}
             totalCount={totalCount}
             unit="sản phẩm"
-            titleColor={tokens.headingColor}
+            titleColor={tokens.primary}
             subtitleColor={tokens.metaText}
             description={showCategorySubtitle && activeCategoryDoc?.description ? activeCategoryDoc.description : undefined}
             descriptionColor={tokens.bodyText}

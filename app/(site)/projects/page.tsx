@@ -107,8 +107,7 @@ export default function ProjectsPage() {
 function ProjectsContent() {
   const brandColors = useBrandColors();
   const brandColor = brandColors.primary;
-  const { siteDarkMode } = useSiteSettings();
-  const isDark = siteDarkMode === 'dark' || (siteDarkMode === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const { isDark } = useSiteSettings();
   const listConfig = useProjectsListConfig();
   const router = useRouter();
   const pathname = usePathname();
@@ -318,6 +317,9 @@ function ProjectsContent() {
         brandColor={brandColor}
         radiusClass={radiusClass}
         isDark={isDark}
+        darkModePremiumBorder={listConfig.darkModePremiumBorder}
+        showDetailButton={listConfig.showDetailButton}
+        detailButtonText={listConfig.detailButtonText}
       />
     );
   };
@@ -347,6 +349,9 @@ function ProjectsContent() {
         brandColor={brandColor}
         radiusClass={radiusClass}
         isDark={isDark}
+        darkModePremiumBorder={listConfig.darkModePremiumBorder}
+        showDetailButton={listConfig.showDetailButton}
+        detailButtonText={listConfig.detailButtonText}
       />
     );
   };

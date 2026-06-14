@@ -56,6 +56,8 @@ const DEFAULT_CONFIG: HeaderMenuConfig = {
     slogan: '',
   },
   wishlist: { show: true },
+  showDarkModeToggle: false,
+  enableGlassmorphism: false,
 };
 
 const LAYOUT_STYLES: LayoutOption<HeaderLayoutStyle>[] = [
@@ -111,6 +113,7 @@ export default function HeaderMenuExperiencePage() {
   const siteNameSetting = useQuery(api.settings.getByKey, { key: 'site_name' });
   const siteLogoSetting = useQuery(api.settings.getByKey, { key: 'site_logo' });
   const topbarSloganSetting = useQuery(api.settings.getByKey, { key: 'site_tagline' });
+  const siteDarkModeSetting = useQuery(api.settings.getByKey, { key: 'site_dark_mode' });
   const brandColors = useBrandColors();
   const [brandColor, setBrandColor] = useState(brandColors.primary);
   const [secondaryColor, setSecondaryColor] = useState(brandColors.secondary || '');
@@ -190,7 +193,8 @@ export default function HeaderMenuExperiencePage() {
     || customersModule === undefined
     || ordersModule === undefined
     || commerceCapabilities === undefined
-    || customerLoginFeature === undefined;
+    || customerLoginFeature === undefined
+    || siteDarkModeSetting === undefined;
 
   const resolvedBrandColor = brandColor || brandColors.primary || '#f97316';
 
@@ -266,6 +270,14 @@ export default function HeaderMenuExperiencePage() {
 
   const updateFlatSubMenus = (value: boolean) => {
     setConfig(prev => ({ ...prev, flatSubMenus: value }));
+  };
+
+  const updateShowDarkModeToggle = (value: boolean) => {
+    setConfig(prev => ({ ...prev, showDarkModeToggle: value }));
+  };
+
+  const updateEnableGlassmorphism = (value: boolean) => {
+    setConfig(prev => ({ ...prev, enableGlassmorphism: value }));
   };
 
   const updateBorderRadiusStyle = (value: NonNullable<HeaderMenuConfig['borderRadiusStyle']>) => {
@@ -456,16 +468,18 @@ export default function HeaderMenuExperiencePage() {
             Quay lại danh sách
           </Link>
         </div>
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={(!hasChanges && !hasStyleChanges) || isSaving}
-          className="gap-1.5"
-          style={{ backgroundColor: resolvedBrandColor }}
-        >
-          {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          <span>{hasChanges || hasStyleChanges ? 'Lưu' : 'Đã lưu'}</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={(!hasChanges && !hasStyleChanges) || isSaving}
+            className="gap-1.5"
+            style={{ backgroundColor: resolvedBrandColor }}
+          >
+            {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            <span>{hasChanges || hasStyleChanges ? 'Lưu' : 'Đã lưu'}</span>
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -649,6 +663,32 @@ export default function HeaderMenuExperiencePage() {
               onChange={updateFlatSubMenus}
               accentColor={resolvedBrandColor}
             />
+            <ToggleRow
+              label="Nút Dark Mode ở site thực"
+              checked={config.showDarkModeToggle ?? false}
+              onChange={updateShowDarkModeToggle}
+              accentColor={resolvedBrandColor}
+            />
+            <ToggleRow
+              label="Bật nền Glassmorphism (macOS style)"
+              checked={config.enableGlassmorphism ?? false}
+              onChange={updateEnableGlassmorphism}
+              accentColor={resolvedBrandColor}
+            />
+            <div className="py-2 px-2.5 bg-slate-100/50 dark:bg-slate-800/40 rounded-lg border border-slate-200/25 dark:border-slate-700/30 mt-1 flex items-center justify-between gap-2 text-xs">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">
+                Mặc định cả web: <span className="text-slate-700 dark:text-slate-350 font-bold">{
+                  siteDarkModeSetting?.value === 'dark' ? 'Chế độ tối (Dark)' :
+                  siteDarkModeSetting?.value === 'system' ? 'Theo hệ thống' : 'Chế độ sáng (Light)'
+                }</span>
+              </span>
+              <Link
+                href="/system/experiences?tab=dark_mode"
+                className="text-cyan-600 dark:text-cyan-400 hover:underline shrink-0 font-bold"
+              >
+                Cài đặt →
+              </Link>
+            </div>
             <div className="space-y-2 pt-1">
               <Label className="text-xs">Màu tiêu đề cấp 1 Mega Menu</Label>
               <div className="grid grid-cols-3 gap-2">
@@ -899,7 +939,7 @@ export default function HeaderMenuExperiencePage() {
                   <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mb-1">Social icons</p>
                   <p className="text-[11px] leading-5 text-slate-400">
                     Social icons (YouTube, TikTok, Facebook, Instagram) lấy URL từ Settings → Social Media.
-                    Chỉnh sửa tại <a href="/system/settings" className="text-cyan-600 hover:underline">System Settings</a>.
+                    Chỉnh sửa tại <Link href="/system/settings" className="text-cyan-600 hover:underline">System Settings</Link>.
                   </p>
                 </div>
               </div>
