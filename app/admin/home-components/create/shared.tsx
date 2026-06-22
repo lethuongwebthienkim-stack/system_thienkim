@@ -8,7 +8,7 @@ import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import {
   AlertCircle, Award, Briefcase, Check, FileText, FolderTree,
-  Grid, HelpCircle, Image as ImageIcon, LayoutTemplate, MessageSquare, MousePointerClick,
+  Gamepad2, Grid, HelpCircle, Image as ImageIcon, LayoutTemplate, MessageSquare, MousePointerClick,
   Package, Phone, ShoppingBag, Star, Tag, UserCircle, User as UserIcon, Users, Zap
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, Label } from '../../components/ui';
@@ -42,6 +42,7 @@ const ICON_MAP: Record<string, typeof LayoutTemplate> = {
   HomepageCategoryHero: LayoutTemplate,
   Marquee: LayoutTemplate,
   Partners: Users,
+  PokemonChampions: Gamepad2,
   Popup: MessageSquare,
   Pricing: Tag,
   Process: LayoutTemplate,

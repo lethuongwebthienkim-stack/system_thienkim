@@ -21,6 +21,7 @@ import type {
   PricingStyle,
 } from '../../pricing/_types';
 import { AiDemoPricingImport } from '../../product-list/_components/AiDemoProductsImport';
+import { QuickRouteInput } from '@/app/admin/home-components/_shared/components/QuickRouteInput';
 
 const DEFAULT_PLANS: PricingEditorPlan[] = [
   {
@@ -453,11 +454,11 @@ export default function PricingCreatePage() {
                     setPricingPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, buttonText: e.target.value } : p)));
                   }}
                 />
-                <Input
+                <QuickRouteInput
                   placeholder="Link nút"
                   value={plan.buttonLink}
-                  onChange={(e) => {
-                    setPricingPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, buttonLink: e.target.value } : p)));
+                  onChangeValue={(v) => {
+                    setPricingPlans((prev) => prev.map((p) => (p.id === plan.id ? { ...p, buttonLink: v } : p)));
                   }}
                 />
               </div>

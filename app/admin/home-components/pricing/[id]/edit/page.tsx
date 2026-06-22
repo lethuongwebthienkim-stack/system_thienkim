@@ -23,6 +23,7 @@ import { FormSectionsToggleAllButton } from '../../../_shared/components/FormSec
 import { DEFAULT_SECTION_SPACING, type SectionSpacing } from '../../../_shared/types/sectionSpacing';
 import { extractSectionHeaderConfig } from '../../../_shared/hooks/useSectionHeaderState';
 import { useTypeColorOverrideState } from '../../../_shared/hooks/useTypeColorOverride';
+import { QuickRouteInput } from '@/app/admin/home-components/_shared/components/QuickRouteInput';
 import { useTypeFontOverrideState } from '../../../_shared/hooks/useTypeFontOverride';
 import { getSuggestedSecondary, resolveSecondaryByMode } from '../../../_shared/lib/typeColorOverride';
 import { PricingPreview } from '../../_components/PricingPreview';
@@ -731,10 +732,10 @@ export default function PricingEditPage({
                       value={plan.buttonText}
                       onChange={(event) => { updatePlan(plan.id, { buttonText: event.target.value }); }}
                     />
-                    <Input
+                    <QuickRouteInput
                       placeholder="Liên kết"
                       value={plan.buttonLink}
-                      onChange={(event) => { updatePlan(plan.id, { buttonLink: event.target.value }); }}
+                      onChangeValue={(v) => { updatePlan(plan.id, { buttonLink: v }); }}
                     />
                   </div>
                 </div>
