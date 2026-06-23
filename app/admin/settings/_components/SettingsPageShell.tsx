@@ -867,6 +867,13 @@ function SettingsContent({ section }: { section: SettingsSection }) {
           });
         }
       });
+      if (!settingsToSave.some((item) => item.key === 'enable_product_frames')) {
+        settingsToSave.push({
+          group: 'advanced',
+          key: 'enable_product_frames',
+          value: form.enable_product_frames === true || form.enable_product_frames === 'true',
+        });
+      }
       // Save watermark settings
       const watermarkKeys = [
         'enable_product_watermark',
