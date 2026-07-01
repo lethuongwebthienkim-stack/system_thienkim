@@ -30,6 +30,10 @@ const CtaRuntimeSection = dynamic(
   () => import('./sections/CtaRuntimeSection').then((mod) => ({ default: mod.CtaRuntimeSection })),
   { loading: () => null }
 );
+const CustomHomeRuntimeSection = dynamic(
+  () => import('./sections/CustomHomeRuntimeSection').then((mod) => ({ default: mod.CustomHomeRuntimeSection })),
+  { ssr: false, loading: () => null }
+);
 const FeaturesRuntimeSection = dynamic(
   () => import('./sections/FeaturesRuntimeSection').then((mod) => ({ default: mod.FeaturesRuntimeSection })),
   { loading: () => null }
@@ -116,6 +120,7 @@ export const homeComponentRegistry: Record<string, ComponentType<any>> = {
   Contact: ContactSection,
   Countdown: CountdownSectionWrapper,
   CTA: CtaRuntimeSection,
+  CustomHome: CustomHomeRuntimeSection,
   FAQ: FaqRuntimeSection,
   Features: FeaturesRuntimeSection,
   Hero: HeroRuntimeSection,

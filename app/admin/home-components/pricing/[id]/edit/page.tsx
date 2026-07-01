@@ -144,6 +144,8 @@ export default function PricingEditPage({
   const router = useRouter();
   const { customState, effectiveColors, initialCustom, setCustomState, setInitialCustom, showCustomBlock } = useTypeColorOverrideState(COMPONENT_TYPE);
   const { customState: customFontState, effectiveFont, initialCustom: initialFontCustom, setCustomState: setCustomFontState, setInitialCustom: setInitialFontCustom, showCustomBlock: showFontCustomBlock } = useTypeFontOverrideState(COMPONENT_TYPE);
+  const systemConfig = useQuery(api.homeComponentSystemConfig.getConfig);
+  const isVisualEditAllowed = systemConfig?.typeVisualEditOverrides?.[COMPONENT_TYPE]?.enabled ?? true;
   const setTypeColorOverride = useMutation(api.homeComponentSystemConfig.setTypeColorOverride);
   const setTypeFontOverride = useMutation(api.homeComponentSystemConfig.setTypeFontOverride);
   const liveComponent = useQuery(api.homeComponents.getById, snapshotComponent ? 'skip' : { id: id as Id<'homeComponents'> });
@@ -811,6 +813,23 @@ export default function PricingEditPage({
               spacing,
             }}
             gridCols={pricingConfig.gridCols}
+            isVisualEditAllowed={isVisualEditAllowed}
+            onTitleChange={setTitle}
+            onSubtitleChange={setSubtitle}
+            onBadgeTextChange={setBadgeText}
+            onItemsChange={(nextPlans) => {
+              setPricingPlans(nextPlans.map((plan, idx) => ({
+                id: pricingPlans[idx]?.id ?? idx + 1,
+                name: plan.name,
+                price: plan.price,
+                yearlyPrice: plan.yearlyPrice ?? '',
+                period: plan.period,
+                features: plan.features,
+                isPopular: plan.isPopular,
+                buttonText: plan.buttonText,
+                buttonLink: plan.buttonLink,
+              })));
+            }}
           />
         </div>
 

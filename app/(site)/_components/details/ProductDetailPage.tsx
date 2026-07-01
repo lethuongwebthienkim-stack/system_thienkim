@@ -20,7 +20,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useInView } from 'react-intersection-observer';
 import { api } from '@/convex/_generated/api';
-import { useBrandColors } from '@/components/site/hooks';
+import { useBrandColors, useSiteSettings } from '@/components/site/hooks';
 import {
   getProductDetailColors,
   resolveProductDetailElementColor,
@@ -424,15 +424,17 @@ function useEnabledProductFields(): Set<string> {
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+  initialProduct?: any;
 }
 
-export default function ProductDetailPage({ params }: PageProps) {
+export default function ProductDetailPage({ params, initialProduct }: PageProps) {
   const { slug } = use(params);
   const brandColors = useBrandColors();
   const brandColor = brandColors.primary;
+  const { isDark } = useSiteSettings();
   const tokens = useMemo(
-    () => getProductDetailColors(brandColors.primary, brandColors.secondary, brandColors.mode || 'single'),
-    [brandColors.primary, brandColors.secondary, brandColors.mode]
+    () => getProductDetailColors(brandColors.primary, brandColors.secondary, brandColors.mode || 'single', isDark),
+    [brandColors.primary, brandColors.secondary, brandColors.mode, isDark]
   );
   const experienceConfig = useProductDetailExperienceConfig();
   const classicHighlights = useClassicHighlights();
@@ -457,7 +459,8 @@ export default function ProductDetailPage({ params }: PageProps) {
   const incrementLike = useMutation(api.comments.incrementLike);
   const decrementLike = useMutation(api.comments.decrementLike);
   
-  const product = useQuery(api.products.getBySlug, { slug });
+  const productQuery = useQuery(api.products.getBySlug, { slug });
+  const product = productQuery ?? (initialProduct as Exclude<typeof productQuery, undefined>);
 
   const enableProductTypesSetting = useQuery(api.admin.modules.getModuleSetting, { moduleKey: 'products', settingKey: 'enableProductTypes' });
   const enableProductTypes = enableProductTypesSetting?.value === true;

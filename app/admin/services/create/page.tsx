@@ -21,6 +21,7 @@ import {
 import { HomeComponentStickyFooter } from '@/app/admin/home-components/_shared/components/HomeComponentStickyFooter';
 import { AiEntityImportDialog, type AiEntityImportPayload } from '@/app/admin/components/AiEntityImportDialog';
 import { CategoryTagsInput } from '@/app/admin/components/AdditionalCategoriesSelect';
+import { AdvancedSeoFields, SeoFormTabs, normalizeSeoFaqItems, type SeoFaqItem, type SeoFormTab } from '@/app/admin/components/AdvancedSeoFields';
 
 const MODULE_KEY = 'services';
 
@@ -59,6 +60,11 @@ export default function ServiceCreatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editorResetKey, setEditorResetKey] = useState(0);
+  const [seoTab, setSeoTab] = useState<SeoFormTab>('content');
+  const [focusKeyword, setFocusKeyword] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [relatedQueries, setRelatedQueries] = useState<string[]>([]);
+  const [faqItems, setFaqItems] = useState<SeoFaqItem[]>([]);
 
   useEffect(() => {
     if (settingsData) {
@@ -82,7 +88,25 @@ export default function ServiceCreatePage() {
   const hasMarkdownRender = enabledFields.has('markdownRender');
   const hasHtmlRender = enabledFields.has('htmlRender');
   const showAdvancedRenderCard = hasMarkdownRender || hasHtmlRender;
+  const showAdvancedSeoFields = enabledFields.has('focusKeyword')
+    || enabledFields.has('tags')
+    || enabledFields.has('relatedQueries')
+    || enabledFields.has('faqItems');
   const multiCategoryEnabled = Boolean(settingsData?.find(s => s.settingKey === 'enableMultipleCategories')?.value);
+  const aiImportCurrentData = useMemo<AiEntityImportPayload>(() => ({
+    content: content.trim(),
+    duration: duration.trim(),
+    excerpt: excerpt.trim(),
+    featured,
+    htmlRender: htmlRender.trim(),
+    markdownRender: markdownRender.trim(),
+    metaDescription: metaDescription.trim(),
+    metaTitle: metaTitle.trim(),
+    price,
+    slug: slug.trim(),
+    thumbnail: thumbnail ?? '',
+    title: title.trim(),
+  }), [content, duration, excerpt, featured, htmlRender, markdownRender, metaDescription, metaTitle, price, slug, thumbnail, title]);
 
   const generateSlugFromTitle = (value: string) => value.toLowerCase()
       .normalize("NFD").replaceAll(/[\u0300-\u036F]/g, "")
@@ -126,6 +150,10 @@ export default function ServiceCreatePage() {
     }
     if (typeof item.price === 'number') {setPrice(item.price);}
     if (item.duration) {setDuration(item.duration);}
+    if (item.focusKeyword) {setFocusKeyword(item.focusKeyword);}
+    if (item.tags) {setTags(item.tags);}
+    if (item.relatedQueries) {setRelatedQueries(item.relatedQueries);}
+    if (item.faqItems) {setFaqItems(normalizeSeoFaqItems(item.faqItems));}
     setEditorResetKey((prev) => prev + 1);
   };
 
@@ -162,6 +190,10 @@ export default function ServiceCreatePage() {
         metaTitle: enabledFields.has('metaTitle')
           ? (metaTitle.trim() || resolvedMetaTitle || undefined)
           : undefined,
+        focusKeyword: enabledFields.has('focusKeyword') ? (focusKeyword.trim() || undefined) : undefined,
+        relatedQueries: enabledFields.has('relatedQueries') ? relatedQueries : undefined,
+        tags: enabledFields.has('tags') ? tags : undefined,
+        faqItems: enabledFields.has('faqItems') ? normalizeSeoFaqItems(faqItems) : undefined,
         price,
         slug: slug.trim() || title.toLowerCase().replaceAll(/\s+/g, '-'),
         status,
@@ -200,28 +232,32 @@ export default function ServiceCreatePage() {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              <div className="space-y-2">
-                 <Label>Tiêu đề <span className="text-red-500">*</span></Label>
-                <CopyableInput value={title} onChange={handleTitleChange} required placeholder="Nhập tiêu đề dịch vụ..." copyLabel="tiêu đề" />
-              </div>
-              <div className="space-y-2">
-                <Label>Slug</Label>
-                <Input value={slug} onChange={(e) =>{  setSlug(e.target.value); }} placeholder="tu-dong-tao-tu-tieu-de" className="font-mono text-sm" />
-              </div>
-              {enabledFields.has('excerpt') && (
-                 <div className="space-y-2">
-                   <Label>Mô tả ngắn</Label>
-                   <Input value={excerpt} onChange={(e) =>{  setExcerpt(e.target.value); }} placeholder="Tóm tắt nội dung dịch vụ..." />
-                 </div>
-               )}
-              <div className="space-y-2">
-                 <Label>Nội dung</Label>
-                 <LexicalEditor onChange={setContent} initialContent={content} resetKey={editorResetKey} />
-              </div>
-            </CardContent>
-          </Card>
+          <SeoFormTabs activeTab={seoTab} onChange={setSeoTab} />
+
+          {seoTab === 'content' ? (
+            <>
+              <Card>
+                <CardContent className="p-6 space-y-4">
+                  <div className="space-y-2">
+                     <Label>Tiêu đề <span className="text-red-500">*</span></Label>
+                    <CopyableInput value={title} onChange={handleTitleChange} required placeholder="Nhập tiêu đề dịch vụ..." copyLabel="tiêu đề" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Slug</Label>
+                    <Input value={slug} onChange={(e) =>{  setSlug(e.target.value); }} placeholder="tu-dong-tao-tu-tieu-de" className="font-mono text-sm" />
+                  </div>
+                  {enabledFields.has('excerpt') && (
+                     <div className="space-y-2">
+                       <Label>Mô tả ngắn</Label>
+                       <Input value={excerpt} onChange={(e) =>{  setExcerpt(e.target.value); }} placeholder="Tóm tắt nội dung dịch vụ..." />
+                     </div>
+                   )}
+                  <div className="space-y-2">
+                     <Label>Nội dung</Label>
+                     <LexicalEditor onChange={setContent} initialContent={content} resetKey={editorResetKey} />
+                  </div>
+                </CardContent>
+              </Card>
 
           {isBookingsModuleEnabled && (
             <Card>
@@ -366,7 +402,30 @@ export default function ServiceCreatePage() {
               </CardContent>
             </Card>
           )}
-        </div>
+          </>
+        ) : showAdvancedSeoFields ? (
+          <AdvancedSeoFields
+            focusKeyword={focusKeyword}
+            onFocusKeywordChange={setFocusKeyword}
+            tags={tags}
+            onTagsChange={setTags}
+            relatedQueries={relatedQueries}
+            onRelatedQueriesChange={setRelatedQueries}
+            faqItems={faqItems}
+            onFaqItemsChange={setFaqItems}
+            showFocusKeyword={enabledFields.has('focusKeyword')}
+            showTags={enabledFields.has('tags')}
+            showRelatedQueries={enabledFields.has('relatedQueries')}
+            showFaqItems={enabledFields.has('faqItems')}
+          />
+        ) : (
+          <Card>
+            <CardContent className="py-8 text-center text-sm text-slate-500">
+              SEO nâng cao đang tắt trong cấu hình module Services.
+            </CardContent>
+          </Card>
+        )}
+      </div>
         
         <div className="space-y-6">
           <Card>
@@ -498,7 +557,7 @@ export default function ServiceCreatePage() {
         <>
           <Button type="button" variant="ghost" onClick={() =>{  router.push('/admin/services'); }}>Hủy bỏ</Button>
           <div className="flex flex-wrap justify-end gap-2">
-            <AiEntityImportDialog kind="service" enabledFields={enabledFields} onApply={handleApplyAiService} />
+            <AiEntityImportDialog kind="service" currentData={aiImportCurrentData} enabledFields={enabledFields} onApply={handleApplyAiService} />
             <Button type="submit" variant="accent" disabled={isSubmitting || !title.trim() || !categoryId} className="bg-teal-600 hover:bg-teal-500">
               {isSubmitting && <Loader2 size={16} className="animate-spin mr-2" />}
               Đăng

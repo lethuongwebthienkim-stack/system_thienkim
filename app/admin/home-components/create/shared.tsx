@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import {
-  AlertCircle, Award, Briefcase, Check, FileText, FolderTree,
+  AlertCircle, Award, Briefcase, Check, Code2, FileText, FolderTree,
   Gamepad2, Grid, HelpCircle, Image as ImageIcon, LayoutTemplate, MessageSquare, MousePointerClick,
   Package, Phone, ShoppingBag, Star, Tag, UserCircle, User as UserIcon, Users, Zap
 } from 'lucide-react';
@@ -34,6 +34,7 @@ const ICON_MAP: Record<string, typeof LayoutTemplate> = {
   Contact: Phone,
   Countdown: AlertCircle,
   CTA: MousePointerClick,
+  CustomHome: Code2,
   FAQ: HelpCircle,
   Features: Zap,
   Footer: LayoutTemplate,

@@ -82,11 +82,33 @@ export const MINI_APP_DEFINITIONS: MiniAppDefinition[] = [
     type: 'pokemon-champions',
     visibility: 'public',
   },
+  {
+    adminEnabled: true,
+    config: {
+      accent: '#7c3aed',
+      gameSource: {
+        type: 'CustomHome',
+      },
+    },
+    description: 'Cổng trò chơi mini game HTML5 chạy độc lập với cơ sở dữ liệu riêng.',
+    icon: 'Gamepad2',
+    key: 'mini-game',
+    moduleKey: 'miniApps',
+    name: 'Mini Game',
+    noindex: true,
+    order: 4,
+    routeMode: 'root',
+    routeSlug: 'mini-game',
+    siteEnabled: true,
+    type: 'mini-game',
+    visibility: 'public',
+  },
 ];
 
 export const MINI_APP_TYPE_LABELS: Record<string, string> = {
   'cv-builder': 'CV Builder',
   kanban: 'Kanban',
+  'mini-game': 'Mini Game',
   'pokemon-champions': 'Pokemon Champions',
 };
 

@@ -319,6 +319,13 @@ export default defineSchema({
     // SEO fields
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
+    focusKeyword: v.optional(v.string()),
+    relatedQueries: v.optional(v.array(v.string())),
+    tags: v.optional(v.array(v.string())),
+    faqItems: v.optional(v.array(v.object({
+      question: v.string(),
+      answer: v.string(),
+    }))),
     productType: v.optional(v.union(v.literal("physical"), v.literal("digital"))),
     productTypeId: v.optional(v.id("productTypes")), // Liên kết đến Loại sản phẩm (hệ thống Phân loại mới)
     digitalDeliveryType: v.optional(
@@ -619,6 +626,13 @@ export default defineSchema({
     // SEO fields
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
+    focusKeyword: v.optional(v.string()),
+    relatedQueries: v.optional(v.array(v.string())),
+    tags: v.optional(v.array(v.string())),
+    faqItems: v.optional(v.array(v.object({
+      question: v.string(),
+      answer: v.string(),
+    }))),
   })
     .index("by_slug", ["slug"])
     .index("by_category_status", ["categoryId", "status"])
@@ -856,6 +870,7 @@ export default defineSchema({
 
   pokemonChampionsCustomers: defineTable({
     contactHandle: v.string(),
+    contactKey: v.optional(v.string()),
     contactType: v.union(
       v.literal("discord"),
       v.literal("whatsapp"),
@@ -873,6 +888,7 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_contactHandle", ["contactHandle"])
+    .index("by_contactKey", ["contactKey"])
     .index("by_contactType", ["contactType"])
     .index("by_status_updatedAt", ["status", "updatedAt"])
     .index("by_updatedAt", ["updatedAt"]),
@@ -892,9 +908,20 @@ export default defineSchema({
     customerName: v.string(),
     gameItemId: v.optional(v.id("pokemonChampionsGameItems")),
     note: v.optional(v.string()),
+    offerSlug: v.optional(v.literal("premium-pass-starter")),
+    offerSnapshot: v.optional(v.any()),
     orderNumber: v.string(),
     pokemonId: v.optional(v.id("pokemonChampionsPokemon")),
+    promoCode: v.optional(v.literal("FIRST_ORDER_FREE_POKEMON")),
+    promoEligible: v.optional(v.boolean()),
+    promoSnapshot: v.optional(v.any()),
     quantity: v.number(),
+    source: v.optional(v.union(
+      v.literal("pokemon-card"),
+      v.literal("quick-order"),
+      v.literal("promo-banner"),
+      v.literal("premium-pass")
+    )),
     status: v.union(
       v.literal("new"),
       v.literal("contacted"),
@@ -920,6 +947,28 @@ export default defineSchema({
     instagramUrl: v.optional(v.string()),
     key: v.string(),
     orderInstructions: v.string(),
+    premiumPass: v.optional(v.object({
+      benefits: v.object({
+        storageDuration: v.literal("permanent"),
+        storageSlots: v.number(),
+        teammateTickets: v.number(),
+        trainingTickets: v.number(),
+      }),
+      ctaText: v.string(),
+      enabled: v.boolean(),
+      priceLabel: v.optional(v.string()),
+      subtitle: v.optional(v.string()),
+      title: v.string(),
+    })),
+    promoBanner: v.optional(v.object({
+      badge: v.optional(v.string()),
+      body: v.string(),
+      campaignCode: v.literal("FIRST_ORDER_FREE_POKEMON"),
+      ctaText: v.string(),
+      enabled: v.boolean(),
+      terms: v.optional(v.string()),
+      title: v.string(),
+    })),
     shopStatus: v.union(v.literal("open"), v.literal("paused")),
     themeColor: v.string(),
     updatedAt: v.number(),
@@ -943,6 +992,31 @@ export default defineSchema({
     .index("by_active_order", ["active", "order"])
     .index("by_order", ["order"]),
 
+  // 17q. miniGames - isolated HTML mini game portal
+  miniGames: defineTable({
+    active: v.boolean(),
+    config: v.object({
+      source: v.string(),
+      js: v.optional(v.string()),
+      css: v.optional(v.string()),
+      allowScripts: v.optional(v.boolean()),
+      allowForms: v.optional(v.boolean()),
+      allowPopups: v.optional(v.boolean()),
+    }),
+    order: v.number(),
+    title: v.string(),
+    slug: v.string(),
+    category: v.string(),
+    desc: v.optional(v.string()),
+    image: v.optional(v.string()),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_active_order", ["active", "order"]),
+
+  miniGameStats: defineTable({
+    key: v.string(),
+    count: v.number(),
+  }).index("by_key", ["key"]),
 
   // 17a. homeComponentSnapshots - Snapshot bộ homepage để tái sử dụng liên dự án
   homeComponentSnapshots: defineTable({
@@ -1365,6 +1439,13 @@ export default defineSchema({
     // SEO fields
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
+    focusKeyword: v.optional(v.string()),
+    relatedQueries: v.optional(v.array(v.string())),
+    tags: v.optional(v.array(v.string())),
+    faqItems: v.optional(v.array(v.object({
+      question: v.string(),
+      answer: v.string(),
+    }))),
   })
     .index("by_slug", ["slug"])
     .index("by_category_status", ["categoryId", "status"])
@@ -1438,6 +1519,13 @@ export default defineSchema({
     featured: v.optional(v.boolean()),
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
+    focusKeyword: v.optional(v.string()),
+    relatedQueries: v.optional(v.array(v.string())),
+    tags: v.optional(v.array(v.string())),
+    faqItems: v.optional(v.array(v.object({
+      question: v.string(),
+      answer: v.string(),
+    }))),
   })
     .index("by_slug", ["slug"])
     .index("by_category_status", ["categoryId", "status"])
@@ -1524,6 +1612,13 @@ export default defineSchema({
     lessonCount: v.number(),
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
+    focusKeyword: v.optional(v.string()),
+    relatedQueries: v.optional(v.array(v.string())),
+    tags: v.optional(v.array(v.string())),
+    faqItems: v.optional(v.array(v.object({
+      question: v.string(),
+      answer: v.string(),
+    }))),
   })
     .index("by_slug", ["slug"])
     .index("by_category_status", ["categoryId", "status"])
@@ -1673,6 +1768,13 @@ export default defineSchema({
     featured: v.optional(v.boolean()),
     metaTitle: v.optional(v.string()),
     metaDescription: v.optional(v.string()),
+    focusKeyword: v.optional(v.string()),
+    relatedQueries: v.optional(v.array(v.string())),
+    tags: v.optional(v.array(v.string())),
+    faqItems: v.optional(v.array(v.object({
+      question: v.string(),
+      answer: v.string(),
+    }))),
   })
     .index("by_slug", ["slug"])
     .index("by_category_status", ["categoryId", "status"])

@@ -13,8 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
   Label,
+  Checkbox,
   cn,
 } from '@/app/admin/components/ui';
+import {
+  buildAiFillMissingPrompt,
+  buildAiFillMissingSample,
+  mergeAiMissingFields,
+} from '@/lib/ai-import/fill-missing';
 import { CVData } from '../types/cv';
 import { DEVELOPER_SAMPLE_DATA } from '../data/sample';
 
@@ -65,7 +71,7 @@ export function escapeControlCharacters(str: string): string {
   return result;
 }
 
-export function parseAiCV(raw: string): ParseResult {
+export function parseAiCV(raw: string, fallbackData?: CVData): ParseResult {
   const errors: string[] = [];
   if (!raw.trim()) {
     return { item: null, errors: [] };
@@ -96,6 +102,10 @@ export function parseAiCV(raw: string): ParseResult {
     if (typeof data !== 'object') {
       errors.push("Dữ liệu phải là một object chứa các trường của CV");
       return { item: null, errors };
+    }
+
+    if (fallbackData) {
+      data = mergeAiMissingFields(fallbackData, data, { appendArrayItems: true });
     }
 
     // Kiểm tra personalInfo
@@ -291,6 +301,7 @@ BẮT BUỘC trả về đúng cấu trúc JSON sau đây, không có bất kỳ
 
 export function AiCVImportDialog({
   onApply,
+  currentData,
   buttonClassName,
   buttonLabel = 'Nhập AI',
 }: {
@@ -302,10 +313,17 @@ export function AiCVImportDialog({
   const [open, setOpen] = useState(false);
   const [rawInput, setRawInput] = useState('');
   const [lastCopied, setLastCopied] = useState<'prompt' | 'sample' | null>(null);
+  const [fillMissingOnly, setFillMissingOnly] = useState(false);
 
-  const prompt = useMemo(() => TECHNICAL_PROMPT.trim(), []);
-  const sample = useMemo(() => JSON.stringify(DEVELOPER_SAMPLE_DATA, null, 2), []);
-  const result = useMemo(() => parseAiCV(rawInput), [rawInput]);
+  const basePrompt = useMemo(() => TECHNICAL_PROMPT.trim(), []);
+  const prompt = useMemo(() => fillMissingOnly
+    ? buildAiFillMissingPrompt(basePrompt, currentData ?? {}, { contextLabel: 'Dữ liệu CV hiện có trong form' })
+    : basePrompt, [basePrompt, currentData, fillMissingOnly]);
+  const baseSample = useMemo(() => JSON.stringify(DEVELOPER_SAMPLE_DATA, null, 2), []);
+  const sample = useMemo(() => fillMissingOnly
+    ? buildAiFillMissingSample(baseSample, currentData ?? {})
+    : baseSample, [baseSample, currentData, fillMissingOnly]);
+  const result = useMemo(() => parseAiCV(rawInput, fillMissingOnly ? currentData : undefined), [currentData, fillMissingOnly, rawInput]);
   const canApply = rawInput.trim().length > 0 && Boolean(result.item) && result.errors.length === 0;
 
   const copyText = async (value: string, type: 'prompt' | 'sample') => {
@@ -317,7 +335,10 @@ export function AiCVImportDialog({
 
   const applyItem = () => {
     if (result.item) {
-      onApply(result.item);
+      const appliedItem = fillMissingOnly
+        ? mergeAiMissingFields(currentData ?? {}, result.item, { appendArrayItems: true }) as CVData
+        : result.item;
+      onApply(appliedItem);
       setOpen(false);
       setRawInput('');
     }
@@ -345,6 +366,14 @@ export function AiCVImportDialog({
               Nhập các yêu cầu ứng tuyển (Mô tả công việc - JD, Doanh nghiệp) và thông tin kinh nghiệm cá nhân để ChatJPT sinh dữ liệu CV tối ưu nhất.
             </DialogDescription>
           </DialogHeader>
+
+          <div className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3 text-xs dark:border-slate-800 dark:bg-slate-950/20">
+            <span className="font-semibold text-slate-700 dark:text-slate-300">Tùy chọn Prompt AI:</span>
+            <label className="flex cursor-pointer select-none items-center gap-2">
+              <Checkbox checked={fillMissingOnly} onCheckedChange={(checked) => setFillMissingOnly(checked)} />
+              <span className="font-medium text-slate-600 dark:text-slate-400">Chỉ tạo phần còn thiếu</span>
+            </label>
+          </div>
 
           <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr] mt-2 text-left">
             <div className="space-y-3">
@@ -381,6 +410,7 @@ export function AiCVImportDialog({
               <div className="space-y-2">
                 <Label className="text-xs font-semibold text-slate-805 dark:text-slate-200">Thông tin ứng tuyển & Kinh nghiệm</Label>
                 <AiDirectGeneratePanel
+                  allowEmptyBrief={fillMissingOnly}
                   prompt={prompt}
                   sessionId="cv-builder-ai-import"
                   onGenerated={setRawInput}

@@ -14,7 +14,7 @@ import { SettingsImageUploader } from '../../components/SettingsImageUploader';
 import { TagInput } from '../../components/TagInput';
 import MapLocationPicker from '../MapLocationPicker';
 import { HomeComponentStickyFooter } from '@/app/admin/home-components/_shared/components/HomeComponentStickyFooter';
-import { AiSeoImportDialog } from './AiSeoImportDialog';
+import { AiSeoImportDialog, type AiSeoImportPayload } from './AiSeoImportDialog';
 import { SeoBuilderDialog } from './SeoBuilderDialog';
 import { ProductSupplementalContentManager } from './ProductSupplementalContentManager';
 import { ShopConfigAdminContainer } from '@/components/modules/orders/ShopConfigAdminContainer';
@@ -32,6 +32,7 @@ import {
 
 type SettingsSection = 'site' | 'contact' | 'seo' | 'advanced';
 type SettingsFormValue = string | boolean;
+type SeoTab = 'basic' | 'brand';
 type AdvancedTab = 'product-placeholder' | 'product-frame' | 'watermark' | 'header' | 'product-supplemental' | 'shop-config' | 'contact-link' | 'email-config';
 const ADVANCED_TAB_ORDER: AdvancedTab[] = ['product-placeholder', 'product-frame', 'watermark', 'header', 'product-supplemental', 'shop-config', 'contact-link', 'email-config'];
 type HeaderConfig = {
@@ -126,6 +127,74 @@ const GROUP_LABELS: Record<string, string> = {
 const SEO_META_LIMITS: Record<string, number> = {
   seo_description: 160,
   seo_title: 60,
+};
+
+const SEO_BRAND_FIELD_KEYS = [
+  'seo_brand_aliases',
+  'seo_brand_summary',
+  'seo_brand_entity_type',
+  'seo_brand_search_queries',
+  'seo_brand_topics',
+  'seo_brand_services',
+  'seo_brand_audience',
+  'seo_brand_differentiators',
+  'seo_brand_proof_points',
+  'seo_brand_same_as',
+  'seo_site_search_path',
+] as const;
+
+const SEO_BRAND_FIELD_KEY_SET = new Set<string>(SEO_BRAND_FIELD_KEYS);
+
+const SEO_FIELD_HELP: Record<string, { help: string; placeholder: string }> = {
+  seo_brand_aliases: {
+    help: 'Tên gọi khác, viết liền/viết rời/viết tắt. Ví dụ: Dohy, Dohy Studio, DOHY Media, dohystudio, dohy studio.',
+    placeholder: 'Dohy, Dohy Studio, DOHY Media, dohystudio, dohy studio',
+  },
+  seo_brand_audience: {
+    help: 'Nói rõ ai là khách chính và họ thường cần gì khi tìm đến website.',
+    placeholder: 'Doanh nghiệp, marketer, chủ dự án cần hình ảnh 3D để bán hàng và thuyết trình...',
+  },
+  seo_brand_differentiators: {
+    help: 'Điểm khiến thương hiệu khác đối thủ, nên viết bằng lợi ích thật, dễ kiểm chứng.',
+    placeholder: 'Quy trình rõ ràng, hình ảnh sắc nét, tư vấn theo mục tiêu kinh doanh...',
+  },
+  seo_brand_entity_type: {
+    help: 'Chọn kiểu gần nhất: Thương hiệu/công ty chung, cửa hàng có địa chỉ, hoặc đơn vị chuyên cung cấp dịch vụ.',
+    placeholder: 'ProfessionalService',
+  },
+  seo_brand_proof_points: {
+    help: 'Bằng chứng tin cậy như portfolio, số năm kinh nghiệm, chứng nhận, khách hàng, cam kết.',
+    placeholder: 'Portfolio dự án thực tế, quy trình minh bạch, kênh liên hệ chính thức...',
+  },
+  seo_brand_same_as: {
+    help: 'Mỗi dòng một link kênh chính thức như Google Business, YouTube, TikTok, LinkedIn, Facebook.',
+    placeholder: 'https://www.youtube.com/@brand\nhttps://www.tiktok.com/@brand',
+  },
+  seo_brand_search_queries: {
+    help: 'Các cách khách có thể gõ tên thương hiệu, gồm viết liền, viết rời hoặc tên cũ. Không thêm tên đối thủ.',
+    placeholder: 'dohy, dohystudio, dohy studio, dohy media',
+  },
+  seo_brand_services: {
+    help: 'Những sản phẩm hoặc dịch vụ quan trọng nhất muốn Google hiểu và gợi ý.',
+    placeholder: 'dựng hình 3D, render kiến trúc, animation 3D',
+  },
+  seo_brand_summary: {
+    help: 'Viết 1-2 câu nói thương hiệu là ai, làm gì và dành cho ai.',
+    placeholder: 'Dohy Studio là studio hình ảnh 3D chuyên render kiến trúc, diễn họa sản phẩm và visual marketing...',
+  },
+  seo_brand_topics: {
+    help: 'Các chủ đề chính mà website muốn được ghi nhớ.',
+    placeholder: '3D visualization, architectural rendering, product rendering, visual marketing',
+  },
+  seo_site_search_path: {
+    help: 'Đường dẫn ô tìm kiếm của website. Giữ {search_term_string} để hệ thống thay bằng từ khóa.',
+    placeholder: '/search?q={search_term_string}',
+  },
+};
+
+const SEO_FIELD_DEFAULTS: Partial<Record<(typeof SEO_BRAND_FIELD_KEYS)[number], string>> = {
+  seo_brand_entity_type: 'Organization',
+  seo_site_search_path: '/search?q={search_term_string}',
 };
 
 const REMOVED_SEO_KEYS = new Set([
@@ -246,6 +315,8 @@ function SettingsContent({ section }: { section: SettingsSection }) {
   const [isSecondaryAuto, setIsSecondaryAuto] = useState(true);
   const [hasCleanedSeoFields, setHasCleanedSeoFields] = useState(false);
   const [hasCleanedContactFields, setHasCleanedContactFields] = useState(false);
+  const [hasSyncedSeoRuntimeFields, setHasSyncedSeoRuntimeFields] = useState(false);
+  const [seoTab, setSeoTab] = useState<SeoTab>('basic');
   const [advancedTab, setAdvancedTab] = useState<AdvancedTab>('product-placeholder');
   const [headerConfigDraft, setHeaderConfigDraft] = useState<HeaderConfig>(DEFAULT_HEADER_CONFIG);
   const [initialHeaderConfig, setInitialHeaderConfig] = useState<HeaderConfig>(DEFAULT_HEADER_CONFIG);
@@ -389,6 +460,7 @@ function SettingsContent({ section }: { section: SettingsSection }) {
   // Mutations
   const setMultiple = useMutation(api.settings.setMultiple);
   const removeMultiple = useMutation(api.settings.removeMultiple);
+  const syncModuleConfig = useMutation(api.admin.modules.syncModuleConfigFromDefinition);
 
   const isLoading = settingsData === undefined
     || featuresData === undefined
@@ -477,6 +549,11 @@ function SettingsContent({ section }: { section: SettingsSection }) {
       if (values[PRODUCT_CONTACT_SALE_CUSTOM_URL_KEY] === undefined) {
         values[PRODUCT_CONTACT_SALE_CUSTOM_URL_KEY] = '';
       }
+      SEO_BRAND_FIELD_KEYS.forEach((key) => {
+        if (values[key] === undefined) {
+          values[key] = SEO_FIELD_DEFAULTS[key] ?? '';
+        }
+      });
       if (values.enable_product_frames === undefined) {
         values.enable_product_frames = false;
       }
@@ -574,6 +651,21 @@ function SettingsContent({ section }: { section: SettingsSection }) {
   }, [settingsData, hasCleanedSeoFields, removeMultiple]);
 
   useEffect(() => {
+    if (section !== 'seo' || !fieldsData || hasSyncedSeoRuntimeFields) {return;}
+    const fieldKeys = new Set(fieldsData.map((field) => field.fieldKey));
+    const hasMissingBrandFields = SEO_BRAND_FIELD_KEYS.some((fieldKey) => !fieldKeys.has(fieldKey));
+    if (!hasMissingBrandFields) {
+      setHasSyncedSeoRuntimeFields(true);
+      return;
+    }
+    setHasSyncedSeoRuntimeFields(true);
+    void syncModuleConfig({ moduleKey: MODULE_KEY }).catch((error) => {
+      console.error('Failed to sync settings SEO runtime fields:', error);
+      toast.warning('Chưa đồng bộ được field Brand SEO. Hãy thử tải lại trang.');
+    });
+  }, [fieldsData, hasSyncedSeoRuntimeFields, section, syncModuleConfig]);
+
+  useEffect(() => {
     if (!settingsData || hasCleanedContactFields) {return;}
     const hasRemoved = settingsData.some(setting => REMOVED_CONTACT_KEYS.has(setting.key));
     if (!hasRemoved) {
@@ -626,6 +718,14 @@ function SettingsContent({ section }: { section: SettingsSection }) {
 
   const updateField = (key: string, value: string | boolean) => {
     setForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applySeoPayload = (payload: AiSeoImportPayload) => {
+    Object.entries(payload).forEach(([key, value]) => {
+      if (typeof value === 'string' && value.trim()) {
+        updateField(key, value);
+      }
+    });
   };
 
   const getStringField = (key: string, fallback = '') => {
@@ -975,6 +1075,7 @@ function SettingsContent({ section }: { section: SettingsSection }) {
     const value = form[field.fieldKey];
     const stringValue = typeof value === 'string' ? value : '';
     const key = field.fieldKey;
+    const fieldHelp = SEO_FIELD_HELP[key];
     const metaLimit = SEO_META_LIMITS[key];
     const showCounter = Boolean(metaLimit);
     const counterText = showCounter ? `${stringValue.length}/${metaLimit}` : null;
@@ -1234,8 +1335,9 @@ function SettingsContent({ section }: { section: SettingsSection }) {
               value={stringValue}
               onChange={(e) =>{  updateField(key, e.target.value); }}
               className="w-full min-h-[80px] rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
-              placeholder={`Nhập ${field.name.toLowerCase()}...`}
+              placeholder={fieldHelp?.placeholder ?? `Nhập ${field.name.toLowerCase()}...`}
             />
+            {fieldHelp?.help && <p className="text-xs text-slate-500">{fieldHelp.help}</p>}
           </div>
         );
       }
@@ -1271,6 +1373,25 @@ function SettingsContent({ section }: { section: SettingsSection }) {
                 <option value="vi">Tiếng Việt</option>
                 <option value="en">English</option>
               </select>
+            </div>
+          );
+        }
+        if (key === 'seo_brand_entity_type') {
+          return (
+            <div className="space-y-2" key={key}>
+              <Label>{field.name}</Label>
+              <select
+                value={stringValue || 'Organization'}
+                onChange={(e) =>{  updateField(key, e.target.value); }}
+                className="w-full h-10 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-sm"
+              >
+                <option value="Organization">Thương hiệu / công ty chung</option>
+                <option value="LocalBusiness">Cửa hàng / doanh nghiệp có địa chỉ</option>
+                <option value="ProfessionalService">Đơn vị cung cấp dịch vụ chuyên môn</option>
+              </select>
+              <p className="text-xs text-slate-500">
+                Nếu website bán dịch vụ như studio, agency, tư vấn, thiết kế, đào tạo, hãy chọn “Đơn vị cung cấp dịch vụ chuyên môn”.
+              </p>
             </div>
           );
         }
@@ -1427,9 +1548,9 @@ function SettingsContent({ section }: { section: SettingsSection }) {
             <TagInput
               value={stringValue}
               onChange={(val) =>{  updateField(key, val); }}
-              placeholder="Nhập từ khóa và nhấn Enter..."
+              placeholder={fieldHelp?.placeholder ?? 'Nhập từ khóa và nhấn Enter...'}
             />
-            <p className="text-xs text-slate-500">Nhấn Enter để thêm, Backspace để xóa</p>
+            <p className="text-xs text-slate-500">{fieldHelp?.help ?? 'Nhấn Enter để thêm, Backspace để xóa'}</p>
           </div>
         );
       }
@@ -1448,8 +1569,9 @@ function SettingsContent({ section }: { section: SettingsSection }) {
             <Input
               value={stringValue}
               onChange={(e) =>{  updateField(key, e.target.value); }}
-              placeholder={`Nhập ${field.name.toLowerCase()}...`}
+              placeholder={fieldHelp?.placeholder ?? `Nhập ${field.name.toLowerCase()}...`}
             />
+            {fieldHelp?.help && <p className="text-xs text-slate-500">{fieldHelp.help}</p>}
           </div>
         );
       }
@@ -1470,6 +1592,13 @@ function SettingsContent({ section }: { section: SettingsSection }) {
 
   const currentFields = fieldsByGroup[section] ?? [];
   const socialFields = section === 'contact' ? (fieldsByGroup.social ?? []) : [];
+  const seoBasicFields = section === 'seo'
+    ? currentFields.filter(field => !SEO_BRAND_FIELD_KEY_SET.has(field.fieldKey))
+    : [];
+  const seoBrandFields = section === 'seo'
+    ? currentFields.filter(field => SEO_BRAND_FIELD_KEY_SET.has(field.fieldKey))
+    : [];
+  const activeSeoFields = seoTab === 'brand' ? seoBrandFields : seoBasicFields;
   const hasAdvancedPlaceholderField = currentFields.some(field => field.fieldKey === 'product_image_placeholder');
   const headerCta = {
     ...DEFAULT_HEADER_CONFIG.cta,
@@ -2555,6 +2684,47 @@ function SettingsContent({ section }: { section: SettingsSection }) {
                     </div>
                   )}
                 </div>
+              ) : section === 'seo' ? (
+                <div className="space-y-5">
+                  <div className="flex flex-wrap gap-2 border-b border-slate-200 dark:border-slate-700">
+                    <button
+                      type="button"
+                      onClick={() => setSeoTab('basic')}
+                      className={cn(
+                        'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+                        seoTab === 'basic'
+                          ? 'border-orange-500 text-slate-900 dark:text-slate-100'
+                          : 'border-transparent text-slate-500 hover:text-slate-700'
+                      )}
+                    >
+                      Cơ bản
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSeoTab('brand')}
+                      className={cn(
+                        'px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
+                        seoTab === 'brand'
+                          ? 'border-orange-500 text-slate-900 dark:text-slate-100'
+                          : 'border-transparent text-slate-500 hover:text-slate-700'
+                      )}
+                    >
+                      Thương hiệu
+                    </button>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400">
+                    {seoTab === 'basic'
+                      ? 'Điền tiêu đề, mô tả, từ khóa và ảnh chia sẻ cho trang chủ.'
+                      : 'Điền tên gọi khác, cách khách hay gõ tên thương hiệu, dịch vụ chính và các kênh chính thức.'}
+                  </div>
+                  {activeSeoFields.length > 0 ? (
+                    activeSeoFields.map(field => renderField(field))
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-slate-700">
+                      Chưa có trường nào trong tab này.
+                    </div>
+                  )}
+                </div>
               ) : (
                 currentFields.map(field => renderField(field))
               )}
@@ -2593,19 +2763,11 @@ function SettingsContent({ section }: { section: SettingsSection }) {
             <>
               <AiSeoImportDialog
                 form={form}
-                onApply={(payload) => {
-                  if (payload.seo_title) updateField('seo_title', payload.seo_title);
-                  if (payload.seo_description) updateField('seo_description', payload.seo_description);
-                  if (payload.seo_keywords) updateField('seo_keywords', payload.seo_keywords);
-                }}
+                onApply={applySeoPayload}
               />
               <SeoBuilderDialog
                 form={form}
-                onApply={(payload) => {
-                  if (payload.seo_title) updateField('seo_title', payload.seo_title);
-                  if (payload.seo_description) updateField('seo_description', payload.seo_description);
-                  if (payload.seo_keywords) updateField('seo_keywords', payload.seo_keywords);
-                }}
+                onApply={applySeoPayload}
               />
             </>
           )}

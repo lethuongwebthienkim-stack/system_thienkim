@@ -1,4 +1,6 @@
 'use client';
+import { usePreviewVisualEdit } from '../../_shared/components/PreviewWrapper';
+
 
 import React from 'react';
 import { BrowserFrame } from '../../_shared/components/BrowserFrame';
@@ -28,7 +30,7 @@ const MARQUEE_STYLES: Array<{ id: MarqueeStyle; label: string }> = [
 ];
 
 export const MarqueePreview = ({
-  items,
+  items = [],
   brandColor,
   secondary,
   mode = 'dual',
@@ -54,8 +56,12 @@ export const MarqueePreview = ({
   badgeText,
   spacing,
   cornerRadius,
+  onTitleChange,
+  onSubtitleChange,
+  onBadgeTextChange,
+  onItemsChange,
 }: {
-  items: MarqueeItem[];
+  items?: MarqueeItem[];
   brandColor: string;
   secondary: string;
   mode?: MarqueeBrandMode;
@@ -81,11 +87,19 @@ export const MarqueePreview = ({
   badgeText?: string;
   spacing?: SectionSpacing;
   cornerRadius?: MarqueeCornerRadius;
+  onTitleChange?: (value: string) => void;
+  onSubtitleChange?: (value: string) => void;
+  onBadgeTextChange?: (value: string) => void;
+  onItemsChange?: (items: MarqueeItem[]) => void;
 }) => {
   const { device, setDevice } = usePreviewDevice();
   const { isDark } = usePreviewDark();
+  const [visualEditEnabled, setVisualEditEnabled] = React.useState(false);
   const previewStyle = selectedStyle ?? 'ribbon';
-  const itemCount = items.length;
+  const itemCount = items?.length ?? 0;
+  const isVisualEditAllowed = Boolean(onItemsChange || onTitleChange || onSubtitleChange || onBadgeTextChange);
+  const visualEditContext = usePreviewVisualEdit();
+  const isVisualEditActive = isVisualEditAllowed && (visualEditContext.active || visualEditEnabled);
 
   const setPreviewStyle = (style: string) => {
     if (['ribbon', 'gradient', 'minimal', 'dark', 'split', 'stripe'].includes(style)) {
@@ -110,6 +124,9 @@ export const MarqueePreview = ({
       info={`${itemCount} mục`}
       fontStyle={fontStyle}
       fontClassName={fontClassName}
+      visualEditActive={isVisualEditActive}
+      visualEditAllowed={isVisualEditAllowed}
+      onVisualEditToggle={() => setVisualEditEnabled((prev) => !prev)}
     >
       <BrowserFrame>
         <div className="@container/preview">
@@ -140,6 +157,11 @@ export const MarqueePreview = ({
             badgeText={badgeText}
             spacing={spacing}
             cornerRadius={cornerRadius}
+            visualEditEnabled={isVisualEditActive}
+            onItemsChange={onItemsChange}
+            onTitleChange={onTitleChange}
+            onSubtitleChange={onSubtitleChange}
+            onBadgeTextChange={onBadgeTextChange}
           />
         </div>
       </BrowserFrame>

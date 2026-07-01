@@ -62,6 +62,7 @@ import type * as media from "../media.js";
 import type * as menus from "../menus.js";
 import type * as migrationBundles from "../migrationBundles.js";
 import type * as miniApps from "../miniApps.js";
+import type * as miniGames from "../miniGames.js";
 import type * as model_comments from "../model/comments.js";
 import type * as model_courseCategories from "../model/courseCategories.js";
 import type * as model_courses from "../model/courses.js";
@@ -176,6 +177,7 @@ declare const fullApi: ApiFromModules<{
   menus: typeof menus;
   migrationBundles: typeof migrationBundles;
   miniApps: typeof miniApps;
+  miniGames: typeof miniGames;
   "model/comments": typeof model_comments;
   "model/courseCategories": typeof model_courseCategories;
   "model/courses": typeof model_courses;

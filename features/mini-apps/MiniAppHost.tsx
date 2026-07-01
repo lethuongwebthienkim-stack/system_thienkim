@@ -5,6 +5,7 @@ import type { Id } from '@/convex/_generated/dataModel';
 import { KanbanMiniApp } from './kanban/KanbanMiniApp';
 import { CVBuilderMiniApp } from './cv-builder/CVBuilderMiniApp';
 import { PokemonChampionsMiniApp } from './pokemon-champions/PokemonChampionsMiniApp';
+import { MiniGameMiniApp } from './mini-game/MiniGameMiniApp';
 
 export type MiniAppHostProps = {
   appConfig?: Record<string, unknown>;
@@ -52,6 +53,17 @@ export function MiniAppHost({
       <PokemonChampionsMiniApp
         appConfig={appConfig}
         appId={appId}
+        appName={appName}
+        editable={editable}
+        standalone={standalone}
+      />
+    );
+  }
+
+  if (appType === 'mini-game') {
+    return (
+      <MiniGameMiniApp
+        appConfig={appConfig}
         appName={appName}
         editable={editable}
         standalone={standalone}

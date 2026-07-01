@@ -1197,6 +1197,7 @@ function MenuItemsEditor({ menuId }: { menuId: Id<"menus"> }) {
 
       {/* AI Import Dialog */}
       <AiMenuImportDialog
+        currentItems={draftItems.map((item) => ({ depth: item.depth, label: item.label }))}
         open={isAiImportOpen}
         onOpenChange={setIsAiImportOpen}
         onApply={handleAiImportApply}
