@@ -110,6 +110,26 @@ async function resetHomeComponentCreateVisibility(ctx: MutationCtx) {
   await ctx.db.insert("settings", { group: "home_components", key: "create_hidden_types", value: [] });
 }
 
+async function syncLinkedFeatureFields(
+  ctx: MutationCtx,
+  moduleKey: string,
+  featureKey: string,
+  enabled: boolean,
+  linkedFieldKey?: string
+) {
+  const fields = await ctx.db
+    .query("moduleFields")
+    .withIndex("by_module", (q) => q.eq("moduleKey", moduleKey))
+    .collect();
+  const linkedFields = fields.filter((field) =>
+    !field.isSystem && (
+      field.linkedFeature === featureKey
+      || Boolean(linkedFieldKey && field.fieldKey === linkedFieldKey)
+    )
+  );
+  await Promise.all(linkedFields.map((field) => ctx.db.patch(field._id, { enabled })));
+}
+
 async function normalizeMenuItemsToMaxLevel(ctx: MutationCtx, maxLevelRaw: unknown) {
   const maxLevel = resolveMenuMaxDepthLevel(maxLevelRaw);
   const maxDepth = maxLevel - 1;
@@ -867,6 +887,7 @@ export const toggleModuleFeature = mutation({
         enabled: args.enabled,
         name: derivedName || args.featureKey,
       });
+      await syncLinkedFeatureFields(ctx, args.moduleKey, args.featureKey, args.enabled);
 
       if (args.moduleKey === "settings" && args.featureKey === "enableTrustPages") {
         if (args.enabled) {
@@ -895,16 +916,7 @@ export const toggleModuleFeature = mutation({
       return null;
     }
     await ctx.db.patch(feature._id, { enabled: args.enabled });
-    if (feature.linkedFieldKey) {
-      const fields = await ctx.db
-        .query("moduleFields")
-        .withIndex("by_module", (q) => q.eq("moduleKey", args.moduleKey))
-        .collect();
-      const linkedField = fields.find((f) => f.fieldKey === feature.linkedFieldKey);
-      if (linkedField && !linkedField.isSystem) {
-        await ctx.db.patch(linkedField._id, { enabled: args.enabled });
-      }
-    }
+    await syncLinkedFeatureFields(ctx, args.moduleKey, args.featureKey, args.enabled, feature.linkedFieldKey);
 
     if (args.moduleKey === "settings" && args.featureKey === "enableTrustPages") {
       if (args.enabled) {
