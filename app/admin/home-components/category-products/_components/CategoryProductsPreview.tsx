@@ -45,8 +45,8 @@ interface CategoryProductsPreviewProps {
   mode: CategoryProductsBrandMode;
   selectedStyle: CategoryProductsStyle;
   onStyleChange: (style: CategoryProductsStyle) => void;
-  categoriesData: { _id: string; name: string; slug?: string; image?: string }[];
-  productsData: CategoryProductsProduct[];
+  categoriesData?: { _id: string; name: string; slug?: string; image?: string }[];
+  productsData?: CategoryProductsProduct[];
   fontStyle?: React.CSSProperties;
   fontClassName?: string;
   title?: string;
@@ -61,8 +61,8 @@ export const CategoryProductsPreview = ({
   mode,
   selectedStyle,
   onStyleChange, 
-  categoriesData,
-  productsData,
+  categoriesData = [],
+  productsData = [],
   fontStyle,
   fontClassName,
   title = 'Sản phẩm theo danh mục',
@@ -155,7 +155,7 @@ export const CategoryProductsPreview = ({
         }));
     }
 
-    return config.sections
+    return (config.sections ?? [])
       .map((section) => {
         const category = categoriesData.find(c => c._id === section.categoryId);
         if (!category) {return null;}
