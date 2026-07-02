@@ -459,7 +459,7 @@ export const toggleModule = mutation({
     }
     await ctx.db.patch(moduleRecord._id, { enabled: args.enabled, updatedBy: args.updatedBy });
     if (args.key === "roles") {
-      await upsertAdminPermissionMode(ctx, "simple_full_admin");
+      await upsertAdminPermissionMode(ctx, args.enabled ? "rbac" : "simple_full_admin");
     }
     if (args.enabled && args.key === "homepage") {
       await resetHomeComponentCreateVisibility(ctx);
@@ -598,7 +598,7 @@ export const toggleModuleWithCascade = mutation({
       }
 
       if (args.key === "roles") {
-        await upsertAdminPermissionMode(ctx, "simple_full_admin");
+        await upsertAdminPermissionMode(ctx, "rbac");
       }
       if (args.key === "homepage") {
         await resetHomeComponentCreateVisibility(ctx);
