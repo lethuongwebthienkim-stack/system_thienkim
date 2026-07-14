@@ -813,6 +813,51 @@ export default defineSchema({
     .index("by_enabled_order", ["enabled", "order"])
     .index("by_site_enabled_order", ["siteEnabled", "order"]),
 
+  telegramBotCommands: defineTable({
+    active: v.boolean(),
+    command: v.string(),
+    createdAt: v.number(),
+    order: v.number(),
+    replyText: v.string(),
+    updatedAt: v.number(),
+  })
+    .index("by_command", ["command"])
+    .index("by_active_order", ["active", "order"])
+    .index("by_order", ["order"]),
+
+  telegramBotProducts: defineTable({
+    active: v.boolean(),
+    createdAt: v.number(),
+    description: v.string(),
+    icon: v.string(),
+    order: v.number(),
+    payload: v.string(),
+    price: v.number(),
+    qrImageUrl: v.optional(v.string()),
+    slug: v.string(),
+    tag: v.string(),
+    title: v.string(),
+    updatedAt: v.number(),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_active_order", ["active", "order"])
+    .index("by_order", ["order"]),
+
+  telegramBotOrders: defineTable({
+    amount: v.number(),
+    createdAt: v.number(),
+    orderCode: v.string(),
+    payload: v.optional(v.string()),
+    productSlug: v.string(),
+    status: v.union(v.literal("pending_payment"), v.literal("paid"), v.literal("delivered"), v.literal("cancelled")),
+    telegramChatId: v.string(),
+    telegramUserId: v.optional(v.string()),
+    updatedAt: v.number(),
+  })
+    .index("by_orderCode", ["orderCode"])
+    .index("by_chat_createdAt", ["telegramChatId", "createdAt"])
+    .index("by_status_createdAt", ["status", "createdAt"]),
+
   // 17p. Pokemon Champions mini app - isolated ordering app data
   pokemonChampionsGameItems: defineTable({
     active: v.boolean(),
