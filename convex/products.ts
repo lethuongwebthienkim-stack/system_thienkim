@@ -2808,50 +2808,71 @@ export const reorder = mutation({
 export const bulkRemove = mutation({
   args: { ids: v.array(v.id("products")) },
   handler: async (ctx, args) => {
-    let deletedCount = 0;
-
-    for (const id of args.ids) {
-      const product = await ctx.db.get(id);
-      if (!product) {continue;}
-
-      // Collect related items
-      const [comments, wishlistItems, cartItems] = await Promise.all([
-        ctx.db
-          .query("comments")
-          .withIndex("by_target_status", (q) =>
-            q.eq("targetType", "product").eq("targetId", id)
-          )
-          .collect(),
-        ctx.db
-          .query("wishlist")
-          .withIndex("by_product", (q) => q.eq("productId", id))
-          .collect(),
-        ctx.db
-          .query("cartItems")
-          .withIndex("by_product", (q) => q.eq("productId", id))
-          .collect(),
-      ]);
-
-      // Batch delete related items
-      await Promise.all([
-        ...comments.map( async (c) => ctx.db.delete(c._id)),
-        ...wishlistItems.map( async (w) => ctx.db.delete(w._id)),
-        ...cartItems.map( async (c) => ctx.db.delete(c._id)),
-      ]);
-
-      await removeOwnerFilesAndCleanup(ctx, {
-        ownerId: id,
-        ownerTable: "products",
-      }, {
-        previousStorageIds: [product.imageStorageId, ...(product.imageStorageIds ?? [])],
+    if (args.ids.length > 25) {
+      throw new ConvexError({
+        code: "BULK_REMOVE_LIMIT_EXCEEDED",
+        message: "Để tránh quá tải hệ thống, mỗi lần chỉ nên chọn tối đa 25 sản phẩm để xóa. Vui lòng chia nhỏ số lượng.",
       });
-
-      await ctx.db.delete(id);
-      await updateStats(ctx, { old: product.status });
-      deletedCount++;
     }
 
-    return deletedCount;
+    try {
+      let deletedCount = 0;
+
+      for (const id of args.ids) {
+        const product = await ctx.db.get(id);
+        if (!product) {continue;}
+
+        // Collect related items
+        const [comments, wishlistItems, cartItems] = await Promise.all([
+          ctx.db
+            .query("comments")
+            .withIndex("by_target_status", (q) =>
+              q.eq("targetType", "product").eq("targetId", id)
+            )
+            .collect(),
+          ctx.db
+            .query("wishlist")
+            .withIndex("by_product", (q) => q.eq("productId", id))
+            .collect(),
+          ctx.db
+            .query("cartItems")
+            .withIndex("by_product", (q) => q.eq("productId", id))
+            .collect(),
+        ]);
+
+        // Batch delete related items
+        await Promise.all([
+          ...comments.map( async (c) => ctx.db.delete(c._id)),
+          ...wishlistItems.map( async (w) => ctx.db.delete(w._id)),
+          ...cartItems.map( async (c) => ctx.db.delete(c._id)),
+        ]);
+
+        await removeOwnerFilesAndCleanup(ctx, {
+          ownerId: id,
+          ownerTable: "products",
+        }, {
+          previousStorageIds: [product.imageStorageId, ...(product.imageStorageIds ?? [])],
+        });
+
+        await ctx.db.delete(id);
+        await updateStats(ctx, { old: product.status });
+        deletedCount++;
+      }
+
+      return deletedCount;
+    } catch (error: any) {
+      if (error instanceof ConvexError) {
+        throw error;
+      }
+      const errorMessage = String(error?.message ?? error);
+      if (errorMessage.includes("Too many bytes read") || errorMessage.includes("limit")) {
+        throw new ConvexError({
+          code: "BULK_REMOVE_BYTES_EXCEEDED",
+          message: "Dữ liệu hình ảnh dọn dẹp vượt quá giới hạn xử lý trong 1 lần. Vui lòng chọn ít sản phẩm hơn để xóa.",
+        });
+      }
+      throw error;
+    }
   },
   returns: v.number(),
 });
